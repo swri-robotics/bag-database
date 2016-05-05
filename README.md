@@ -78,6 +78,7 @@ To start a PostgreSQL container with PostGIS support:
 ```
 docker run -d \
     --name bagdb-postgres \
+    -v /var/lib/bagdb-postgres:/var/lib/postgresql/data \
     -e POSTGRES_PASSWORD=letmein \
     -e POSTGRES_USER=bag_database \
     -e POSTGRES_DB=bag_database \
