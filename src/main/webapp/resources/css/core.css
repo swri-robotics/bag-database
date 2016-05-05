@@ -1,0 +1,69 @@
+.bag-action-icon {
+    margin-right: 4px;
+}
+
+/* Text in the error grid will wrap normally */
+td.wrapped-cell > div {
+    white-space: normal;
+}
+
+/* Italicizes rows for missing files */
+.missing-bag-row {
+    font-style: italic;
+}
+
+/* The status icon in the bottom left of the page */
+.status-text-icon {
+    vertical-align: middle;
+    width: 16px;
+    height: 16px;
+    background-repeat: no-repeat;
+    background-position-x: left;
+    padding-left: 20px;
+}
+
+/* The default for the OpenLayers map is relative, which causes some weird
+   rendering issues after resizing multiple times. */
+div.ol-viewport {
+    position: absolute !important;
+}
+
+.config-icon {
+    background-image: url('../images/cog.png');
+}
+
+.cross-icon {
+    background-image: url('../images/cross.png');
+}
+
+.database-icon {
+    background-image: url('../images/database.png');
+}
+
+.information-icon {
+    background-image: url('../images/information.png');
+}
+
+.loading-icon {
+    background-image: url('../images/loading.gif');
+}
+
+.login-icon {
+    background-image: url('../images/door_in.png');
+}
+
+.logout-icon {
+    background-image: url('../images/door_out.png');
+}
+
+.map-icon {
+    background-image: url('../images/map.png');
+}
+
+.save-icon {
+    background-image: url('../images/save.png');
+}
+
+.tick-icon {
+    background-image: url('../images/tick.png');
+}

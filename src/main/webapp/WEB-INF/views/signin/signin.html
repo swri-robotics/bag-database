@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="fragments/header :: libs">
+</head>
+<body>
+<script th:inline="javascript">
+    var csrfName = /*[[${_csrf.parameterName}]]*/ '';
+    var csrfToken = /*[[${_csrf.token}]]*/ '';
+    var error = /*[[${param.error}]]*/ null;
+    var logout = /*[[${param.logout}]]*/ null;
+    Ext.Loader.setPath('BagDatabase', 'resources/js');
+
+    Ext.onReady(function() {
+        if (logout) {
+            Ext.Msg.alert('Logged Out', 'You have been logged out successfully.',
+                function() {
+                    window.location = window.location.pathname.replace("signin", "");
+                }
+            );
+            return;
+        }
+
+        var win = Ext.create('BagDatabase.views.LoginWindow', {
+            error: error
+        });
+
+        win.show();
+        win.focus();
+    });
+</script>
+</body>
+</html>

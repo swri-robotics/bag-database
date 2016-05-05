@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration scan="true" scanPeriod="3 seconds">
+	<contextName>bag-database</contextName>
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>
+				%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{32} - %msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="LOGFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${catalina.base}/logs/bag_database.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>bag_database.%d{yyyy-MM-dd}.log.zip</fileNamePattern>
+        </rollingPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<jmxConfigurator />
+	<root level="INFO">
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="LOGFILE" />
+	</root>
+
+    <logger name="org.hibernate.SQL" level="INFO" />
+    <logger name="org.hibernate.type" level="INFO" />
+    <logger name="org.hibernate.search" level="INFO" />
+	<logger name="com.github.swrirobotics" level="DEBUG" />
+	<logger name="com.github.swrirobotics.bags.reader.messages.serialization" level="INFO"/>
+	<logger name="org.springframework" level="INFO" />
+	<logger name="org.springframework.web.socket" level="INFO"/>
+</configuration>

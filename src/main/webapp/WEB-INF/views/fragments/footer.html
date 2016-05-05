@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link href="../../../resources/css/bootstrap.min.css" rel="stylesheet" media="screen" th:href="@{/resources/css/bootstrap.min.css}"/>
+</head>
+<body>
+    <div th:fragment="footer" th:align="center">
+        &copy; 2016 Southwest Research Institute <span th:text="${@environment.getProperty('app.version')}"></span>
+    </div>
+</body>
+</html>
+

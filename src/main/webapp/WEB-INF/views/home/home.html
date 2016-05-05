@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="fragments/header :: libs">
+</head>
+<body>
+    <script th:inline="javascript">
+        /* This is kind of lazy, but there are a few config values that affect the user interface,
+         * so I just store them in global variables and access them later.
+         */
+        var useMapQuest = /*[[${config.useMapQuest}]]*/ true;
+        var useBing = /*[[${config.useBing}]]*/ false;
+        var bingKey = /*[[${config.bingKey}]]*/ '';
+        var csrfName = /*[[${_csrf.parameterName}]]*/ '';
+        var csrfToken = /*[[${_csrf.token}]]*/'';
+        // Before you get too excited, this flag only controls which options show
+        // up in the Navigation menu.  It does not give the user the ability to
+        // perform administrative actions on the backend.
+        var isAdmin = /*[[${#authorization.expression('hasRole(''ROLE_ADMIN'')')}]]*/ false;
+        Ext.Loader.setPath('BagDatabase', 'resources/js');
+    </script>
+    <script th:src="@{/resources/js/application.js}"></script>
+</body>
+</html>

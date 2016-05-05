@@ -1,0 +1,13 @@
+*.iml
+*.ipr
+*.iws
+catalina.*/
+target/
+indexes/
+.idea/
+
+# The Hibernate JPAModelGen plugin currently puts the sources in generates
+# in the wrong place; they should be under target/generated-sources/, but
+# instead it puts them in /com/ . Ignore it until that's fixed...
+/com/
+/aspectj-generated-sources/

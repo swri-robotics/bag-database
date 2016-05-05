@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="libs">
+    <title th:text="#{view.index.title}">Bag Database</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="shortcut icon"
+          th:href="@{/resources/images/basket.png}" />
+    <link rel="stylesheet" media="screen"
+          th:href="@{/resources/css/core.css}" />
+    <link rel="stylesheet" media="screen"
+          th:href="@{/resources/js/ext/classic/theme-neptune/resources/theme-neptune-all.css}" />
+    <link rel="stylesheet" media="screen"
+          th:href="@{/resources/js/openlayers-3.15.1/css/ol.css}"/>
+
+    <script type="text/javascript" th:src="@{/resources/js/ext/ext-all.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/ext/classic/theme-neptune/theme-neptune.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/sockjs.min.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/stomp.min.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/openlayers-3.15.1/js/ol.js}"></script>
+</head>
+<body>
+<div class="navbar navbar-inverse navbar-fixed-top" th:fragment="header">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">Demo project</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="#" th:href="@{/}">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li th:if="${#authorization.expression('!isAuthenticated()')}">
+                    <a href="/signin" th:href="@{/signin}">
+                        <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span>&nbsp;Sign in
+                    </a>
+                </li>
+                <li th:if="${#authorization.expression('isAuthenticated()')}">
+                    <a href="/logout" th:href="@{#}" onclick="$('#form').submit();">
+                        <span class="glyphicon glyphicon-log-out" aria-hidden="true"></span>&nbsp;Logout
+                    </a>
+                    <form style="visibility: hidden" id="form" method="post" action="#" th:action="@{/logout}"></form>
+                </li>
+            </ul>
+        </div>
+        <!--/.nav-collapse -->
+    </div>
+</div>
+</body>
+</html>
