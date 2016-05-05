@@ -2,6 +2,7 @@
 
 2.1-SNAPSHOT
 
+- Adding Travis CI support
 - Expanding on GPS-related documentation
 
 2.0
