@@ -37,6 +37,18 @@ are stored and will be manually uploading files there.
 - **Displaying GPS Coordinates**: GPS coordinates recorded in a bag file are
   extracted and stored, and if support for Bing Maps or MapQuest is enabled you
   can view the vehicle's path on a map.
+  - The following message types are supported:
+    - `gps_common/GPSFix`
+    - `sensor_msgs/NavSatFix`
+    - `marti_gps_common/GPSFix`
+  - It will attempt to find those message on the following topics, in order of priority:
+    - `/localization/gps`
+    - `gps`
+    - `/vehicle/gps/fix`
+    - `/localization/sensors/gps/novatel/raw`
+    - `/localization/sensors/gps/novatel/fix`
+    - `/imu_3dm_node/gps/fix`
+    - `/local_xy_origin`
 - **Downloading**: Every bag file can be downloaded from the interface without
   needing to find it on the host filesystem.
 

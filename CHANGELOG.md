@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+2.1-SNAPSHOT
+
+- Expanding on GPS-related documentation
+
 2.0
 
 - Adding Tomcat manually installation instructions
