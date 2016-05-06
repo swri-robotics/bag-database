@@ -1,6 +1,6 @@
 # Bag Database changelog
 
-2.1-SNAPSHOT
+2.1
 
 - Vehicle name topics are configurable
 - GPS topics are configurable
