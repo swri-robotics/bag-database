@@ -33,19 +33,8 @@ Ext.define('BagDatabase.views.LoginWindow', {
     alias: 'widget.loginWindow',
     title: 'Login',
     layout: 'fit',
-    closable: false,
     defaultFocus: '#passwordField',
     constrainHeader: true,
-    listeners: {
-        beforerender: function(win) {
-            if (!win.error) {
-                // This is kind of ugly.  If this login window doesn't have the
-                // "error" property set, remove the error display field from the
-                // form.
-                win.down('#loginForm').items.items.shift();
-            }
-        }
-    },
     items: [{
         url: 'signin',
         xtype: 'form',
@@ -59,9 +48,6 @@ Ext.define('BagDatabase.views.LoginWindow', {
             anchor: '100%'
         },
         items: [{
-            xtype: 'displayfield',
-            value: '<span style="color: red">The password was incorrect.</span>',
-        }, {
             xtype: 'hidden',
             name: 'username',
             value: 'admin'

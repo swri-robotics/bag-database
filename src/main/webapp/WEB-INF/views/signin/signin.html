@@ -8,6 +8,7 @@
     var csrfToken = /*[[${_csrf.token}]]*/ '';
     var error = /*[[${param.error}]]*/ null;
     var logout = /*[[${param.logout}]]*/ null;
+
     Ext.Loader.setPath('BagDatabase', 'resources/js');
 
     Ext.onReady(function() {
@@ -21,11 +22,15 @@
         }
 
         var win = Ext.create('BagDatabase.views.LoginWindow', {
-            error: error
+            closable: false
         });
 
         win.show();
         win.focus();
+
+        if (error) {
+            Ext.Msg.alert('Error', 'The password was incorrect.');
+        }
     });
 </script>
 </body>

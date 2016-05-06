@@ -230,7 +230,7 @@ Ext.define('BagDatabase.views.AdminWindow', {
             this.width = 400;
             this.fbar = [{
                 xtype: 'errorButton',
-                itemId: 'errorButton',
+                itemId: 'errorButton'
             }, '-', {
                 xtype: 'statusText',
                 itemId: 'statusText'

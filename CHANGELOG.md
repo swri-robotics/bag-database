@@ -1,5 +1,11 @@
 # Bag Database changelog
 
+2.2-SNAPSHOT
+
+- Minifying Javascript for the release build
+- Adding a "debugJavascript" config option that will cause the non-minified files to load
+- Fixing some Javascript syntax errors
+
 2.1
 
 - Vehicle name topics are configurable

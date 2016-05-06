@@ -169,6 +169,10 @@ Header header
 ```
 If there are no topics configured or none of them are found, it will try to use the first topic it can find that publishes the `sensor_msgs/NavSatFix`, `gps_common/GPSFix`, or `marti_gps_common/GPSFix` messages, in that order.
 
+##### DEBUG_JAVASCRIPT
+
+Set this to `true` to force the application to load non-minified versions of Javascript files.  This will increase load times.  The default is `false`.
+
 ### As An Application Server Servlet
 
 Only Tomcat 8.0 with Java 8.0 has been tested.
