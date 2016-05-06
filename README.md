@@ -53,6 +53,14 @@ The preferred mechanism for running the bag database is as a
 
 `mvn package && sudo mvn docker:build`
 
+## Upgrading
+
+If you're using Docker, upgrading to the latest version is as easy as pulling 
+the latest image and re-creating the container.  Just run 
+`docker pull swrirobotics/bag-database:latest`, stop the old container, and set
+up a new one as described below.  Make sure you check the list of environment
+variables to see what's been changed or added.
+
 ## Running
 
 ### Docker (Preferred method)
