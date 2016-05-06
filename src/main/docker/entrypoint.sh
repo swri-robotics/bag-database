@@ -11,6 +11,7 @@ USE_BING=${USE_BING:-false}
 USE_MAPQUEST=${USE_MAPQUEST:-true}
 VEHICLE_NAME_TOPICS='['`echo ${VEHICLE_NAME_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
 GPS_TOPICS='['`echo ${GPS_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
+DEBUG_JAVASCRIPT=${DEBUG_JAVASCRIPT:-false}
 
 if [ ! -f ${HOME}/.ros-bag-database/settings.yml ]
 then
@@ -27,6 +28,7 @@ useBing: ${USE_BING}
 useMapQuest: ${USE_MAPQUEST}
 vehicleNameTopics: ${VEHICLE_NAME_TOPICS}
 gpsTopics: ${GPS_TOPICS}
+debugJavascript: ${DEBUG_JAVASCRIPT}
 " > ${HOME}/.ros-bag-database/settings.yml
 fi
 

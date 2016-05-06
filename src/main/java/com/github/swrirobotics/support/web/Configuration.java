@@ -30,10 +30,7 @@
 
 package com.github.swrirobotics.support.web;
 
-import com.google.common.collect.Lists;
-
 import java.io.Serializable;
-import java.util.List;
 
 public class Configuration implements Serializable {
     private String bagPath = "/bags";
@@ -48,6 +45,7 @@ public class Configuration implements Serializable {
     private String adminPassword = "";
     private String[] vehicleNameTopics = new String[0];
     private String[] gpsTopics = new String[0];
+    private Boolean debugJavascript = false;
 
     public String getBagPath() {
         return bagPath;
@@ -143,5 +141,13 @@ public class Configuration implements Serializable {
 
     public void setGpsTopics(String[] gpsTopics) {
         this.gpsTopics = gpsTopics;
+    }
+
+    public Boolean getDebugJavascript() {
+        return debugJavascript;
+    }
+
+    public void setDebugJavascript(Boolean debugJavascript) {
+        this.debugJavascript = debugJavascript;
     }
 }

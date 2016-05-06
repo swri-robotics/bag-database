@@ -8,15 +8,29 @@
     <link rel="stylesheet" media="screen"
           th:href="@{/resources/css/core.css}" />
     <link rel="stylesheet" media="screen"
-          th:href="@{/resources/js/ext/classic/theme-neptune/resources/theme-neptune-all.css}" />
+          th:href="@{/resources/js/external/ext/classic/theme-neptune/resources/theme-neptune-all.css}" />
     <link rel="stylesheet" media="screen"
-          th:href="@{/resources/js/openlayers-3.15.1/css/ol.css}"/>
+          th:href="@{/resources/js/external/openlayers-3.15.1/css/ol.css}"/>
 
-    <script type="text/javascript" th:src="@{/resources/js/ext/ext-all.js}"></script>
-    <script type="text/javascript" th:src="@{/resources/js/ext/classic/theme-neptune/theme-neptune.js}"></script>
-    <script type="text/javascript" th:src="@{/resources/js/sockjs.min.js}"></script>
-    <script type="text/javascript" th:src="@{/resources/js/stomp.min.js}"></script>
-    <script type="text/javascript" th:src="@{/resources/js/openlayers-3.15.1/js/ol.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/external/ext/ext-all.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/external/ext/classic/theme-neptune/theme-neptune.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/external/sockjs.min.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/external/stomp.min.js}"></script>
+    <script type="text/javascript" th:src="@{/resources/js/external/openlayers-3.15.1/js/ol.js}"></script>
+
+    <script th:inline="javascript">
+        // Before you get too excited, this flag only controls which options show
+        // up in the Navigation menu.  It does not give the user the ability to
+        // perform administrative actions on the backend.
+        var isAdmin = /*[[${#authorization.expression('hasRole(''ROLE_ADMIN'')')}]]*/ false;
+        if (/*[[${config != null and !config.debugJavascript}]]*/ true) {
+            Ext.Loader.setConfig({enabled: false});
+        }
+        else {
+            Ext.Loader.setPath('BagDatabase', 'resources/js');
+        }
+    </script>
+    <script type="text/javascript" th:src="@{/resources/js/compressed.js}" th:if="${config != null and !config.debugJavascript}"></script>
 </head>
 <body>
 <div class="navbar navbar-inverse navbar-fixed-top" th:fragment="header">

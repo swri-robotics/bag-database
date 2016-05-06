@@ -230,13 +230,13 @@ Ext.define('BagDatabase.views.BagGrid', {
         }]
     }],
     viewConfig: {
-        getRowClass(record, index, rowParams, store) {
+        getRowClass: function(record, index, rowParams, store) {
             return record.get('missing') ? 'missing-bag-row' : '';
         }
     },
     fbar: [{
         xtype: 'errorButton',
-        itemId: 'errorButton',
+        itemId: 'errorButton'
     }, '-', {
         xtype: 'statusText',
         itemId: 'statusText'
@@ -293,7 +293,7 @@ Ext.define('BagDatabase.views.BagGrid', {
         loadMask.show();
 
         var params = {
-            bagIds: bagIds,
+            bagIds: bagIds
         };
         params[csrfName] = csrfToken;
         Ext.Ajax.request({
