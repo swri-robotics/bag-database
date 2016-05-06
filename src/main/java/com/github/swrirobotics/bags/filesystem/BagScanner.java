@@ -39,6 +39,10 @@ import com.github.swrirobotics.bags.persistence.TopicRepository;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
+import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
+import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
+import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
@@ -203,23 +207,30 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
+            String[] vehicleNames = myConfigService.getConfiguration().getVehicleNameTopics();
+            if (vehicleNames.length == 0) {
+                myLogger.debug("No vehicle name topics configured.");
+                return;
+            }
+
             Bag bag = myBagRepo.findOne(bagId);
             if (bag.getVehicle() == null || bag.getVehicle().isEmpty()) {
                 String fullPath = bag.getPath() + bag.getFilename();
                 try {
                     BagFile bagFile = BagReader.readFile(fullPath);
-                    String name = bagFile.getVehicleName();
-                    if (name == null) {
-                        myLogger.debug("No message found on /vms/vehicle_name in bag " + fullPath + ".");
-                    }
-                    else {
-                        bag.setVehicle(name);
-                        myLogger.debug("Setting vehicle name for " + fullPath + " to: " +
-                                               name);
-                        myBagRepo.save(bag);
+                    // TODO Make vehicle name configurable
+                    for (String vehicleName : vehicleNames) {
+                        MessageType mt = bagFile.getFirstMessageOnTopic(vehicleName);
+                        if (mt != null) {
+                            String name = mt.<StringType>getField("data").getValue().replaceAll("\\p{C}", "").trim();
+                            myLogger.debug("Setting vehicle name for " + fullPath + " to: " +
+                                           name + " from topic " + vehicleName);
+                            myBagRepo.save(bag);
+                            return;
+                        }
                     }
                 }
-                catch (BagReaderException e) {
+                catch (BagReaderException | UninitializedFieldException e) {
                     reportStatus(Status.State.ERROR,
                                  "Unable to get vehicle name from bag file " + fullPath + ": " + e.getLocalizedMessage());
                     reportStatus(Status.State.WORKING, "Updating vehicle names for all bag files.");
@@ -259,19 +270,25 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                 String fullPath = bag.getPath() + bag.getFilename();
                 try {
                     BagFile bagFile = BagReader.readFile(fullPath);
-                    Double[] gpsMsg = bagFile.getFirstGpsMessage();
-                    if (gpsMsg == null) {
+                    MessageType mt = bagFile.getFirstMessageOfType("gps_common/GPSFix");
+                    if (mt == null) {
+                        mt = bagFile.getFirstMessageOfType("sensor_msgs/NavSatFix");
+                    }
+                    if (mt == null) {
+                        mt = bagFile.getFirstMessageOfType("marti_gps_common/GPSFix");
+                    }
+                    if (mt == null) {
                         myLogger.debug("No GPSFix or NavSatFix message found in bag " + fullPath + ".");
                     }
                     else {
-                        bag.setLatitudeDeg(gpsMsg[0]);
-                        bag.setLongitudeDeg(gpsMsg[1]);
+                        bag.setLatitudeDeg(mt.<Float64Type>getField("latitude").getValue());
+                        bag.setLongitudeDeg(mt.<Float64Type>getField("longitude").getValue());
                         myLogger.debug("Setting lat/lon for " + fullPath + " to: " +
                                                bag.getLatitudeDeg() + " / " + bag.getLongitudeDeg());
                         myBagRepo.save(bag);
                     }
                 }
-                catch (BagReaderException e) {
+                catch (BagReaderException | UninitializedFieldException e) {
                     reportStatus(Status.State.ERROR,
                                  "Unable to get GPS info from bag file " + fullPath + ": " + e.getLocalizedMessage());
                     reportStatus(Status.State.WORKING, "Updating GPS info for all bag files.");

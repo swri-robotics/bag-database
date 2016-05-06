@@ -33,7 +33,7 @@ Ext.define('BagDatabase.views.ConfigWindow', {
     alias: 'widget.configWindow',
     layout: 'fit',
     title: 'Bag Database Configuration',
-    width: 400,
+    width: 500,
     constrainHeader: true,
     items: [{
         xtype: 'form',
@@ -42,7 +42,7 @@ Ext.define('BagDatabase.views.ConfigWindow', {
         url: 'config/get',
         defaultType: 'textfield',
         defaults: {
-            labelWidth: 120,
+            labelWidth: 140,
             width: '100%'
         },
         items: [{
@@ -81,6 +81,12 @@ Ext.define('BagDatabase.views.ConfigWindow', {
         }, {
             fieldLabel: 'Bing Maps API Key',
             name: 'bingKey'
+        }, {
+            fieldLabel: 'Vehicle Name Topics',
+            name: 'vehicleNameTopics'
+        }, {
+            fieldLabel: 'GPS Topics',
+            name: 'gpsTopics'
         }],
         buttons: [{
             text: 'Save',

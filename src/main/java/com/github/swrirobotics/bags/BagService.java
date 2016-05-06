@@ -33,8 +33,14 @@ package com.github.swrirobotics.bags;
 import com.github.swrirobotics.bags.persistence.*;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
+import com.github.swrirobotics.bags.reader.MessageHandler;
 import com.github.swrirobotics.bags.reader.TopicInfo;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
+import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
+import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
+import com.github.swrirobotics.bags.reader.messages.serialization.TimeType;
+import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
@@ -78,6 +84,8 @@ public class BagService extends StatusProvider {
     @Autowired
     private TopicRepository myTopicRepository;
     @Autowired
+    public ConfigService myConfigService;
+    @Autowired
     private GeocodingService myGeocodingService;
     @PersistenceContext
     private EntityManager myEM;
@@ -85,6 +93,18 @@ public class BagService extends StatusProvider {
     final private Object myBagDbLock = new Object();
 
     private Logger myLogger = LoggerFactory.getLogger(BagService.class);
+
+    private static class GpsPosition {
+        public GpsPosition(Float64Type latitudeType, Float64Type longitudeType, TimeType timeType)
+                throws UninitializedFieldException {
+            latitude = latitudeType.getValue();
+            longitude = longitudeType.getValue();
+            stamp = timeType.getValue();
+        }
+        double latitude;
+        double longitude;
+        Timestamp stamp;
+    }
 
     @Transactional(readOnly = true)
     public Bag getBag(Long bagId) {
@@ -363,13 +383,72 @@ public class BagService extends StatusProvider {
         return bagIds;
     }
 
+    private List<GpsPosition> getAllGpsMessages(BagFile bag) {
+        List<GpsPosition> positions = Lists.newArrayList();
+
+        MessageHandler gpsHandler = ((message, conn) -> {
+            try {
+                positions.add(new GpsPosition(message.getField("latitude"),
+                                              message.getField("longitude"),
+                                              message.<com.github.swrirobotics.bags.reader.messages.serialization.MessageType>getField(
+                                                      "header").<TimeType>getField("stamp")));
+            }
+            catch (UninitializedFieldException e) {
+                return false;
+            }
+            return true;
+        });
+
+        try {
+            String[] gpsTopics = myConfigService.getConfiguration().getGpsTopics();
+            for (String topic : gpsTopics) {
+                bag.forMessagesOnTopic(topic, gpsHandler);
+                if (!positions.isEmpty()) {
+                    break;
+                }
+            }
+
+            if (positions.isEmpty()) {
+                bag.forFirstTopicWithMessagesOfType("sensor_msgs/NavSatFix", gpsHandler);
+            }
+            if (positions.isEmpty()) {
+                bag.forFirstTopicWithMessagesOfType("gps_common/GPSFix", gpsHandler);
+            }
+            if (positions.isEmpty()) {
+                bag.forFirstTopicWithMessagesOfType("marti_gps_common/GPSFix", gpsHandler);
+            }
+        }
+        catch (BagReaderException e) {
+            e.printStackTrace();
+        }
+
+        return positions;
+    }
+
+    private String getVehicleName(BagFile bag) {
+        String[] vehicleNames = myConfigService.getConfiguration().getVehicleNameTopics();
+        try {
+            for (String topic : vehicleNames) {
+                com.github.swrirobotics.bags.reader.messages.serialization.MessageType
+                        mt = bag.getFirstMessageOnTopic(topic);
+                if (mt != null) {
+                    return mt.<StringType>getField("data").getValue().replaceAll("\\p{C}", "").trim();
+                }
+            }
+        }
+        catch (BagReaderException | UninitializedFieldException e) {
+            // Do nothing
+        }
+        return null;
+    }
+
     @Transactional
     public void updateGpsPositionsForBagId(long bagId) {
         Bag bag = bagRepository.findOne(bagId);
         String fullPath = bag.getPath() + bag.getFilename();
         try {
             BagFile bagFile = BagReader.readFile(fullPath);
-            updateGpsPositions(bag, bagFile.getAllGpsMessages());
+            updateGpsPositions(bag, getAllGpsMessages(bagFile));
             bagRepository.save(bag);
         }
         catch (BagReaderException e) {
@@ -379,7 +458,7 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    public void updateGpsPositions(final Bag bag, final BagFile.GpsPositions gpsPositions) throws BagReaderException {
+    public void updateGpsPositions(final Bag bag, Collection<GpsPosition> gpsPositions) throws BagReaderException {
         List<BagPosition> existingPositions = bag.getBagPositions();
         if (!existingPositions.isEmpty()) {
             myLogger.warn("Adding new GPS positions for a bag that already has " +
@@ -392,17 +471,17 @@ public class BagService extends StatusProvider {
         String msg = "Inserting GPS positions for " + bag.getFilename() + ".";
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);
-        bag.setHasPath(!gpsPositions.positions.isEmpty());
-        for (int i = 0; i < gpsPositions.positions.size(); i++) {
+        bag.setHasPath(!gpsPositions.isEmpty());
+        for (GpsPosition gpsPos : gpsPositions) {
             BagPosition pos = new BagPosition();
             pos.setBag(bag);
-            pos.setLongitude(gpsPositions.positions.get(i)[0]);
-            pos.setLatitude(gpsPositions.positions.get(i)[1]);
-            pos.setPositionTime(gpsPositions.timestamps.get(i));
+            pos.setLongitude(gpsPos.longitude);
+            pos.setLatitude(gpsPos.latitude);
+            pos.setPositionTime(gpsPos.stamp);
             pos = myBagPositionRepository.save(pos);
             bag.getBagPositions().add(pos);
         }
-        msg = "Saved " + gpsPositions.positions.size() + " GPS positions for " +
+        msg = "Saved " + gpsPositions.size() + " GPS positions for " +
                 bag.getFilename() + ".";
         myLogger.trace(msg);
         reportStatus(Status.State.IDLE, msg);
@@ -455,7 +534,7 @@ public class BagService extends StatusProvider {
     public Bag insertNewBag(final BagFile bagFile,
                             final String md5sum,
                             final String locationName,
-                            final BagFile.GpsPositions gpsPositions) throws BagReaderException, DuplicateBagException {
+                            final List<GpsPosition> gpsPositions) throws BagReaderException, DuplicateBagException {
         Bag bag = bagRepository.findByMd5sum(md5sum);
 
         // We checked earlier if there were any other bags with this MD5 sum,
@@ -486,11 +565,11 @@ public class BagService extends StatusProvider {
         bag.setMissing(false);
         bag.setSize(file.length());
         bag.setVersion(bagFile.getVersion());
-        bag.setVehicle(bagFile.getVehicleName());
-        if (!gpsPositions.positions.isEmpty()) {
-            Double[] firstPos = gpsPositions.positions.get(0);
-            bag.setLatitudeDeg(firstPos[1]);
-            bag.setLongitudeDeg(firstPos[0]);
+        bag.setVehicle(getVehicleName(bagFile));
+        if (!gpsPositions.isEmpty()) {
+            GpsPosition pos = gpsPositions.get(0);
+            bag.setLatitudeDeg(pos.latitude);
+            bag.setLongitudeDeg(pos.longitude);
         }
         bag.setLocation(locationName);
         bag = bagRepository.save(bag);
@@ -643,15 +722,15 @@ public class BagService extends StatusProvider {
         // before locking on the mutex.
         BagFile bagFile;
         String locationName = null;
-        BagFile.GpsPositions gpsPositions;
+        List<GpsPosition> gpsPositions;
         try {
             bagFile = BagReader.readFile(file);
 
-            gpsPositions = bagFile.getAllGpsMessages();
+            gpsPositions = getAllGpsMessages(bagFile);
 
-            if (!gpsPositions.positions.isEmpty()) {
-                Double[] firstPos = gpsPositions.positions.get(0);
-                locationName = myGeocodingService.getLocationName(firstPos[1], firstPos[0]);
+            if (!gpsPositions.isEmpty()) {
+                GpsPosition firstPos = gpsPositions.get(0);
+                locationName = myGeocodingService.getLocationName(firstPos.latitude, firstPos.longitude);
             }
         }
         catch (BagReaderException e) {
@@ -681,7 +760,7 @@ public class BagService extends StatusProvider {
                                     final String md5sum,
                                     final Map<String, Long> missingBagMd5sums,
                                     final String locationName,
-                                    final BagFile.GpsPositions gpsPositions)
+                                    final List<GpsPosition> gpsPositions)
             throws DuplicateBagException, BagReaderException {
         Bag bag;
         File file = bagFile.getPath().toFile();
