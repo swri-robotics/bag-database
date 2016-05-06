@@ -2,6 +2,10 @@
 
 2.1-SNAPSHOT
 
+- Vehicle name topics are configurable
+- GPS topics are configurable
+- If no configured GPS topics are found, it will try to find one based on known message types
+- Updating bag-reader-java to 1.2
 - Adding Travis CI support
 - Expanding on GPS-related documentation
 

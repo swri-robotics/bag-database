@@ -37,18 +37,6 @@ are stored and will be manually uploading files there.
 - **Displaying GPS Coordinates**: GPS coordinates recorded in a bag file are
   extracted and stored, and if support for Bing Maps or MapQuest is enabled you
   can view the vehicle's path on a map.
-  - The following message types are supported:
-    - `gps_common/GPSFix`
-    - `sensor_msgs/NavSatFix`
-    - `marti_gps_common/GPSFix`
-  - It will attempt to find those message on the following topics, in order of priority:
-    - `/localization/gps`
-    - `gps`
-    - `/vehicle/gps/fix`
-    - `/localization/sensors/gps/novatel/raw`
-    - `/localization/sensors/gps/novatel/fix`
-    - `/imu_3dm_node/gps/fix`
-    - `/local_xy_origin`
 - **Downloading**: Every bag file can be downloaded from the interface without
   needing to find it on the host filesystem.
 
@@ -96,6 +84,8 @@ docker run -d \
     -e DB_PASS=letmein \
     -e DB_URL="jdbc:postgresql://bagdb-postgres/bag_database" \
     -e DB_USER=bag_database \
+    -e VEHICLE_NAME_TOPICS="/vehicle_name" \
+    -e GPS_TOPICS="/localization/gps, /gps, /imu/fix" \
     swrirobotics/bag-database:latest
 ```
 
@@ -156,6 +146,20 @@ Set this to `true` to use Bing Maps for displaying map imagery; set it to `false
 ##### BING_KEY
 
 The API key to use when connecting to Bing Maps.
+
+##### VEHICLE_NAME_TOPICS
+
+A comma-separated list of `std_msg/String` topics that will be searched for a vehicle name; the first one found will be used.
+
+##### GPS_TOPICS
+
+A comma-separated list of topics to search for GPS messages; the first one found will be used.  Any message that has the following fields will work:
+```
+float64 latitude
+float64 longitude
+Header header
+```
+If there are no topics configured or none of them are found, it will try to use the first topic it can find that publishes the `sensor_msgs/NavSatFix`, `gps_common/GPSFix`, or `marti_gps_common/GPSFix` messages, in that order.
 
 ### As An Application Server Servlet
 
