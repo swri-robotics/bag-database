@@ -2,6 +2,7 @@
 
 2.2-SNAPSHOT
 
+- Adding Copy Link(s) buttons to the context menu in the grid that will copy links to download bag files to the clipboard
 - Minifying Javascript for the release build
 - Adding a "debugJavascript" config option that will cause the non-minified files to load
 - Fixing some Javascript syntax errors
