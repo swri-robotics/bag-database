@@ -31,15 +31,14 @@
 package com.github.swrirobotics.bags;
 
 import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.bags.persistence.MessageType;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.MessageHandler;
 import com.github.swrirobotics.bags.reader.TopicInfo;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
-import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
-import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
-import com.github.swrirobotics.bags.reader.messages.serialization.TimeType;
+import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
@@ -51,10 +50,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import nu.pattern.OpenCV;
 import org.apache.lucene.search.Query;
 import org.hibernate.search.jpa.FullTextEntityManager;
 import org.hibernate.search.jpa.FullTextQuery;
 import org.hibernate.search.jpa.Search;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,10 +68,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.criteria.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.nio.ByteOrder;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -92,7 +101,16 @@ public class BagService extends StatusProvider {
 
     final private Object myBagDbLock = new Object();
 
-    private Logger myLogger = LoggerFactory.getLogger(BagService.class);
+    private static final Logger myLogger = LoggerFactory.getLogger(BagService.class);
+
+    static {
+        try {
+            OpenCV.loadShared();
+        }
+        catch (Exception e) {
+            myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadlable", e);
+        }
+    }
 
     private static class GpsPosition {
         public GpsPosition(Float64Type latitudeType, Float64Type longitudeType, TimeType timeType)
@@ -118,6 +136,166 @@ public class BagService extends StatusProvider {
             throw e;
         }
 
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] getImage(Long bagId, String topicName, int index) throws BagReaderException {
+        Bag bag = bagRepository.findOne(bagId);
+        if (bag == null) {
+            throw new BagReaderException("Bag not found: " + bagId);
+        }
+        String fullPath = bag.getPath() + bag.getFilename();
+        try {
+            BagFile bagFile = BagReader.readFile(fullPath);
+
+            myLogger.debug("Reading message #" + index + " from bag " + bagId +
+                           " on topic [" + topicName + "]");
+            com.github.swrirobotics.bags.reader.messages.serialization.MessageType
+                    mt = bagFile.getFirstMessageOnTopic(topicName);
+                    // TODO Currently indexing to an arbitrary message is just
+                    // too slow; it can take several seconds every time you want
+                    // to get a message.  Maybe build a database table that has
+                    // all of the indexes and use that...
+                    //bagFile.getMessageOnTopicAtIndex(topicName.trim(),
+                    //                                      index);
+            if (mt == null) {
+                String errorMsg = "No messages found on topic: " + topicName;
+                myLogger.warn(errorMsg);
+                throw new BagReaderException(errorMsg);
+            }
+            String messageType = mt.getPackage() + "/" + mt.getType();
+            if (messageType.equals("sensor_msgs/Image")) {
+                return getUncompressedImage(mt);
+            }
+            else if (messageType.equals("sensor_msgs/CompressedImage")) {
+                return getCompressedImage(mt);
+            }
+            else {
+                String errorMsg = "Unknown image message type: " + mt.getType();
+                myLogger.error(errorMsg);
+                throw new BagReaderException(errorMsg);
+            }
+
+        }
+        catch (BagReaderException | UninitializedFieldException | IOException e) {
+            String msg = "Unable to read image for " + fullPath + ": " + e.getLocalizedMessage();
+            myLogger.error(msg, e);
+            throw new BagReaderException(e);
+        }
+    }
+
+    private byte[] getCompressedImage(com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt)
+            throws IOException, UninitializedFieldException {
+        String type = mt.<StringType>getField("format").getValue();
+        ArrayType data = mt.getField("data");
+        byte[] byteData = data.getAsBytes();
+
+        if (type.equalsIgnoreCase("jpeg")) {
+            return byteData;
+        }
+
+        try (ByteArrayInputStream byteStream = new ByteArrayInputStream(byteData)) {
+            // If it's not a JPEG, convert it to one
+            BufferedImage image = ImageIO.read(byteStream);
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpeg", stream);
+
+            return stream.toByteArray();
+        }
+    }
+
+    private byte[] getUncompressedImage(com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt)
+            throws UninitializedFieldException, IOException, BagReaderException {
+
+        String encoding = mt.<StringType>getField("encoding").getValue().trim().toLowerCase();
+        int imageType;
+        // TODO Implement support for 16-bit image types and OpenCV CvMat types
+        // First, figure out what type of image we're displaying...
+        switch (encoding) {
+            case "rgb8":
+            case "bayer_rggb8":
+            case "bayer_bggr8":
+            case "bayer_gbrg8":
+            case "bayer_grbg8":
+                imageType = BufferedImage.TYPE_INT_RGB;
+                break;
+            case "rgba8":
+                imageType = BufferedImage.TYPE_INT_ARGB;
+                break;
+            case "bgr8":
+                imageType = BufferedImage.TYPE_INT_BGR;
+                break;
+            case "mono8":
+                imageType = BufferedImage.TYPE_BYTE_GRAY;
+                break;
+            case "mono16":
+                imageType = BufferedImage.TYPE_USHORT_GRAY;
+                break;
+            default:
+                String errorMsg = "Unsupported image encoding: " + encoding;
+                myLogger.warn(errorMsg);
+                throw new BagReaderException(errorMsg);
+        }
+
+        // Then get metadata about the image...
+        int height = mt.<UInt32Type>getField("height").getValue().intValue();
+        int width = mt.<UInt32Type>getField("width").getValue().intValue();
+        Short isBigEndian = mt.<UInt8Type>getField("is_bigendian").getValue();
+        ArrayType dataArray = mt.getField("data");
+        if (isBigEndian > 0) {
+            dataArray.setOrder(ByteOrder.BIG_ENDIAN);
+        }
+
+        byte[] byteData = dataArray.getAsBytes();
+        if (encoding.startsWith("bayer")) {
+            // If the image is in a Bayer filter format, use OpenCV
+            // to convert it to RGB8.
+            byteData = convertBayer(width, height, byteData, encoding);
+        }
+
+        // Java's ImageIO expects pixel data as an array of ints, so
+        // cast them all...
+        int[] intData = new int[byteData.length];
+        for (int i = 0; i < byteData.length; i++) {
+            intData[i] = byteData[i];
+        }
+
+        BufferedImage image = new BufferedImage(width, height, imageType);
+        image.getRaster().setPixels(0, 0, width, height, intData);
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpeg", stream);
+
+        return stream.toByteArray();
+    }
+
+    private byte[] convertBayer(int width, int height, byte[] input, String encoding) {
+        int type;
+        int pattern;
+        if (encoding.startsWith("bayer_rggb")) {
+            pattern = Imgproc.COLOR_BayerBG2RGB;
+        }
+        else if (encoding.startsWith("bayer_bggr")) {
+            pattern = Imgproc.COLOR_BayerRG2RGB;
+        }
+        else if (encoding.startsWith("bayer_gbrg")) {
+            pattern = Imgproc.COLOR_BayerGR2RGB;
+        }
+        else {
+            pattern = Imgproc.COLOR_BayerGB2RGB;
+        }
+        if (encoding.endsWith("8")) {
+            type = CvType.CV_8U;
+        }
+        else {
+            type = CvType.CV_16U;
+        }
+        Mat sourceMat = new Mat(height, width, type);
+        sourceMat.put(0, 0, input);
+        Mat destMat = new Mat(height, width, type);
+        Imgproc.cvtColor(sourceMat, destMat, pattern);
+        byte[] output = new byte[(int)destMat.total() * destMat.channels()];
+        destMat.get(0, 0, output);
+        return output;
     }
 
     public void updateIndexes() {

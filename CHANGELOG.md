@@ -2,6 +2,8 @@
 
 2.2-SNAPSHOT
 
+- Adding OpenCV to handle Bayer image formats
+- Adding the ability to see the first image on a topic
 - Adding Copy Link(s) buttons to the context menu in the grid that will copy links to download bag files to the clipboard
 - Minifying Javascript for the release build
 - Adding a "debugJavascript" config option that will cause the non-minified files to load

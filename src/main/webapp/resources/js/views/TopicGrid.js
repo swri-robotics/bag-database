@@ -32,6 +32,7 @@ Ext.define('BagDatabase.views.TopicGrid', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.topicGrid',
     title: 'Topics',
+    bagId: 0,
     store: {
         xtype: 'jsonstore',
         sorters: 'topicName',
@@ -50,5 +51,53 @@ Ext.define('BagDatabase.views.TopicGrid', {
         text: 'Messages', dataIndex: 'messageCount', flex: 1
     }, {
         text: 'Connections', dataIndex: 'connectionCount', flex: 1
-    }]
+    }, {
+        xtype: 'actioncolumn',
+        width: 25,
+        items: [{
+            iconCls: 'bag-action-icon images-icon',
+            isDisabled: function(view, rowIndex, colIndex, item, record) {
+                var mt = record.get('messageType');
+                return mt !== 'sensor_msgs/Image' && mt !== 'sensor_msgs/CompressedImage';
+            },
+            getTip: function(value, metadata, record) {
+                var mt = record.get('messageType');
+                var isImage = (mt === 'sensor_msgs/Image' || mt === 'sensor_msgs/CompressedImage');
+                return isImage ? 'Display Images' : 'Not an image topic';
+            },
+            handler: function(grid, rowIndex, colIndex) {
+                var record = grid.getStore().getAt(rowIndex);
+                grid.ownerCt.showImage(record.get('topicName'));
+            }
+        }]
+    }],
+    showImage: function(topic) {
+        var win = Ext.create('Ext.window.Window', {
+            title: topic,
+            width: 720,
+            height: 480,
+            html: '<div></div>',
+            listeners: {
+                afterRender: function(win) {
+                    var loadMask = Ext.create('Ext.LoadMask', {
+                        msg: 'Loading...',
+                        target: win
+                    });
+                    loadMask.show();
+                    Ext.Ajax.request({
+                        url: 'bags/image?bagId=' + this.bagId + "&topic=" + topic + '&index=0',
+                        success: function(response) {
+                            loadMask.hide();
+                            win.setHtml(response.responseText);
+                        },
+                        failure: function(response) {
+                            loadMask.hide();
+                            win.setHtml(response.responseText);
+                        }
+                    });
+                }.bind(this)
+            }
+        });
+        win.show();
+    }
 });

@@ -31,7 +31,12 @@
 package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.swrirobotics.bags.persistence.Bag;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.support.web.BagList;
+import com.github.swrirobotics.support.web.BagUpdateStatus;
+import com.github.swrirobotics.support.web.ExtJsFilter;
+import com.github.swrirobotics.support.web.ExtJsFilterFormatter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -40,13 +45,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
-import com.github.swrirobotics.bags.persistence.Bag;
-import com.github.swrirobotics.support.web.BagUpdateStatus;
-import com.github.swrirobotics.support.web.ExtJsFilter;
-import com.github.swrirobotics.support.web.ExtJsFilterFormatter;
+import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 @RestController
@@ -91,6 +95,23 @@ public class BagController {
     public Bag getBag(@RequestParam Long bagId) {
         myLogger.info("getBag: " + bagId);
         return myBagService.getBag(bagId);
+    }
+
+    @RequestMapping("/image")
+    public ModelAndView getImage(@RequestParam Long bagId,
+                                 @RequestParam String topic,
+                                 @RequestParam Integer index) throws FileNotFoundException {
+        myLogger.info("getImage: " + bagId + " / " + topic + " / " + index);
+        ModelAndView mav = new ModelAndView("image/image");
+        try {
+            byte[] imageData = myBagService.getImage(bagId, topic, index);
+            String imageString = "data:image/jpeg;base64," + Base64.getMimeEncoder().encodeToString(imageData);
+            mav.getModel().put("imageData", imageString);
+        }
+        catch (BagReaderException e) {
+            mav.getModel().put("errorMessage", "Error retrieving image:<br>" + e.getLocalizedMessage());
+        }
+        return mav;
     }
 
     @RequestMapping("/update")

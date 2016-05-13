@@ -54,36 +54,39 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
             win.loadmask.show();
         }
     },
-    items: [{
-        xtype: 'bagPropertyGrid',
-        region: 'west'
-    }, {
-        xtype: 'panel',
-        layout: {
-            type: 'vbox',
-            align: 'stretch'
-        },
-        region: 'center',
-        items: [{
-            xtype: 'messageTypeGrid',
-            itemId: 'messageGrid',
-            flex: 1,
-            data: []
-        }, {
-            xtype: 'topicGrid',
-            itemId: 'topics',
-            flex: 1,
-            data: []
-        }]
-    }],
     initComponent: function() {
         var me = this;
-        this.callParent(arguments);
 
         var params = {
             bagId: this.bagId
         };
         params[csrfName] = csrfToken;
+
+        this.items = [{
+            xtype: 'bagPropertyGrid',
+            region: 'west'
+        }, {
+            xtype: 'panel',
+            layout: {
+                type: 'vbox',
+                align: 'stretch'
+            },
+            region: 'center',
+            items: [{
+                xtype: 'messageTypeGrid',
+                itemId: 'messageGrid',
+                flex: 1,
+                data: []
+            }, {
+                xtype: 'topicGrid',
+                itemId: 'topics',
+                flex: 1,
+                bagId: this.bagId,
+                data: []
+            }]
+        }];
+
+        this.callParent(arguments);
 
         Ext.Ajax.request({
             url: 'bags/get',
