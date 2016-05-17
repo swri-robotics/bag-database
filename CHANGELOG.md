@@ -1,6 +1,6 @@
 # Bag Database changelog
 
-2.2-SNAPSHOT
+2.2
 
 - Adding OpenCV to handle Bayer image formats
 - Adding the ability to see the first image on a topic

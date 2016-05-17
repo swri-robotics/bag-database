@@ -38,7 +38,11 @@ are stored and will be manually uploading files there.
   extracted and stored, and if support for Bing Maps or MapQuest is enabled you
   can view the vehicle's path on a map.
 - **Downloading**: Every bag file can be downloaded from the interface without
-  needing to find it on the host filesystem.
+  needing to find it on the host filesystem.  Links to bag files can also be
+  obtained by right-clicking on them.
+- **Viewing Images**: You can view the first image on any sensor_msgs/Image or
+  sensor_msgs/CompressedImage topic by clicking on the icon next to the topic
+  in the bag details window.
 
 ## Compiling
 
