@@ -40,6 +40,10 @@ div.ol-viewport {
     background-image: url('../images/database.png');
 }
 
+.images-icon {
+    background-image: url('../images/images.png');
+}
+
 .information-icon {
     background-image: url('../images/information.png');
 }

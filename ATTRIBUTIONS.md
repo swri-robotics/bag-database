@@ -117,3 +117,7 @@ SockJS 1.0.3
 StompJS
 - License: Apache 2.0
 - http://jmesnil.net/stomp-websocket/doc/
+
+OpenCV 2.4.9
+- License: BSD
+- http://opencv.org/

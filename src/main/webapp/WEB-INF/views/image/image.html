@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<div xmlns:th="http://www.thymeleaf.org">
+  <p th:utext="${errorMessage}" th:if="${errorMessage != null}"/>
+  <img style="max-width: 100%; max-height: 100%;" th:src="${imageData}" th:if="${imageData != null}"/>
+</div>
