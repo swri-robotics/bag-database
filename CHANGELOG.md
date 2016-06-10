@@ -2,6 +2,8 @@
 
 2.5-SNAPSHOT
 
+- Add ffmpeg to the Docker build
+- Use ffmpeg to generate VP8 streams from Image topics
 - Remove MapQuest support
 - Add support for loading tiles from generic tile map servers
 - Fix a bug that would cause tabs to be blank after reloading

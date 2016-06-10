@@ -39,6 +39,7 @@ import com.github.swrirobotics.bags.reader.TopicInfo;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
+import com.github.swrirobotics.bags.reader.records.Connection;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
@@ -55,6 +56,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import nu.pattern.OpenCV;
+import org.apache.commons.io.IOUtils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -75,11 +77,9 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -121,7 +121,7 @@ public class BagService extends StatusProvider {
     }
 
     private static class GpsPosition {
-        public GpsPosition(Float64Type latitudeType, Float64Type longitudeType, TimeType timeType)
+        GpsPosition(Float64Type latitudeType, Float64Type longitudeType, TimeType timeType)
                 throws UninitializedFieldException {
             latitude = latitudeType.getValue();
             longitude = longitudeType.getValue();
@@ -173,7 +173,7 @@ public class BagService extends StatusProvider {
             }
             String messageType = mt.getPackage() + "/" + mt.getType();
             if (messageType.equals("sensor_msgs/Image")) {
-                return getUncompressedImage(mt);
+                return convertImageToJpeg(getUncompressedImage(mt));
             }
             else if (messageType.equals("sensor_msgs/CompressedImage")) {
                 return getCompressedImage(mt);
@@ -189,6 +189,404 @@ public class BagService extends StatusProvider {
             String msg = "Unable to read image for " + fullPath + ": " + e.getLocalizedMessage();
             myLogger.error(msg, e);
             throw new BagReaderException(e);
+        }
+    }
+
+    /**
+     * Estimates the frame rate of an Image topic from a bag file by examining
+     * the difference between the timestamps of first and last messages.
+     */
+    private class FrameRateDeterminer implements MessageHandler {
+        private double myDurationS = 0.0;
+        private double myFrameRate = 10.0;
+        private long myFrameCount = 0;
+        private long myTotalFrameCount;
+        private Long myFirstFrameTimeMs = null;
+        private Long myLastFrameTimeMs = null;
+
+        FrameRateDeterminer(long totalFrameCount) {
+            myTotalFrameCount = totalFrameCount;
+        }
+
+        /**
+         * In order to determine the average frame rate and duration for a video feed,
+         * we have to check the timestamps on the first and last messages on the topic.
+         * @param message The message to process; should have a Header with a valid stamp
+         * @param connection The connection the message arrived on; unused
+         * @return true as long as we're still processing frames, false if there was an error
+         */
+        @Override
+        public boolean process(com.github.swrirobotics.bags.reader.messages.serialization.MessageType message,
+                               Connection connection) {
+            long timeMs;
+            if (myFrameCount == 0 || myFrameCount == (myTotalFrameCount-1)) {
+                if (message.getType().equals("stereo_msgs/DisparityImage")) {
+                    message = message.getField("image");
+                }
+                com.github.swrirobotics.bags.reader.messages.serialization.MessageType header =
+                        message.getField("header");
+                TimeType time = header.getField("stamp");
+
+                try {
+                    timeMs = time.getValue().getTime();
+                }
+                catch (UninitializedFieldException e) {
+                    myLogger.warn("Message had uninitialized timestamp in header.");
+                    return false;
+                }
+
+                if (myFrameCount == 0) {
+                    myFirstFrameTimeMs = timeMs;
+                }
+                else if(myFrameCount == (myTotalFrameCount-1)) {
+                    myLastFrameTimeMs = timeMs;
+                }
+            }
+
+            myFrameCount++;
+
+            return true;
+        }
+
+        private void calculateFrameRate() {
+            if (myFirstFrameTimeMs != null && myLastFrameTimeMs != null) {
+                long durationMs = myLastFrameTimeMs - myFirstFrameTimeMs;
+                myDurationS = durationMs / 1000.0;
+                myFrameRate = (double)myTotalFrameCount / myDurationS;
+
+                myLogger.debug("Calculated frame rate: " + myFrameRate);
+                myLogger.debug("Calculated duration (s): " + myDurationS);
+
+                myFirstFrameTimeMs = null;
+                myLastFrameTimeMs = null;
+            }
+        }
+
+        double getFrameRate() {
+            calculateFrameRate();
+
+            return this.myFrameRate;
+        }
+
+        double getDurationS() {
+            calculateFrameRate();
+
+            return myDurationS;
+        }
+    }
+
+    /**
+     * Runs ffmpeg as an external process in order to convert an image topic
+     * into a VP8 video stream.
+     */
+    private class FfmpegImageHandler implements MessageHandler {
+        private boolean myIsBigEndian = false;
+        private boolean myIsInitialized = false;
+        private long myFrameCount = 0;
+        private double myDurationS;
+        private double myFrameRate;
+        private int myHeight = 0;
+        private int myWidth = 0;
+        private long myFrameSkip = 1;
+        private OutputConsumer myConsumer = null;
+        private OutputStream myOutput;
+        private Process myFfmpegProc = null;
+        private String myPixelFormat = "";
+
+        private class OutputConsumer extends Thread {
+            @Override
+            public void run() {
+                try {
+                    myLogger.debug("Piping data from ffmpeg to the client.");
+                    // IOUtils.copy will block until the input stream is closed,
+                    // so it needs to run in a separate thread.
+                    IOUtils.copy(myFfmpegProc.getInputStream(), myOutput);
+                }
+                catch (IOException e) {
+                    if (e.getClass().getTypeName().equals("org.apache.catalina.connector.ClientAbortException")) {
+                        myLogger.warn("Client disconnected.");
+                    }
+                    else {
+                        myLogger.error("Error processing ffmpeg output:", e);
+                    }
+                }
+                finally {
+                    myLogger.debug("Finished processing output from ffmpeg.");
+                }
+            }
+        }
+
+        FfmpegImageHandler(OutputStream output, double frameRate, double durationS) throws IOException {
+            myOutput = output;
+            myFrameRate = frameRate;
+            myDurationS = durationS;
+            myLogger.info("Starting video stream.");
+        }
+
+        void setFrameSkip(long frameSkip) {
+            this.myFrameSkip = frameSkip;
+        }
+
+        @Override
+        public boolean process(com.github.swrirobotics.bags.reader.messages.serialization.MessageType message,
+                               Connection connection) {
+            if (myIsInitialized) {
+                if (myFrameCount % myFrameSkip != 0) {
+                    myFrameCount++;
+                    return true;
+                }
+
+                if (!myConsumer.isAlive()) {
+                    // After we've initialized ffmpeg and started processing frames, this thread
+                    // should be alive until we've finished.  If it dies early, that means the
+                    // client disconnected, so there's no point in continuing.
+                    myLogger.debug("Consumer thread terminated early.");
+                    return false;
+                }
+            }
+            try {
+                String messageType = message.getPackage() + "/" + message.getType();
+                boolean isDisparity = messageType.equals("stereo_msgs/DisparityImage");
+                boolean isCompressed = messageType.equals("sensor_msgs/CompressedImage");
+                float min_disparity = 0.0f;
+                float max_disparity = 0.0f;
+
+                if (isDisparity) {
+                    // If we're examining a DisparityImage, it contains the actual image
+                    // inside it in a field named "image".  We can just get that and
+                    // continue as normal.
+                    min_disparity = message.<Float32Type>getField("min_disparity").getValue();
+                    max_disparity = message.<Float32Type>getField("max_disparity").getValue();
+                    message = message.getField("image");
+                }
+
+                ArrayType dataArray = message.getField("data");
+                byte[] byteData;
+
+                if (isCompressed) {
+                    // If the image is compressed, we need to decompress it and get a few
+                    // pieces of metadata from it.
+                    byte[] compressedData = dataArray.getAsBytes();
+                    try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedData)) {
+                        BufferedImage image = ImageIO.read(byteStream);
+                        if (!myIsInitialized) {
+                            // Only need to check these things for the first image; assume
+                            // the rest are the same.
+                            myWidth = image.getWidth();
+                            myHeight = image.getHeight();
+                            switch (image.getType()) {
+                                case BufferedImage.TYPE_3BYTE_BGR:
+                                    myPixelFormat = "bgr24";
+                                    break;
+                                default:
+                                    myLogger.warn("Unexpected encoding type: " + image.getType());
+                                    return false;
+                            }
+                        }
+
+                        // This probably isn't the most efficient way to do it, but it's
+                        // easiest for us to just extract the raw image bytes so we can
+                        // pipe them into ffmpeg the same way as an uncompressed image.
+                        byteData = new byte[myWidth * myHeight * 3];
+                        int[] intData = new int[myWidth * myHeight * 3];
+                        image.getData().getPixels(0, 0, myWidth, myHeight, intData);
+                        for (int i = 0; i < intData.length; i++) {
+                            byteData[i] = (byte) intData[i];
+                        }
+                    }
+                }
+                else if (isDisparity) {
+                    // For disparity images, we have to convert them into a format
+                    // that ffmpeg can interpret.
+                    dataArray.setOrder(ByteOrder.LITTLE_ENDIAN);
+                    float[] floatData = dataArray.getAsFloats();
+                    float multiplier = 255.0f / (max_disparity - min_disparity);
+                    byteData = new byte[floatData.length];
+                    for (int i = 0; i < floatData.length; i++) {
+                        byteData[i] = (byte)Math.min(255.0f,
+                                                     Math.max(0.0f,
+                                                              (floatData[i] - min_disparity) * multiplier));
+                    }
+                }
+                else {
+                    // If it's not compressed, and it's a regular image, just get the raw image.
+                    if (!myIsInitialized) {
+                        myIsBigEndian = message.<UInt8Type>getField("is_bigendian").getValue() > 0;
+                    }
+                    dataArray.setOrder(myIsBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
+
+                    byteData = dataArray.getAsBytes();
+                }
+
+                if (!myIsInitialized) {
+                    if (!isCompressed) {
+                        String encoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
+                        // Many image formats have the same name between ffmpeg and ROS, but
+                        // some don't, so convert them...
+                        switch (encoding) {
+                            case "bgr8":
+                                myPixelFormat = "bgr24";
+                                break;
+                            case "rgb8":
+                                myPixelFormat = "rgb24";
+                                break;
+                            case "rgba8":
+                                myPixelFormat = "rgba";
+                                break;
+                            case "32fc1":
+                                // If the pixel format is "32fc1", that means we're actually rendering a
+                                // disparity image, which is a single-channel image made of 32-bit floats.
+                                // We'll convert that to an 8-bit grayscale image...
+                            case "mono8":
+                                myPixelFormat = "gray";
+                                break;
+                            case "mono16":
+                                if (myIsBigEndian) {
+                                    myPixelFormat = "gray16be";
+                                }
+                                else {
+                                    myPixelFormat = "gray16le";
+                                }
+                                break;
+                            default:
+                                myPixelFormat = encoding;
+                                break;
+                        }
+
+                        myHeight = message.<UInt32Type>getField("height").getValue().intValue();
+                        myWidth = message.<UInt32Type>getField("width").getValue().intValue();
+                    }
+
+                    myIsInitialized = true;
+                    myLogger.debug("Image format: " + myPixelFormat +
+                                   " / " + myWidth + "x" + myHeight +
+                                   " / " + (myDurationS / (double)myFrameSkip) + "s");
+
+                    startFfmpeg();
+                }
+
+                IOUtils.write(byteData, myFfmpegProc.getOutputStream());
+
+                myFrameCount++;
+
+                return true;
+            }
+            catch (Exception e) {
+                if (e.getClass().getTypeName().equals("org.apache.catalina.connector.ClientAbortException")) {
+                    myLogger.warn("Client disconnected.");
+                }
+                else {
+                    myLogger.error("Error encoding video:", e);
+                }
+                return false;
+            }
+        }
+
+        private void startFfmpeg() throws IOException {
+            String bitrate = "1M";
+            String durationStr = Double.toString(myDurationS / (double)myFrameSkip);
+            String frameRateStr = Double.toString(myFrameRate);
+            // Generate key frames for seeking every 3 seconds
+            String keyFrameRate = Double.toString(3*myFrameRate);
+            // use (n-1) of n available processors, minimum 1
+            String numThreads = Integer.toString(Math.max(Runtime.getRuntime().availableProcessors()-1, 1));
+
+            myFfmpegProc = Runtime.getRuntime().exec(
+                    new String[]{"ffmpeg",
+                                 "-f", "rawvideo",
+                                 "-c:v", "rawvideo",
+                                 "-pix_fmt", myPixelFormat,
+                                 "-s:v", myWidth + "x" + myHeight,
+                                 "-r:v", frameRateStr,
+                                 "-i", "pipe:0",
+                                 "-c:v", "libvpx",
+                                 "-f", "webm",
+                                 "-minrate", bitrate,
+                                 "-maxrate", bitrate,
+                                 "-b:v", bitrate,
+                                 "-threads", numThreads,
+                                 "-crf", "10",
+                                 "-t", durationStr,
+                                 "-g", keyFrameRate,
+                                 "pipe:1",
+                                 "-v", "warning"
+                    });
+
+            myConsumer = new OutputConsumer();
+            myConsumer.start();
+
+            myLogger.info("Beginning to stream image data to ffmpeg.");
+        }
+
+        void finish() {
+            if (myFfmpegProc != null) {
+                IOUtils.closeQuietly(myFfmpegProc.getOutputStream());
+                try {
+                    myConsumer.join();
+
+                    List<String> lines =
+                            IOUtils.readLines(myFfmpegProc.getErrorStream(), Charset.forName("UTF-8"));
+                    String output = Joiner.on("\n").skipNulls().join(lines).trim();
+                    if (!output.isEmpty()) {
+                        myLogger.error("ffmpeg output:\n" + Joiner.on("\n").join(lines));
+                    }
+                }
+                catch (InterruptedException e) {
+                    myLogger.warn("Interrupted waiting for consumer to finish.");
+                }
+                catch (IOException e) {
+                    myLogger.warn("Error reading stderr from ffmpeg:", e);
+                }
+            }
+        }
+    }
+
+    @Transactional(readOnly = true)
+    void writeVideoStream(Long bagId, String topicName, Long frameSkip, OutputStream output) throws BagReaderException {
+        Bag bag = bagRepository.findOne(bagId);
+        if (bag == null) {
+            throw new BagReaderException("Bag not found: " + bagId);
+        }
+        String fullPath = bag.getPath() + bag.getFilename();
+        try {
+            BagFile bagFile = BagReader.readFile(fullPath);
+
+            long messageCount = -1;
+            for (TopicInfo topic : bagFile.getTopics()) {
+                if (topic.getName().equals(topicName)) {
+                    messageCount = topic.getMessageCount();
+                    break;
+                }
+            }
+            myLogger.debug("Expecting " + messageCount + " frames.");
+            myLogger.debug("Reading message from bag " + bagId +
+                           " on topic [" + topicName + "]");
+
+            // We need to set the frame rate of the video we're producing, but
+            // that's not encoded anywhere in a ROS image.  So, we'll quickly
+            // examine the first ten frames and estimate the frame rate from them.
+            FrameRateDeterminer determiner = new FrameRateDeterminer(messageCount);
+            bagFile.forMessagesOnTopic(topicName, determiner);
+
+            // Now we can actually convert the images to a WebM stream.
+            FfmpegImageHandler handler = new FfmpegImageHandler(output,
+                                                                determiner.getFrameRate(),
+                                                                determiner.getDurationS());
+            handler.setFrameSkip(frameSkip);
+            bagFile.forMessagesOnTopic(topicName, handler);
+            handler.finish();
+        }
+        catch (BagReaderException e) {
+            String msg = "Unable to read image for " + fullPath + ": " + e.getLocalizedMessage();
+            myLogger.error(msg, e);
+            throw new BagReaderException(e);
+        }
+        catch (Exception e) {
+            myLogger.error("Unexpected exception:", e.getLocalizedMessage());
+            throw new BagReaderException(e);
+        }
+        finally {
+            myLogger.info("Done streaming video.");
         }
     }
 
@@ -212,7 +610,14 @@ public class BagService extends StatusProvider {
         }
     }
 
-    private byte[] getUncompressedImage(com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt)
+    private byte[] convertImageToJpeg(BufferedImage image) throws IOException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpeg", stream);
+
+        return stream.toByteArray();
+    }
+
+    private BufferedImage getUncompressedImage(com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt)
             throws UninitializedFieldException, IOException, BagReaderException {
 
         String encoding = mt.<StringType>getField("encoding").getValue().trim().toLowerCase();
@@ -270,10 +675,7 @@ public class BagService extends StatusProvider {
 
         BufferedImage image = new BufferedImage(width, height, imageType);
         image.getRaster().setPixels(0, 0, width, height, intData);
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        ImageIO.write(image, "jpeg", stream);
-
-        return stream.toByteArray();
+        return image;
     }
 
     private byte[] convertBayer(int width, int height, byte[] input, String encoding) {

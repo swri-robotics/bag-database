@@ -48,6 +48,7 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletResponse;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Base64;
 import java.util.List;
 
@@ -104,6 +105,25 @@ public class BagController {
             mav.getModel().put("errorMessage", "Error retrieving image:<br>" + e.getLocalizedMessage());
         }
         return mav;
+    }
+
+    @RequestMapping("/video")
+    public void getVideo(@RequestParam Long bagId,
+                         @RequestParam String topic,
+                         @RequestParam Long frameSkip,
+                         HttpServletResponse response) {
+        myLogger.info("getVideo: " + bagId + ":" + topic);
+        try {
+            OutputStream output = response.getOutputStream();
+            response.setContentType("video/webm;codecs=\"vp8\"");
+            myBagService.writeVideoStream(bagId, topic, frameSkip, output);
+        }
+        catch (BagReaderException | IOException e) {
+            myLogger.error("Error getting video stream:", e);
+        }
+        finally {
+            myLogger.info("Finished getVideo()");
+        }
     }
 
     @RequestMapping("/update")
