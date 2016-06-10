@@ -32,5 +32,6 @@
 	<logger name="com.github.swrirobotics" level="DEBUG" />
 	<logger name="com.github.swrirobotics.bags.reader.messages.serialization" level="INFO"/>
 	<logger name="org.springframework" level="INFO" />
+	<logger name="org.springframework.session" level="INFO"/>
 	<logger name="org.springframework.web.socket" level="INFO"/>
 </configuration>

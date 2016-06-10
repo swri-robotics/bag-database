@@ -81,6 +81,11 @@ Ext.define('BagDatabase.views.StatusText', {
                 console.log('Disconnected; reconnecting in 2s.');
                 Ext.Function.defer(me.connectWebSocket, 2000, me);
             });
+        setInterval(function() {
+            if (me.stompClient.connected) {
+                me.stompClient.send('/topic/heartbeat', {priority: 9}, 'heartbeat');
+            }
+        }, 20000);
     },
     updateStatus: function(status) {
         //var statusText = this.down('#statusText');

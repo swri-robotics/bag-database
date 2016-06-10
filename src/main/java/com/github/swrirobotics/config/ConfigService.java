@@ -33,6 +33,8 @@ package com.github.swrirobotics.config;
 import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.esotericsoftware.yamlbeans.YamlWriter;
+import com.github.swrirobotics.bags.filesystem.BagScanner;
+import com.github.swrirobotics.support.web.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +43,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
-import com.github.swrirobotics.bags.filesystem.BagScanner;
-import com.github.swrirobotics.support.web.Configuration;
 
 import java.io.*;
 import java.net.MalformedURLException;

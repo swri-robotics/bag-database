@@ -17,29 +17,23 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE 
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
 // *****************************************************************************
 
-Ext.define('BagDatabase.views.AboutWindow', {
-    extend: 'Ext.window.Window',
-    alias: 'widgets.aboutWindow',
-    title: 'About',
-    layout: 'fit',
-    bodyPadding: 5,
-    constrainHeader: true,
-    html: "<h2>Bag Database 2.3-SNAPSHOT</h2>" +
-        "<p><a href='https://github.com/swri-robotics/bag-database'>https://github.com/swri-robotics/bag-database</a></p>" +
-        "<p>Copyright 2015-2016 Southwest Research Institute</p>" +
-        "<br>" +
-        "<p>Icons provided by <a href='http://www.famfamfam.com/lab/icons/silk/'>http://www.famfamfam.com/lab/icons/silk/</a></p>" +
-        "<p>A number of open source libraries were used in the creation of this software;<br>" +
-        "consult the documentation in the source repository for a full list of attributions.</p>"
-});
+package com.github.swrirobotics.config;
+
+import org.springframework.security.web.context.AbstractSecurityWebApplicationInitializer;
+
+public class SecurityInitializer extends AbstractSecurityWebApplicationInitializer {
+    // This class is empty, but we need to extend an instance of
+    // AbstractSecurityWebApplicationInitializer in order to add Spring Session
+    // support to Spring Security.
+}

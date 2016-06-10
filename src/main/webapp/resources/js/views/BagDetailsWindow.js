@@ -95,6 +95,10 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 if (me.loadmask) {
                     me.loadmask.hide();
                 }
+                if (response.status == 401) {
+                    Ext.Msg.alert('Session Timeout', 'Your session has timed out.  Please reload.');
+                    return;
+                }
                 if (!success) {
                     console.log('Error retrieving bag.');
                     return;
