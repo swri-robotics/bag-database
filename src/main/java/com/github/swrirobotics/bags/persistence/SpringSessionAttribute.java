@@ -58,7 +58,7 @@ public class SpringSessionAttribute implements Serializable {
     // long enough to store Spring's Security Context info.
     @Basic
     @Column(length = 10000)
-    public byte[] attribute_bytes; // TODO Make this work in hsql
+    public byte[] attribute_bytes;
 
     @Override
     public boolean equals(Object o) {
