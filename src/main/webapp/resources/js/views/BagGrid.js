@@ -323,6 +323,10 @@ Ext.define('BagDatabase.views.BagGrid', {
             timeout: 60000,
             callback: function(options, success, response) {
                 loadMask.hide();
+                if (response.status == 401) {
+                    Ext.Msg.alert('Session Timeout', 'Your session has timed out.  Please reload.');
+                    return;
+                }
                 if (!success) {
                     console.log('Error retrieving bag.');
                     return;

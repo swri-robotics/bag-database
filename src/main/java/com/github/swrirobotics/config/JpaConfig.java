@@ -30,6 +30,7 @@
 
 package com.github.swrirobotics.config;
 
+import com.github.swrirobotics.Application;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
@@ -42,11 +43,11 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.TransactionManagementConfigurer;
 import org.springframework.util.PropertyPlaceholderHelper;
-import com.github.swrirobotics.Application;
 
 import javax.sql.DataSource;
 import java.net.URI;
@@ -57,6 +58,7 @@ import java.util.Properties;
 @EnableTransactionManagement(mode= AdviceMode.ASPECTJ)
 @EnableJpaRepositories(basePackageClasses = Application.class,
         transactionManagerRef = "annotationDrivenTransactionManager")
+@EnableJdbcHttpSession //(maxInactiveIntervalInSeconds = 60)
 class JpaConfig implements TransactionManagementConfigurer {
     @Autowired
     private DataSourceProperties properties;
@@ -64,7 +66,7 @@ class JpaConfig implements TransactionManagementConfigurer {
     private Logger myLogger = LoggerFactory.getLogger(JpaConfig.class);
 
     @Bean
-    public DataSource configureDataSource() {
+    public DataSource dataSource() {
         myLogger.info("JDBC driver: " + properties.getDriver());
         myLogger.info("JDBC URL: " + properties.getUrl());
         myLogger.info("JDBC Username: " + properties.getUsername());
@@ -108,7 +110,7 @@ class JpaConfig implements TransactionManagementConfigurer {
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         myLogger.info("entityManagerFactory");
         LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = new LocalContainerEntityManagerFactoryBean();
-        entityManagerFactoryBean.setDataSource(configureDataSource());
+        entityManagerFactoryBean.setDataSource(dataSource());
         entityManagerFactoryBean.setPackagesToScan("com.github.swrirobotics");
         entityManagerFactoryBean.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 

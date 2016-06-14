@@ -30,24 +30,46 @@
 
 package com.github.swrirobotics.config;
 
+import com.github.swrirobotics.account.UserService;
+import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import com.github.swrirobotics.account.UserService;
+import org.springframework.security.web.csrf.MissingCsrfTokenException;
 
-@Configuration
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Set;
+
 @EnableWebSecurity
 class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private Environment myEnvironment;
+
+    private static class CsrfAccessDeniedHandler extends AccessDeniedHandlerImpl {
+        @Override
+        public void handle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse,
+                           AccessDeniedException e) throws IOException, ServletException {
+            if (e instanceof MissingCsrfTokenException) {
+                httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            }
+            else {
+                super.handle(httpServletRequest, httpServletResponse, e);
+            }
+        }
+    }
 
     @Bean
     public UserService userService() {
@@ -74,7 +96,15 @@ class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        Set<String> profileSet = Sets.newHashSet(myEnvironment.getActiveProfiles());
+        if (profileSet.contains("test")) {
+            // CSRF protection is a pain to work around if we're doing unit tests;
+            // disable it.
+            http = http.csrf().disable();
+        }
+
         http
+            .exceptionHandling().accessDeniedHandler(accessDeniedHandler()).and()
             .authorizeRequests()
                 // List resources that any users can access
                 .antMatchers("/",
@@ -96,5 +126,10 @@ class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .logoutUrl("/logout")
                     .permitAll()
                     .logoutSuccessUrl("/signin?logout");
+    }
+
+    private AccessDeniedHandler accessDeniedHandler() {
+        return new CsrfAccessDeniedHandler() {
+        };
     }
 }

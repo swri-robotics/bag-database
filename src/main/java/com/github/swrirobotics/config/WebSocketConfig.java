@@ -33,30 +33,51 @@ package com.github.swrirobotics.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.socket.config.annotation.AbstractWebSocketMessageBrokerConfigurer;
+import org.springframework.messaging.simp.config.SimpleBrokerRegistration;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.session.ExpiringSession;
+import org.springframework.session.web.socket.config.annotation.AbstractSessionWebSocketMessageBrokerConfigurer;
+import org.springframework.session.web.socket.server.SessionRepositoryMessageInterceptor;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
-import com.github.swrirobotics.Application;
 
 @Configuration
+@EnableScheduling
 @EnableWebSocketMessageBroker
-@ComponentScan(basePackageClasses = Application.class, includeFilters = @ComponentScan.Filter(Controller.class), useDefaultFilters = false)
-public class WebSocketConfig extends AbstractWebSocketMessageBrokerConfigurer {
+public class WebSocketConfig extends AbstractSessionWebSocketMessageBrokerConfigurer<ExpiringSession> {
     private final Logger myLogger = LoggerFactory.getLogger(WebSocketConfig.class);
+
+    @Autowired
+    private TaskScheduler myScheduler;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         myLogger.info("Configuring message broker.");
-        config.enableSimpleBroker("/topic");
+        SimpleBrokerRegistration broker = config.enableSimpleBroker("/topic");
+        if (myScheduler != null) {
+            myLogger.info("Enabling task scheduling.");
+            broker.setTaskScheduler(myScheduler);
+        }
+        else {
+            myLogger.warn("No task scheduler available.");
+        }
         config.setApplicationDestinationPrefixes("/app");
+
     }
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry stompEndpointRegistry) {
+    protected void configureStompEndpoints(StompEndpointRegistry stompEndpointRegistry) {
         myLogger.info("Configuring STOMP endpoints.");
         stompEndpointRegistry.addEndpoint("/register").withSockJS();
+    }
+
+    @Override
+    public SessionRepositoryMessageInterceptor<ExpiringSession> sessionRepositoryInterceptor() {
+        myLogger.error("*** Registering interceptor ***");
+        return super.sessionRepositoryInterceptor();
     }
 }

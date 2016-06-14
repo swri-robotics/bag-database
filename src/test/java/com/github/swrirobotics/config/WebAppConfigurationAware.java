@@ -41,6 +41,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.inject.Inject;
 
+import java.security.Security;
+
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -50,9 +52,9 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
         ApplicationConfig.class,
         EmbeddedDataSourceConfig.class,
         JpaConfig.class,
-        NoCsrfSecurityConfig.class,
         WebMvcConfig.class,
-        WebSocketConfig.class
+        WebSocketConfig.class,
+        SecurityConfig.class
 })
 public abstract class WebAppConfigurationAware {
 
