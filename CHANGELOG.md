@@ -1,5 +1,10 @@
 # Bag Database changelog
 
+2.3-SNAPSHOT
+
+- Adding support for LZ4 compression
+- Using Spring Session for user session tracking; sessions no longer time out
+
 2.2
 
 - Adding OpenCV to handle Bayer image formats
