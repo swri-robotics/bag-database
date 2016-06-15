@@ -40,7 +40,6 @@ import com.github.swrirobotics.Application;
 import static org.springframework.context.annotation.ComponentScan.Filter;
 
 @Configuration
-//@PropertySource("classpath:persistence.properties")
 @ComponentScan(basePackageClasses = Application.class, excludeFilters = @Filter({Controller.class, Configuration.class}))
 public class ApplicationConfig {
     public static final String SETTINGS_PATH = "file://${HOME}/.ros-bag-database/";

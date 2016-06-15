@@ -33,10 +33,6 @@ package com.github.swrirobotics.bags.persistence;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.ContainedIn;
-import org.hibernate.search.annotations.DocumentId;
-import org.hibernate.search.annotations.Field;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -49,8 +45,6 @@ import java.io.Serializable;
 public class Topic implements Serializable {
     @Id
     @Column(nullable = false, length = 255)
-    @DocumentId
-    @Field(name = "topic_name")
     private String topicName;
 
     @Id
@@ -59,18 +53,15 @@ public class Topic implements Serializable {
     @MapsId("bagId")
     @JoinColumn(name = "bagId")
     @ManyToOne(optional = false, cascade = CascadeType.REMOVE)
-    @ContainedIn
     private Bag bag;
 
     @Column(nullable = false)
-    @Field(analyze = Analyze.NO)
     private Long messageCount;
     @ManyToOne
     @JoinColumns({@JoinColumn(name="message_type_name", referencedColumnName = "name", nullable = false, updatable = false),
             @JoinColumn(name="message_type_md5sum", referencedColumnName = "md5sum", nullable = false, updatable = false)})
     private MessageType type;
     @Column(nullable = false)
-    @Field(analyze = Analyze.NO)
     private Long connectionCount;
 
     public Long getBagId() {

@@ -39,6 +39,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,7 +58,7 @@ import static org.springframework.context.annotation.ComponentScan.Filter;
 @Configuration
 @PropertySource("classpath:application.properties")
 @ComponentScan(basePackageClasses = Application.class,
-               includeFilters = @Filter(Controller.class),
+               includeFilters = {@Filter(Controller.class)},
                useDefaultFilters = false)
 class WebMvcConfig extends WebMvcConfigurationSupport {
 

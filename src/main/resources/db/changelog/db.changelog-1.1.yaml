@@ -1,0 +1,88 @@
+# This changelog converts the bags and bag_positions table to use spatial
+# database extensions in PostgresQL and H2.  For both tables, it performs
+# the following steps:
+# 1. Create a new geometry column to represent a lat/lon point
+# 2. Create a spatial index on that column
+# 3. Set the value of that point based on the old lat/lon columns
+# 4. Drop the old columns
+databaseChangeLog:
+- changeSet:
+    id: spatial-1
+    author: preed
+    changes:
+    - addColumn:
+        tableName: bags
+        columns:
+        - column:
+            name: coordinate
+            type: geometry
+- changeSet:
+    id: spatial-2
+    author: preed
+    changes:
+    - sql:
+        dbms: postgresql
+        sql: CREATE INDEX idx_bags_coordinate ON bags USING GIST(coordinate);
+    - sql:
+        dbms: h2
+        sql: CREATE SPATIAL INDEX idx_bags_coordinate ON bags(coordinate);
+- changeSet:
+    id: spatial-3
+    author: preed
+    changes:
+    - update:
+        tableName: bags
+        columns:
+        - column:
+            name: coordinate
+            valueComputed: ST_SetSRID(ST_MakePoint(longitudedeg, latitudedeg),4326)
+- changeSet:
+    id: spatial-4
+    author: preed
+    changes:
+    - dropColumn:
+        tableName: bags
+        columnName: latitudedeg
+    - dropColumn:
+        tableName: bags
+        columnName: longitudedeg
+- changeSet:
+    id: spatial-5
+    author: preed
+    changes:
+    - addColumn:
+        tableName: bag_positions
+        columns:
+        - column:
+            name: position
+            type: geometry
+- changeSet:
+    id: spatial-6
+    author: preed
+    changes:
+    - sql:
+        dbms: postgresql
+        sql: CREATE INDEX idx_bag_positions_position ON bag_positions USING GIST(position);
+    - sql:
+        dbms: h2
+        sql: CREATE SPATIAL INDEX idx_bag_positions_position ON bag_positions(position);
+- changeSet:
+    id: spatial-7
+    author: preed
+    changes:
+    - update:
+        tableName: bag_positions
+        columns:
+        - column:
+            name: position
+            valueComputed: ST_SetSRID(ST_MakePoint(longitude, latitude),4326)
+- changeSet:
+    id: spatial-8
+    author: preed
+    changes:
+    - dropColumn:
+        tableName: bag_positions
+        columnName: latitude
+    - dropColumn:
+        tableName: bag_positions
+        columnName: longitude

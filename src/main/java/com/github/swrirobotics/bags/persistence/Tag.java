@@ -32,9 +32,6 @@ package com.github.swrirobotics.bags.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import org.hibernate.search.annotations.ContainedIn;
-import org.hibernate.search.annotations.DocumentId;
-import org.hibernate.search.annotations.Field;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -46,8 +43,6 @@ import java.io.Serializable;
 public class Tag implements Serializable {
     @Id
     @Column(nullable = false, length = 255)
-    @DocumentId
-    @Field(name = "tag_value")
     private String tag;
 
     @Id
@@ -56,7 +51,6 @@ public class Tag implements Serializable {
     @MapsId("bagId")
     @JoinColumn(name = "bagId")
     @ManyToOne(optional=false, cascade = CascadeType.REMOVE)
-    @ContainedIn
     private Bag bag;
 
     public Bag getBag() {

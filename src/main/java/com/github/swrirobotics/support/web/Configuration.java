@@ -33,10 +33,12 @@ package com.github.swrirobotics.support.web;
 import java.io.Serializable;
 
 public class Configuration implements Serializable {
+    private static final long serialVersionUID = 7088819138941988062L;
+
     private String bagPath = "/bags";
-    private String driver = "org.hsqldb.jdbcDriver";
+    private String driver = "org.h2.Driver";
     private String jdbcUsername = "sa";
-    private String jdbcUrl = "jdbc:hsqldb:mem:testdb";
+    private String jdbcUrl = "jdbc:h2:mem:testdb";
     private String jdbcPassword = "";
     private String googleApiKey = "";
     private Boolean useMapQuest = true;

@@ -40,23 +40,23 @@ public class ProductionDataSourceProperties implements DataSourceProperties {
     @Autowired
     private ConfigService myConfigService;
 
+    @Override
     public String getDriver() {
         return myConfigService.getConfiguration().getDriver();
     }
 
+    @Override
     public String getUrl() {
         return myConfigService.getConfiguration().getJdbcUrl();
     }
 
+    @Override
     public String getUsername() {
         return myConfigService.getConfiguration().getJdbcUsername();
     }
 
+    @Override
     public String getPassword() {
         return myConfigService.getConfiguration().getJdbcPassword();
-    }
-
-    public String getHbm2DdlAuto() {
-        return "update";
     }
 }

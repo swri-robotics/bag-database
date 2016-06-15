@@ -52,6 +52,7 @@ import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,6 +77,9 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @Profile("default")
+// This class doesn't directly access it, but we need to depend on the Liquibase
+// bean to ensure the database is configured before our @PostContruct runs.
+@DependsOn("liquibase")
 public class BagScanner extends StatusProvider implements RecursiveWatcher.WatchListener {
     @Autowired
     private ConfigService myConfigService;
@@ -281,8 +285,9 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                         myLogger.debug("No GPSFix or NavSatFix message found in bag " + fullPath + ".");
                     }
                     else {
-                        bag.setLatitudeDeg(mt.<Float64Type>getField("latitude").getValue());
-                        bag.setLongitudeDeg(mt.<Float64Type>getField("longitude").getValue());
+                        bag.setCoordinate(myBagService.makePoint(
+                                mt.<Float64Type>getField("latitude").getValue(),
+                                mt.<Float64Type>getField("longitude").getValue()));
                         myLogger.debug("Setting lat/lon for " + fullPath + " to: " +
                                                bag.getLatitudeDeg() + " / " + bag.getLongitudeDeg());
                         myBagRepo.save(bag);
@@ -300,10 +305,6 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
     @PreDestroy
     public void destroy() {
         myExecutor.shutdownNow();
-    }
-
-    public void rebuildLuceneDatabase() {
-        myExecutor.execute(new DatabaseIndexer());
     }
 
     public void updateAllLatLons() {
@@ -369,13 +370,6 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
     @Override
     protected String getStatusProviderName() {
         return "Bag Scanner";
-    }
-
-    private class DatabaseIndexer implements Runnable {
-        @Override
-        public void run() {
-            myBagService.updateIndexes();
-        }
     }
 
     private class FullScanner implements Runnable {

@@ -32,37 +32,25 @@ package com.github.swrirobotics.bags.persistence;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.hibernate.search.annotations.*;
-import org.hibernate.search.spatial.Coordinates;
+import com.vividsolutions.jts.geom.Point;
 
 import javax.persistence.*;
-import javax.persistence.Index;
 import java.sql.Timestamp;
 
 @Entity
-@Indexed
-@Spatial(spatialMode = SpatialMode.HASH, name = "bag_positions")
-@Table(name="bag_positions", indexes = {@Index(columnList = "id"),
-                                       @Index(columnList = "bagId"),
-                                       @Index(columnList = "latitude"),
-                                       @Index(columnList = "longitude")})
-public class BagPosition implements Coordinates {
+@Table(name="bag_positions")
+public class BagPosition {
     @Id
-    @DocumentId
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch=FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name="bagId")
-    @ContainedIn
     @JsonIgnore
     private Bag bag;
 
-    private Double latitude;
+    private Point position;
 
-    private Double longitude;
-
-    @FieldBridge(impl = TimestampBridge.class)
     private Timestamp positionTime;
 
     public Long getId() {
@@ -81,20 +69,23 @@ public class BagPosition implements Coordinates {
         this.bag = bag;
     }
 
+    @Transient
     public Double getLatitude() {
-        return latitude;
+        return position == null ? null : position.getY();
     }
 
-    public void setLatitude(Double latitudeDeg) {
-        this.latitude = latitudeDeg;
-    }
-
+    @Transient
     public Double getLongitude() {
-        return longitude;
+        return position == null ? null : position.getX();
     }
 
-    public void setLongitude(Double longitudeDeg) {
-        this.longitude = longitudeDeg;
+    @JsonIgnore
+    public Point getPosition() {
+        return position;
+    }
+
+    public void setPosition(Point position) {
+        this.position = position;
     }
 
     public Timestamp getPositionTime() {

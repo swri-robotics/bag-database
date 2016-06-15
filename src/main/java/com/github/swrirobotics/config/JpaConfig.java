@@ -33,12 +33,14 @@ package com.github.swrirobotics.config;
 import com.github.swrirobotics.Application;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.h2gis.functions.factory.H2GISDBFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -47,11 +49,9 @@ import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHtt
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.TransactionManagementConfigurer;
-import org.springframework.util.PropertyPlaceholderHelper;
 
 import javax.sql.DataSource;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.sql.SQLException;
 import java.util.Properties;
 
 @Configuration
@@ -59,17 +59,19 @@ import java.util.Properties;
 @EnableJpaRepositories(basePackageClasses = Application.class,
         transactionManagerRef = "annotationDrivenTransactionManager")
 @EnableJdbcHttpSession //(maxInactiveIntervalInSeconds = 60)
-class JpaConfig implements TransactionManagementConfigurer {
-    @Autowired
+public class JpaConfig implements TransactionManagementConfigurer {
+    @Autowired(required = false)
     private DataSourceProperties properties;
 
     private Logger myLogger = LoggerFactory.getLogger(JpaConfig.class);
 
     @Bean
+    @Profile("!test")
     public DataSource dataSource() {
         myLogger.info("JDBC driver: " + properties.getDriver());
         myLogger.info("JDBC URL: " + properties.getUrl());
         myLogger.info("JDBC Username: " + properties.getUsername());
+
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(properties.getDriver());
         config.setJdbcUrl(properties.getUrl());
@@ -80,30 +82,23 @@ class JpaConfig implements TransactionManagementConfigurer {
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         config.addDataSourceProperty("useServerPrepStmts", "true");
 
-        // Set Hibernate Search properties
-        if (properties.getDriver().contains("hsqldb")) {
-            System.setProperty("hibernate.search.default.directory_provider", "ram");
+        if (properties.getDriver().equals("org.postgresql.Driver")) {
+            System.setProperty("hibernate.dialect", "org.hibernate.spatial.dialect.postgis.PostgisDialect");
+
+            return new HikariDataSource(config);
         }
         else {
-            System.setProperty("hibernate.search.default.directory_provider", "filesystem");
-            System.setProperty("hibernate.search.default.worker.execution", "sync");
-            System.setProperty("hibernate.search.default.worker.thread_pool.size",
-                    Integer.toString(Runtime.getRuntime().availableProcessors()));
-            String path = ApplicationConfig.SETTINGS_PATH + "/indexes";
-            String home = System.getenv("HOME");
-            Properties props = new Properties();
-            props.setProperty("HOME", home);
-            PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
-            try {
-                path = new URI(helper.replacePlaceholders(path, props)).getPath();
-                myLogger.info("DB index location: " + path);
-                System.setProperty("hibernate.search.default.indexBase", path);
-            } catch (URISyntaxException e) {
-                myLogger.error("Unable to get DB index location:", e);
-            }
-        }
+            System.setProperty("hibernate.dialect", "org.hibernate.spatial.dialect.h2geodb.GeoDBDialect");
 
-        return new HikariDataSource(config);
+            try {
+                return H2GISDBFactory.createDataSource("testdb", true);
+            }
+            catch (SQLException e) {
+                myLogger.error("Unable to open spatial H2 database.");
+                return null;
+            }
+            //return SFSUtilities.wrapSpatialDataSource(new H2SpatialDataSource(config));
+        }
     }
 
     @Bean
@@ -115,8 +110,8 @@ class JpaConfig implements TransactionManagementConfigurer {
         entityManagerFactoryBean.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 
         Properties jpaProperties = new Properties();
-        //jpaProperties.put(org.hibernate.cfg.Environment.DIALECT, dialect);
-        jpaProperties.put(org.hibernate.cfg.Environment.HBM2DDL_AUTO, properties.getHbm2DdlAuto());
+        // Disable HBM2DDL; we use Liquibase to create our database
+        jpaProperties.put(org.hibernate.cfg.Environment.HBM2DDL_AUTO, "");
         entityManagerFactoryBean.setJpaProperties(jpaProperties);
 
         return entityManagerFactoryBean;
@@ -126,4 +121,24 @@ class JpaConfig implements TransactionManagementConfigurer {
     public PlatformTransactionManager annotationDrivenTransactionManager() {
         return new JpaTransactionManager();
     }
+
+    /*public static class H2SpatialDataSource extends HikariDataSource {
+        public H2SpatialDataSource(HikariConfig config) {
+            super(config);
+        }
+
+        @Override
+        public Connection getConnection() throws SQLException {
+            Connection conn = SFSUtilities.wrapConnection(super.getConnection());
+            H2GISExtension.load(conn);
+            return conn;
+        }
+
+        @Override
+        public Connection getConnection(String username, String password) throws SQLException {
+            Connection conn = SFSUtilities.wrapConnection(super.getConnection(username, password));
+            H2GISExtension.load(conn);
+            return conn;
+        }
+    }*/
 }
