@@ -190,56 +190,6 @@ databaseChangeLog:
             type: VARCHAR(255)
         tableName: message_types
 - changeSet:
-    id: 1466006862728-10
-    author: preed (generated)
-    changes:
-    - createTable:
-        columns:
-        - column:
-            constraints:
-              nullable: false
-            name: session_id
-            type: VARCHAR(36)
-        - column:
-            constraints:
-              nullable: false
-            name: creation_time
-            type: BIGINT
-        - column:
-            constraints:
-              nullable: false
-            name: last_access_time
-            type: BIGINT
-        - column:
-            constraints:
-              nullable: false
-            name: max_inactive_interval
-            type: BIGINT
-        - column:
-            name: principal_name
-            type: VARCHAR(100)
-        tableName: spring_session
-- changeSet:
-    id: 1466006862728-11
-    author: preed (generated)
-    changes:
-    - createTable:
-        columns:
-        - column:
-            constraints:
-              nullable: false
-            name: attribute_name
-            type: VARCHAR(200)
-        - column:
-            name: attribute_bytes
-            type: blob
-        - column:
-            constraints:
-              nullable: false
-            name: session_id
-            type: VARCHAR(36)
-        tableName: spring_session_attributes
-- changeSet:
     id: 1466006862728-12
     author: preed (generated)
     changes:
@@ -309,22 +259,6 @@ databaseChangeLog:
         columnNames: md5sum, name
         constraintName: message_types_pkey
         tableName: message_types
-- changeSet:
-    id: 1466006862728-17
-    author: preed (generated)
-    changes:
-    - addPrimaryKey:
-        columnNames: session_id, attribute_name
-        constraintName: spring_session_attributes_pkey
-        tableName: spring_session_attributes
-- changeSet:
-    id: 1466006862728-18
-    author: preed (generated)
-    changes:
-    - addPrimaryKey:
-        columnNames: session_id
-        constraintName: spring_session_pkey
-        tableName: spring_session
 - changeSet:
     id: 1466006862728-19
     author: preed (generated)
@@ -398,16 +332,6 @@ databaseChangeLog:
         indexName: idxcc7me1w2anykd9m1x0ayi9trn
         tableName: bag_positions
 - changeSet:
-    id: 1466006862728-27
-    author: preed (generated)
-    changes:
-    - createIndex:
-        columns:
-        - column:
-            name: last_access_time
-        indexName: idxftbd1rh13er6ce1gfyn4bodyn
-        tableName: spring_session
-- changeSet:
     id: 1466006862728-28
     author: preed (generated)
     changes:
@@ -427,16 +351,6 @@ databaseChangeLog:
             name: topicname
         indexName: idxh2ty3k7sh98r46ygv4gsomoe9
         tableName: topics
-- changeSet:
-    id: 1466006862728-30
-    author: preed (generated)
-    changes:
-    - createIndex:
-        columns:
-        - column:
-            name: session_id
-        indexName: idxk0uirvukmtnqi5itjyqyl9s64
-        tableName: spring_session_attributes
 - changeSet:
     id: 1466006862728-31
     author: preed (generated)
@@ -505,20 +419,6 @@ databaseChangeLog:
         onUpdate: NO ACTION
         referencedColumnNames: id
         referencedTableName: bags
-- changeSet:
-    id: 1466006862728-37
-    author: preed (generated)
-    changes:
-    - addForeignKeyConstraint:
-        baseColumnNames: session_id
-        baseTableName: spring_session_attributes
-        constraintName: fk2hbgpwnv2vv24dnkooq8ves9
-        deferrable: false
-        initiallyDeferred: false
-        onDelete: CASCADE
-        onUpdate: NO ACTION
-        referencedColumnNames: session_id
-        referencedTableName: spring_session
 - changeSet:
     id: 1466006862728-38
     author: preed (generated)

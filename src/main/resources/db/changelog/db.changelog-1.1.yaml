@@ -1,88 +1,103 @@
-# This changelog converts the bags and bag_positions table to use spatial
-# database extensions in PostgresQL and H2.  For both tables, it performs
-# the following steps:
-# 1. Create a new geometry column to represent a lat/lon point
-# 2. Create a spatial index on that column
-# 3. Set the value of that point based on the old lat/lon columns
-# 4. Drop the old columns
+# This adds the spring_session and spring_session_attributes tables that are
+# necessary for Spring Session integration.
 databaseChangeLog:
 - changeSet:
-    id: spatial-1
-    author: preed
+    id: 1466006862728-10
+    author: preed (generated)
     changes:
-    - addColumn:
-        tableName: bags
+    - createTable:
         columns:
         - column:
-            name: coordinate
-            type: geometry
+            constraints:
+              nullable: false
+            name: session_id
+            type: VARCHAR(36)
+        - column:
+            constraints:
+              nullable: false
+            name: creation_time
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: last_access_time
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: max_inactive_interval
+            type: BIGINT
+        - column:
+            name: principal_name
+            type: VARCHAR(100)
+        tableName: spring_session
 - changeSet:
-    id: spatial-2
-    author: preed
+    id: 1466006862728-11
+    author: preed (generated)
     changes:
-    - sql:
-        dbms: postgresql
-        sql: CREATE INDEX idx_bags_coordinate ON bags USING GIST(coordinate);
-    - sql:
-        dbms: h2
-        sql: CREATE SPATIAL INDEX idx_bags_coordinate ON bags(coordinate);
-- changeSet:
-    id: spatial-3
-    author: preed
-    changes:
-    - update:
-        tableName: bags
+    - createTable:
         columns:
         - column:
-            name: coordinate
-            valueComputed: ST_SetSRID(ST_MakePoint(longitudedeg, latitudedeg),4326)
+            constraints:
+              nullable: false
+            name: attribute_name
+            type: VARCHAR(200)
+        - column:
+            name: attribute_bytes
+            type: blob
+        - column:
+            constraints:
+              nullable: false
+            name: session_id
+            type: VARCHAR(36)
+        tableName: spring_session_attributes
 - changeSet:
-    id: spatial-4
-    author: preed
+    id: 1466006862728-17
+    author: preed (generated)
     changes:
-    - dropColumn:
-        tableName: bags
-        columnName: latitudedeg
-    - dropColumn:
-        tableName: bags
-        columnName: longitudedeg
+    - addPrimaryKey:
+        columnNames: session_id, attribute_name
+        constraintName: spring_session_attributes_pkey
+        tableName: spring_session_attributes
 - changeSet:
-    id: spatial-5
-    author: preed
+    id: 1466006862728-18
+    author: preed (generated)
     changes:
-    - addColumn:
-        tableName: bag_positions
+    - addPrimaryKey:
+        columnNames: session_id
+        constraintName: spring_session_pkey
+        tableName: spring_session
+- changeSet:
+    id: 1466006862728-27
+    author: preed (generated)
+    changes:
+    - createIndex:
         columns:
         - column:
-            name: position
-            type: geometry
+            name: last_access_time
+        indexName: idxftbd1rh13er6ce1gfyn4bodyn
+        tableName: spring_session
 - changeSet:
-    id: spatial-6
-    author: preed
+    id: 1466006862728-30
+    author: preed (generated)
     changes:
-    - sql:
-        dbms: postgresql
-        sql: CREATE INDEX idx_bag_positions_position ON bag_positions USING GIST(position);
-    - sql:
-        dbms: h2
-        sql: CREATE SPATIAL INDEX idx_bag_positions_position ON bag_positions(position);
-- changeSet:
-    id: spatial-7
-    author: preed
-    changes:
-    - update:
-        tableName: bag_positions
+    - createIndex:
         columns:
         - column:
-            name: position
-            valueComputed: ST_SetSRID(ST_MakePoint(longitude, latitude),4326)
+            name: session_id
+        indexName: idxk0uirvukmtnqi5itjyqyl9s64
+        tableName: spring_session_attributes
 - changeSet:
-    id: spatial-8
-    author: preed
+    id: 1466006862728-37
+    author: preed (generated)
     changes:
-    - dropColumn:
-        tableName: bag_positions
-        columnName: latitude
-    - dropColumn:
-        tableName: bag_positions
-        columnName: longitude
+    - addForeignKeyConstraint:
+        baseColumnNames: session_id
+        baseTableName: spring_session_attributes
+        constraintName: fk2hbgpwnv2vv24dnkooq8ves9
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: CASCADE
+        onUpdate: NO ACTION
+        referencedColumnNames: session_id
+        referencedTableName: spring_session
