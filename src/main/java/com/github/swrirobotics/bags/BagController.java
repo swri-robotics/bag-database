@@ -85,12 +85,6 @@ public class BagController {
         }
     }
 
-    @RequestMapping("/reindex")
-    private void updateIndexes() {
-        myLogger.info("updateIndexes");
-        myBagService.updateIndexes();
-    }
-
     @RequestMapping("/get")
     public Bag getBag(@RequestParam Long bagId) {
         myLogger.info("getBag: " + bagId);

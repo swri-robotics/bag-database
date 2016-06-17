@@ -1,0 +1,477 @@
+# This changelog represents the state of the database schema prior to version
+# 2.3.  The schema was previously generated at runtime by Hibernate for the
+# sake of convenience, but that makes it difficult to version properly and
+# migrate between versions.
+# This changelog was generated based on an existing database and modified
+# slightly to be more generic.  It can be used to initialize a new database
+# from scratch, but it is also intended to be able to synchronize an
+# existing database with Liquibase's changelog.
+databaseChangeLog:
+- changeSet:
+    id: 1466006862728-4
+    author: preed (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              primaryKey: true
+              primaryKeyName: account_pkey
+            name: id
+            type: bigint
+        - column:
+            name: email
+            type: VARCHAR(255)
+        - column:
+            name: password
+            type: VARCHAR(255)
+        - column:
+            name: role
+            type: VARCHAR(255)
+        tableName: account
+- changeSet:
+    id: 1466006862728-5
+    author: preed (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            constraints:
+              nullable: false
+            name: bag_id
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: message_type_md5sum
+            type: VARCHAR(32)
+        - column:
+            constraints:
+              nullable: false
+            name: message_type_name
+            type: VARCHAR(255)
+        tableName: bag_message_types
+- changeSet:
+    id: 1466006862728-6
+    author: preed (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              primaryKey: true
+              primaryKeyName: bag_positions_pkey
+            name: id
+            type: bigint
+        - column:
+            name: latitude
+            type: double
+        - column:
+            name: longitude
+            type: double
+        - column:
+            name: positiontime
+            type: datetime
+        - column:
+            name: bagid
+            type: BIGINT
+        tableName: bag_positions
+- changeSet:
+    id: 1466006862728-7
+    author: preed (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              primaryKey: true
+              primaryKeyName: bags_pkey
+            name: id
+            type: bigint
+        - column:
+            constraints:
+              nullable: false
+            name: compressed
+            type: boolean
+        - column:
+            constraints:
+              nullable: false
+            name: createdon
+            type: datetime
+        - column:
+            name: description
+            type: TEXT
+        - column:
+            name: duration
+            type: double
+        - column:
+            name: endtime
+            type: datetime
+        - column:
+            constraints:
+              nullable: false
+            name: filename
+            type: VARCHAR(100)
+        - column:
+            name: haspath
+            type: boolean
+        - column:
+            constraints:
+              nullable: false
+            name: indexed
+            type: boolean
+        - column:
+            name: latitudedeg
+            type: double
+        - column:
+            name: location
+            type: VARCHAR(100)
+        - column:
+            name: longitudedeg
+            type: double
+        - column:
+            constraints:
+              nullable: false
+            name: md5sum
+            type: VARCHAR(32)
+        - column:
+            constraints:
+              nullable: false
+            name: messagecount
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: missing
+            type: boolean
+        - column:
+            constraints:
+              nullable: false
+            name: path
+            type: VARCHAR(255)
+        - column:
+            constraints:
+              nullable: false
+            name: size
+            type: BIGINT
+        - column:
+            name: starttime
+            type: datetime
+        - column:
+            name: updatedon
+            type: datetime
+        - column:
+            name: vehicle
+            type: VARCHAR(100)
+        - column:
+            constraints:
+              nullable: false
+            name: version
+            type: VARCHAR(10)
+        tableName: bags
+- changeSet:
+    id: 1466006862728-8
+    author: preed (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            constraints:
+              nullable: false
+            name: md5sum
+            type: VARCHAR(32)
+        - column:
+            constraints:
+              nullable: false
+            name: name
+            type: VARCHAR(255)
+        tableName: message_types
+- changeSet:
+    id: 1466006862728-12
+    author: preed (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            constraints:
+              nullable: false
+            name: bagid
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: tag
+            type: VARCHAR(255)
+        tableName: tags
+- changeSet:
+    id: 1466006862728-13
+    author: preed (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            constraints:
+              nullable: false
+            name: bagid
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: topicname
+            type: VARCHAR(255)
+        - column:
+            constraints:
+              nullable: false
+            name: connectioncount
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: messagecount
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+            name: message_type_md5sum
+            type: VARCHAR(32)
+        - column:
+            constraints:
+              nullable: false
+            name: message_type_name
+            type: VARCHAR(255)
+        tableName: topics
+- changeSet:
+    id: 1466006862728-14
+    author: preed (generated)
+    changes:
+    - addPrimaryKey:
+        columnNames: bag_id, message_type_md5sum, message_type_name
+        constraintName: bag_message_types_pkey
+        tableName: bag_message_types
+- changeSet:
+    id: 1466006862728-15
+    author: preed (generated)
+    changes:
+    - addPrimaryKey:
+        columnNames: md5sum, name
+        constraintName: message_types_pkey
+        tableName: message_types
+- changeSet:
+    id: 1466006862728-19
+    author: preed (generated)
+    changes:
+    - addPrimaryKey:
+        columnNames: bagid, tag
+        constraintName: tags_pkey
+        tableName: tags
+- changeSet:
+    id: 1466006862728-20
+    author: preed (generated)
+    changes:
+    - addPrimaryKey:
+        columnNames: bagid, topicname
+        constraintName: topics_pkey
+        tableName: topics
+- changeSet:
+    id: 1466006862728-21
+    author: preed (generated)
+    changes:
+    - addUniqueConstraint:
+        columnNames: md5sum
+        constraintName: uk_a2r00kd2qd94dohkimsp5rdgn
+        tableName: bags
+- changeSet:
+    id: 1466006862728-22
+    author: preed (generated)
+    changes:
+    - addUniqueConstraint:
+        columnNames: email
+        constraintName: uk_q0uja26qgu1atulenwup9rxyr
+        tableName: account
+- changeSet:
+    id: 1466006862728-23
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: vehicle
+        indexName: idx99hxkxgaj7gefevuobhxhkcrd
+        tableName: bags
+- changeSet:
+    id: 1466006862728-24
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: name
+        indexName: idxbpqnw7rfumswfd9a5x3ko5b9o
+        tableName: message_types
+- changeSet:
+    id: 1466006862728-25
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: tag
+        indexName: idxc3yryiciv2h8794kloo3giic
+        tableName: tags
+- changeSet:
+    id: 1466006862728-26
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: bagid
+        indexName: idxcc7me1w2anykd9m1x0ayi9trn
+        tableName: bag_positions
+- changeSet:
+    id: 1466006862728-28
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: filename
+        indexName: idxgl2k73io6blgbn2yddb3mhpwx
+        tableName: bags
+- changeSet:
+    id: 1466006862728-29
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: topicname
+        indexName: idxh2ty3k7sh98r46ygv4gsomoe9
+        tableName: topics
+- changeSet:
+    id: 1466006862728-31
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: latitude
+        indexName: idxl3ymg4rkdsk7756xqdm8mld27
+        tableName: bag_positions
+- changeSet:
+    id: 1466006862728-32
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: location
+        indexName: idxrcffctp2e5gyshmak91mtujj9
+        tableName: bags
+- changeSet:
+    id: 1466006862728-33
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: longitude
+        indexName: idxrvwkggd3e1jky08xee3d6nsxx
+        tableName: bag_positions
+- changeSet:
+    id: 1466006862728-34
+    author: preed (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: path
+        indexName: idxt8rxfygm7ku5u70ryam0aoarv
+        tableName: bags
+- changeSet:
+    id: 1466006862728-35
+    author: preed (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: message_type_md5sum,message_type_name
+        baseTableName: bag_message_types
+        constraintName: fk23bp9x92dlt909c2kh3tlnsme
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: md5sum,name
+        referencedTableName: message_types
+- changeSet:
+    id: 1466006862728-36
+    author: preed (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: bagid
+        baseTableName: bag_positions
+        constraintName: fk25ij3r2ip8jkf31v35kq8gx1f
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags
+- changeSet:
+    id: 1466006862728-38
+    author: preed (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: bagid
+        baseTableName: tags
+        constraintName: fk8btgm03vue9r3f7p6wimgdf0g
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags
+- changeSet:
+    id: 1466006862728-39
+    author: preed (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: message_type_md5sum,message_type_name
+        baseTableName: topics
+        constraintName: fkaiwajp9bca32j0n2pepdwqmg5
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: md5sum,name
+        referencedTableName: message_types
+- changeSet:
+    id: 1466006862728-40
+    author: preed (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: bag_id
+        baseTableName: bag_message_types
+        constraintName: fkbllasbl4tts9qqlp65smmx27j
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags
+- changeSet:
+    id: 1466006862728-41
+    author: preed (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: bagid
+        baseTableName: topics
+        constraintName: fkq10sryjifovphrbxq3hieccm2
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags

@@ -41,8 +41,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.inject.Inject;
 
-import java.security.Security;
-
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -52,6 +50,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
         ApplicationConfig.class,
         EmbeddedDataSourceConfig.class,
         JpaConfig.class,
+        LiquibaseConfig.class,
         WebMvcConfig.class,
         WebSocketConfig.class,
         SecurityConfig.class

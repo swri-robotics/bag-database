@@ -30,10 +30,17 @@
 
 package com.github.swrirobotics.bags.admin;
 
+import com.github.swrirobotics.account.Account;
+import com.github.swrirobotics.account.AccountRepository;
+import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.filesystem.BagScanner;
+import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.support.web.Configuration;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -46,12 +53,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import com.github.swrirobotics.account.Account;
-import com.github.swrirobotics.account.AccountRepository;
-import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.BagScanner;
-import com.github.swrirobotics.config.ConfigService;
-import com.github.swrirobotics.support.web.Configuration;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -59,6 +60,9 @@ import java.io.IOException;
 @Controller
 @RequestMapping("admin")
 @Secured("ROLE_ADMIN")
+// This class doesn't directly access it, but we need to depend on the Liquibase
+// bean to ensure the database is configured before our @PostContruct runs.
+@DependsOn("liquibase")
 public class AdminController {
     @Autowired(required = false)
     private BagScanner myBagScanner;
@@ -117,13 +121,6 @@ public class AdminController {
     public String getAdminPage(Model model) {
         myLogger.info("getAdminPage");
         return "admin/admin";
-    }
-
-    @RequestMapping("/rebuildLucene")
-    @ResponseBody
-    public void rebuildLuceneIndex() {
-        myLogger.trace("rebuildLucene");
-        myBagScanner.rebuildLuceneDatabase();
     }
 
     @RequestMapping("/updateLatLons")

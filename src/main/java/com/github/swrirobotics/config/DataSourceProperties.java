@@ -35,5 +35,4 @@ public interface DataSourceProperties {
     String getUrl();
     String getUsername();
     String getPassword();
-    String getHbm2DdlAuto();
 }

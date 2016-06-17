@@ -34,9 +34,6 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.ContainedIn;
-import org.hibernate.search.annotations.Field;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -51,15 +48,12 @@ import java.util.Set;
 public class MessageType implements Serializable {
     @Id
     @Column(nullable = false, length = 255)
-    @Field(name = "mt_name")
     private String name;
     @Id
     @Column(nullable = false, length = 32)
-    @Field(name = "mt_md5sum", analyze = Analyze.NO)
     private String md5sum;
     @ManyToMany(mappedBy = "messageTypes", cascade = CascadeType.REMOVE)
     @JsonIgnore
-    @ContainedIn
     private Set<Bag> bags = new HashSet<>();
     @OneToMany(mappedBy = "type")
     @JsonIgnore

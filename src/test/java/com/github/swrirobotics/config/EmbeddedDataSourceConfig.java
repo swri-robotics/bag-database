@@ -30,13 +30,13 @@
 
 package com.github.swrirobotics.config;
 
+import org.h2gis.functions.factory.H2GISDBFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 
 /**
  * The data source config that can be used in integration tests.
@@ -46,9 +46,8 @@ import javax.sql.DataSource;
 public class EmbeddedDataSourceConfig {
 
     @Bean
-    public DataSource dataSource() {
-        return new EmbeddedDatabaseBuilder()
-                .setType(EmbeddedDatabaseType.HSQL)
-                .build();
+    public DataSource dataSource() throws SQLException {
+        System.setProperty("hibernate.dialect", "org.hibernate.spatial.dialect.h2geodb.GeoDBDialect");
+        return H2GISDBFactory.createDataSource("testdb", true);
     }
 }

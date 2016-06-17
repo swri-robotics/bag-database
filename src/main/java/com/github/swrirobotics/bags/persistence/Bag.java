@@ -35,23 +35,17 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.vividsolutions.jts.geom.Point;
 import org.hibernate.annotations.Type;
-import org.hibernate.search.annotations.*;
-import org.hibernate.search.spatial.Coordinates;
 
 import javax.persistence.*;
-import javax.persistence.Index;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name="bags", indexes = {@Index(columnList = "filename"),
-                               @Index(columnList = "location"),
-                               @Index(columnList = "path"),
-                               @Index(columnList = "vehicle")})
-@Indexed
+@Table(name="bags")
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Bag implements Serializable {
     private Long id;
@@ -86,6 +80,8 @@ public class Bag implements Serializable {
     private Set<Tag> tags = Sets.newHashSet(); // User-entered tags
     private Timestamp updatedOn; // Last time the DB entry was modified
 
+    private Point coordinate;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long getId() {
@@ -97,7 +93,6 @@ public class Bag implements Serializable {
     }
 
     @Column(nullable = false, length = 100)
-    @Field(analyze = Analyze.NO)
     public String getFilename() {
         return filename;
     }
@@ -107,7 +102,6 @@ public class Bag implements Serializable {
     }
 
     @Column(nullable = false, length = 255)
-    @Field(analyze = Analyze.NO)
     public String getPath() {
         return path;
     }
@@ -125,7 +119,6 @@ public class Bag implements Serializable {
         this.version = version;
     }
 
-    @Field(analyze = Analyze.NO)
     public Double getDuration() {
         return duration;
     }
@@ -134,8 +127,6 @@ public class Bag implements Serializable {
         this.duration = duration;
     }
 
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = TimestampBridge.class)
     public Timestamp getStartTime() {
         return startTime;
     }
@@ -144,8 +135,6 @@ public class Bag implements Serializable {
         this.startTime = startTime;
     }
 
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = TimestampBridge.class)
     public Timestamp getEndTime() {
         return endTime;
     }
@@ -155,7 +144,6 @@ public class Bag implements Serializable {
     }
 
     @Column(nullable = false)
-    @Field(analyze = Analyze.NO)
     public Long getSize() {
         return size;
     }
@@ -165,7 +153,6 @@ public class Bag implements Serializable {
     }
 
     @Column(nullable = false)
-    @Field(analyze = Analyze.NO)
     public Long getMessageCount() {
         return messageCount;
     }
@@ -197,7 +184,6 @@ public class Bag implements Serializable {
             joinColumns = {@JoinColumn(name="bag_id", referencedColumnName="id")},
             inverseJoinColumns = {@JoinColumn(name="message_type_name", referencedColumnName = "name"),
                     @JoinColumn(name="message_type_md5sum", referencedColumnName = "md5sum")})
-    @IndexedEmbedded
     public Set<MessageType> getMessageTypes() {
         return messageTypes;
     }
@@ -207,7 +193,6 @@ public class Bag implements Serializable {
     }
 
     @OneToMany(mappedBy = "bag", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @IndexedEmbedded
     public Set<Topic> getTopics() {
         return topics;
     }
@@ -217,8 +202,6 @@ public class Bag implements Serializable {
     }
 
     @Column(nullable = false)
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = TimestampBridge.class)
     public Timestamp getCreatedOn() {
         return createdOn;
     }
@@ -237,7 +220,6 @@ public class Bag implements Serializable {
     }
 
     @OneToMany(mappedBy = "bag", orphanRemoval = true)
-    @IndexedEmbedded(depth = 0)
     @JsonIgnore
     public List<BagPosition> getBagPositions() {
         return bagPositions;
@@ -256,7 +238,6 @@ public class Bag implements Serializable {
     }
 
     @Column(length = 100)
-    @Field
     public String getVehicle() {
         return vehicle;
     }
@@ -267,7 +248,6 @@ public class Bag implements Serializable {
 
     @Lob
     @Type(type = "org.hibernate.type.TextType")
-    @Field
     public String getDescription() {
         return description;
     }
@@ -277,7 +257,6 @@ public class Bag implements Serializable {
     }
 
     @Column(length = 32, nullable = false, unique = true)
-    @Field(analyze = Analyze.NO)
     public String getMd5sum() {
         return md5sum;
     }
@@ -295,41 +274,26 @@ public class Bag implements Serializable {
         this.location = location;
     }
 
-    public Double getLatitudeDeg() {
-        return latitudeDeg;
-    }
-
-    public void setLatitudeDeg(Double latitudeDeg) {
-        this.latitudeDeg = latitudeDeg;
-    }
-
-    public Double getLongitudeDeg() {
-        return longitudeDeg;
-    }
-
-    public void setLongitudeDeg(Double longitudeDeg) {
-        this.longitudeDeg = longitudeDeg;
-    }
-
-    @Spatial(spatialMode = SpatialMode.HASH, name = "origin")
     @Transient
-    @JsonIgnore
-    public Coordinates getOrigin() {
-        return new Coordinates() {
-            @Override
-            public Double getLatitude() {
-                return getLatitudeDeg();
-            }
+    public Double getLatitudeDeg() {
+        return coordinate == null ? null : coordinate.getY();
+    }
 
-            @Override
-            public Double getLongitude() {
-                return getLongitudeDeg();
-            }
-        };
+    @JsonIgnore
+    public Point getCoordinate() {
+        return coordinate;
+    }
+
+    public void setCoordinate(Point coordinate) {
+        this.coordinate = coordinate;
+    }
+
+    @Transient
+    public Double getLongitudeDeg() {
+        return coordinate == null ? null : coordinate.getX();
     }
 
     @OneToMany(mappedBy = "bag", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @IndexedEmbedded
     public Set<Tag> getTags() {
         return tags;
     }
@@ -338,8 +302,6 @@ public class Bag implements Serializable {
         this.tags = tags;
     }
 
-    @Field(analyze = Analyze.NO)
-    @FieldBridge(impl = TimestampBridge.class)
     public Timestamp getUpdatedOn() {
         return updatedOn;
     }

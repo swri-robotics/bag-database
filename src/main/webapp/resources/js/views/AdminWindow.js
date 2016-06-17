@@ -70,15 +70,6 @@ Ext.define('BagDatabase.views.AdminWindow', {
             }
         }, {
             xtype: 'button',
-            text: 'Rebuild Lucene Database',
-            margin: '5 0 0 0',
-            handler: function() {
-                Ext.Ajax.request({
-                    url: 'admin/rebuildLucene'
-                });
-            }
-        }, {
-            xtype: 'button',
             text: 'Re-scan all bag latitudes & longitudes',
             margin: '5 0 0 0',
             handler: function() {

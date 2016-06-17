@@ -32,6 +32,7 @@ package com.github.swrirobotics.account;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
@@ -48,7 +49,7 @@ public class AccountRepository {
 	@PersistenceContext
 	private EntityManager myEM;
 	
-	@Inject
+	@Autowired(required = false)
 	private PasswordEncoder myPasswordEncoder;
 
     private Logger myLogger = LoggerFactory.getLogger(AccountRepository.class);

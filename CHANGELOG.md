@@ -2,6 +2,11 @@
 
 2.3-SNAPSHOT
 
+- Using Liquibase to handle database versioning and migration
+- Using spatial columns for storing data for bags and their positions
+- Dropping MySQL support
+- Switching to H2 for the embedded database
+- Removing Hibernate Search support; it wasn't actually being used and just made things slower
 - Adding support for LZ4 compression
 - Using Spring Session for user session tracking; sessions no longer time out
 
