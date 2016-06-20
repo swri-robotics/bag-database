@@ -2,6 +2,7 @@
 
 2.3-SNAPSHOT
 
+- Updating the bag reader library to 1.5 to handle errors better
 - Using Liquibase to handle database versioning and migration
 - Using spatial columns for storing data for bags and their positions
 - Dropping MySQL support
