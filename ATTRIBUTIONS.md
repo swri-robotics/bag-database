@@ -10,7 +10,7 @@ AspectJ 1.8.9
 - License: EPL 1.0
 - https://eclipse.org/aspectj/
 
-Spring Framework 4.2.5
+Spring Framework 4.3.0
 - License: Apache 2.0
 - http://projects.spring.io/spring-framework/
 
@@ -42,9 +42,13 @@ Logback 1.1.5
 - License: LGPL 2.1
 - http://logback.qos.ch/
 
-HyperSQL 2.3.3
-- License: BSD
-- http://hsqldb.org/
+H2 Database Engine 1.4.192
+- License: EPL 1.0
+- http://www.h2database.com/html/main.html
+
+H2GIS 1.3.0
+- License: LGPL 3.0
+- http://www.h2gis.org/docs/home/
 
 SLF4J 1.7.16
 - License: MIT
@@ -77,10 +81,6 @@ Hamcrest 1.3
 Objenesis 2.1
 - License: MIT
 - http://objenesis.org/
-
-MySQL Connector 6.0.2
-- License: GPLv2
-- https://dev.mysql.com/downloads/connector/j/
 
 Apache Commons Codec 1.10
 - License: Apache 2.0

@@ -71,8 +71,8 @@ variables to see what's been changed or added.
 
 The bag database can run standalone in order to demonstrate its functionality, but
 if you do so it will have to rebuild the database every time it restarts.  Instead
-you should link it to an external database.  MySQL and PostgreSQL are supported;
-PostgreSQL is preferred.
+you should link it to an external database.  PostgreSQL with PostGIS extensions is
+the only supported database.
 
 To start a PostgreSQL container with PostGIS support:
 ```
@@ -110,10 +110,6 @@ Several volumes within the Docker container may be useful to mount externally:
 ##### `/bags`
 
 The location which will be monitored for bag files.
-
-##### `/root/.ros-bag-database/indexes`
-
-The location in which the bag database stores its Lucene database indexes.
 
 ##### `/usr/local/tomcat/logs`
 
