@@ -1,6 +1,6 @@
 # Bag Database changelog
 
-2.3-SNAPSHOT
+2.3
 
 - Updating the bag reader library to 1.5 to handle errors better
 - Using Liquibase to handle database versioning and migration
