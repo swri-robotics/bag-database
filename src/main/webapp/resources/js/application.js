@@ -31,20 +31,84 @@
 Ext.application({
     name: 'Bag Database',
     requires: [ 'BagDatabase.views.BagGrid',
+                'BagDatabase.views.BagTreePanel',
                 'BagDatabase.views.NavigationButton',
                 'BagDatabase.views.MapWindow',
                 'BagDatabase.views.SearchPanel'],
     launch: function() {
         Ext.create('Ext.container.Viewport', {
-            layout: 'border',
+            layout: 'fit',
             id: 'viewport',
             items: [{
-                xtype: 'searchPanel',
-                region: 'north'
-            }, {
-                xtype: 'bagGrid',
+                xtype: 'tabpanel',
                 region: 'center',
-                itemId: 'bagGrid'
+                activeTab: 0,
+                items: [{
+                    xtype: 'panel',
+                    layout: 'border',
+                    title: 'List View',
+                    iconCls: 'table-icon',
+                    items: [{
+                        xtype: 'searchPanel',
+                        region: 'north'
+                    }, {
+                        xtype: 'bagGrid',
+                        itemId: 'bagGrid',
+                        title: 'Search Results',
+                        region: 'center'
+
+                    }]
+                }, {
+                    xtype: 'bagTreePanel',
+                    title: 'Folder View',
+                    iconCls: 'folder-icon'
+                }],
+                tabBar: {
+                    items: [{ xtype: 'tbfill' }, {
+                        xtype: 'navigationButton',
+                        iconCls: 'chart-organisation-icon',
+                        isAdmin: isAdmin,
+                        margin: 5
+                    }]
+                },
+                fbar: [{
+                    xtype: 'errorButton',
+                    itemId: 'errorButton'
+                }, '-', {
+                    xtype: 'statusText',
+                    itemId: 'statusText'
+                }, '->'
+                // TODO Re-enable the save button when cell editing is working
+                /*, {
+                    xtype: 'button',
+                    text: 'Save Changes',
+                    itemId: 'saveButton',
+                    disabled: true,
+                    handler: function(button) {
+                        var grid = button.up('grid');
+                        var store = grid.getStore();
+                        var records = store.getRange().filter(function(bag) {
+                            return bag.dirty;
+                        });
+                        var bags = [];
+                        records.forEach(function(record) {
+                            bags.push(record.data);
+                        });
+
+                        if (!grid.saveMask) {
+                            grid.saveMask = new Ext.LoadMask(grid, {msg: 'Saving bags...'});
+                        }
+                        BagDatabase.stores.BagStore.saveBags(bags, grid.saveMask, button);
+                        records.forEach(function(record) {
+                            record.commit();
+                        });
+                    }
+                }*/],
+                listeners: {
+                    afterrender: function(bagGrid) {
+                        bagGrid.down('#statusText').connectWebSocket(bagGrid.down('#errorButton'));
+                    }
+                }
             }]
         });
     }

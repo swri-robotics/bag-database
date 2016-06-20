@@ -1,5 +1,10 @@
 # Bag Database changelog
 
+2.4-SNAPSHOT
+
+- Implementing a hierarchical folder view for the bag list
+- Adding some more button icons
+
 2.3
 
 - Updating the bag reader library to 1.5 to handle errors better
