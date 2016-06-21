@@ -110,6 +110,9 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 bag.endTime = new Date(bag.endTime);
                 bag.startTime = new Date(bag.startTime);
                 bag.updatedOn = new Date(bag.updatedOn);
+                delete bag.expanded;
+                delete bag.leaf;
+                delete bag.parentId;
                 me.down('bagPropertyGrid').setSource(bag);
 
                 var mts = {};
