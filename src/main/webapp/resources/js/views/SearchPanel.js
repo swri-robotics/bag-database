@@ -66,6 +66,7 @@ Ext.define('BagDatabase.views.SearchPanel', {
             xtype: 'button',
             itemId: 'searchButton',
             text: 'Search',
+            iconCls: 'magnifier-icon',
             margin: 5,
             handler: function(button) {
                 var vp = button.up('viewport');
@@ -74,10 +75,6 @@ Ext.define('BagDatabase.views.SearchPanel', {
                 var fields = vp.down('#searchFields').getValue();
                 store.filterBags(terms, fields);
             }
-        }, { xtype: 'tbseparator' }, {
-            xtype: 'navigationButton',
-            isAdmin: isAdmin,
-            margin: 5
         }]
     }, {
         xtype: 'checkboxgroup',

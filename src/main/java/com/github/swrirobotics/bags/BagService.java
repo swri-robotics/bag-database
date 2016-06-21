@@ -44,6 +44,7 @@ import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.BagList;
+import com.github.swrirobotics.support.web.BagTreeNode;
 import com.github.swrirobotics.support.web.ExtJsFilter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -77,6 +78,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -916,6 +920,56 @@ public class BagService extends StatusProvider {
                 bagRepository.save(bag);
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<BagTreeNode> getTreePath(String targetPath) throws IOException {
+        List<BagTreeNode> nodes = Lists.newArrayList();
+        String basePath = myConfigService.getConfiguration().getBagPath();
+        if (targetPath.equals("root")) {
+            targetPath = basePath;
+        }
+        String bagDir = targetPath;
+
+
+        java.nio.file.Path path = FileSystems.getDefault().getPath(bagDir);
+        String parentId = path.toFile().getCanonicalPath() + "/";
+
+        if (!parentId.startsWith(basePath)) {
+            // Don't allow somebody to list paths outside of the bag path.
+            return nodes;
+        }
+
+        // First, add any child directories to the node list.
+        try (DirectoryStream<java.nio.file.Path> dirStream = Files.newDirectoryStream(path)) {
+            for (java.nio.file.Path child : dirStream) {
+                File childFile = child.toFile();
+                if (!childFile.isDirectory()) {
+                    continue;
+                }
+                String filename = childFile.getName();
+                BagTreeNode childNode = new BagTreeNode();
+                childNode.filename = filename;
+                childNode.parentId = parentId;
+                childNode.leaf = false;
+                childNode.id = parentId + filename;
+                nodes.add(childNode);
+            }
+        }
+
+        // Next, get all the bags in that directory and add them.
+        List<Bag> bags = bagRepository.findByPath(parentId);
+        for (Bag bag : bags) {
+            BagTreeNode childNode = new BagTreeNode();
+            childNode.filename = bag.getFilename();
+            childNode.parentId = parentId;
+            childNode.leaf = true;
+            childNode.id = parentId + bag.getFilename();
+            childNode.bag = bag;
+            nodes.add(childNode);
+        }
+
+        return nodes;
     }
 
     public void removeMissingBags() {

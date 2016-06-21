@@ -42,9 +42,6 @@ Ext.define('BagDatabase.views.BagGrid', {
                'BagDatabase.views.StatusText',
                'BagDatabase.views.ErrorButton'],
     listeners: {
-        afterrender: function(bagGrid) {
-            bagGrid.down('#statusText').connectWebSocket(bagGrid.down('#errorButton'));
-        },
         edit: function(editor, context, event) {
             var origVal;
             if (context.record.modified && context.record.modified[context.field]){
@@ -148,7 +145,6 @@ Ext.define('BagDatabase.views.BagGrid', {
         }
     },
     selModel: {
-        //selType: 'cellmodel',
         mode: 'MULTI',
         pruneRemoved: false
     },
@@ -169,7 +165,7 @@ Ext.define('BagDatabase.views.BagGrid', {
     }, {
         text: 'Path', dataIndex: 'path', hidden: true, flex: 2, filter: { type: 'string' }
     }, {
-        text: 'Filename', dataIndex: 'filename', flex: 2, filter: { type: 'string' }
+        text: 'File Name', dataIndex: 'filename', flex: 2, filter: { type: 'string' }
     }, {
         text: 'Location', dataIndex: 'location', flex: 1, editor: 'textfield', filter: { type: 'string' }
     }, {
@@ -255,39 +251,7 @@ Ext.define('BagDatabase.views.BagGrid', {
             return record.get('missing') ? 'missing-bag-row' : '';
         }
     },
-    fbar: [{
-        xtype: 'errorButton',
-        itemId: 'errorButton'
-    }, '-', {
-        xtype: 'statusText',
-        itemId: 'statusText'
-    }, '->'
-    // TODO Re-enable the save button when cell editing is working
-    /*, {
-        xtype: 'button',
-        text: 'Save Changes',
-        itemId: 'saveButton',
-        disabled: true,
-        handler: function(button) {
-            var grid = button.up('grid');
-            var store = grid.getStore();
-            var records = store.getRange().filter(function(bag) {
-                return bag.dirty;
-            });
-            var bags = [];
-            records.forEach(function(record) {
-                bags.push(record.data);
-            });
 
-            if (!grid.saveMask) {
-                grid.saveMask = new Ext.LoadMask(grid, {msg: 'Saving bags...'});
-            }
-            BagDatabase.stores.BagStore.saveBags(bags, grid.saveMask, button);
-            records.forEach(function(record) {
-                record.commit();
-            });
-        }
-    }*/],
     displayBagInfo: function(bagRecord) {
         var bagId = bagRecord.get('id');
         this.showBagDetails(bagId);
@@ -438,6 +402,7 @@ Ext.define('BagDatabase.views.BagGrid', {
     },
     initComponent: function() {
         var me = this;
+
         Ext.apply(this, {
             store: Ext.create('BagDatabase.stores.BagStore', {
                 csrfName: csrfName,
@@ -448,12 +413,14 @@ Ext.define('BagDatabase.views.BagGrid', {
                     },
                     load: function(store) {
                         me.setLoading(false);
-                        me.setTitle ('Bag List (' + store.getCount() + ' bags)');
+                        me.setTitle(me.baseTitle + ' (' + store.getCount() + ' bags)');
                     }
                 }
             })
         });
 
         this.callParent(arguments);
+
+        this.baseTitle = this.title;
     }
 });

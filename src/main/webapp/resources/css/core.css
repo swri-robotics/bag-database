@@ -28,6 +28,10 @@ div.ol-viewport {
     position: absolute !important;
 }
 
+.chart-organisation-icon {
+    background-image: url('../images/chart_organisation.png');
+}
+
 .config-icon {
     background-image: url('../images/cog.png');
 }
@@ -38,6 +42,10 @@ div.ol-viewport {
 
 .database-icon {
     background-image: url('../images/database.png');
+}
+
+.folder-icon {
+    background-image: url('../images/folder.png');
 }
 
 .images-icon {
@@ -64,6 +72,10 @@ div.ol-viewport {
     background-image: url('../images/door_out.png');
 }
 
+.magnifier-icon {
+    background-image: url('../images/magnifier.png');
+}
+
 .map-icon {
     background-image: url('../images/map.png');
 }
@@ -72,6 +84,9 @@ div.ol-viewport {
     background-image: url('../images/save.png');
 }
 
+.table-icon {
+    background-image: url('../images/table.png');
+}
 .tick-icon {
     background-image: url('../images/tick.png');
 }
