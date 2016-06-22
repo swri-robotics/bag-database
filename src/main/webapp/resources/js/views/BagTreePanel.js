@@ -58,7 +58,17 @@ Ext.define('BagDatabase.views.BagTreePanel', {
         text: 'File Name',
         sortable: true,
         dataIndex: 'filename',
-        flex: 2
+        flex: 2,
+        renderer: function(value, metadata, record) {
+            var count = record.get('bagCount');
+            if (count >= 0) {
+                var filteredCount = record.get('filteredBagCount');
+                return value + ' <b>(' +
+                    (filteredCount >= 0 ? filteredCount + '/' : '') +
+                    count + ')</b>';
+            }
+            return value;
+        }
     }, {
         text: 'Location', dataIndex: 'location', flex: 1
     }, {
@@ -182,6 +192,34 @@ Ext.define('BagDatabase.views.BagTreePanel', {
             }
         }]
     }],
+    updateFilteredBagCounts: function() {
+        var filterText = this.up('panel').down('#filterText').getValue();
+
+        if (!filterText || filterText.length == 0) {
+            // If there's no filter set, don't set a filtered count.
+            this.getStore().each(function(record) {
+                record.set('filteredBagCount', -1);
+            });
+            return;
+        }
+
+        Ext.Ajax.request({
+            url: 'bags/filteredcount',
+            method: 'GET',
+            params: {
+                text: filterText
+            },
+            callback: function(opts, success, response) {
+                var results = Ext.decode(response.responseText);
+                results.forEach(function(bagCount) {
+                    var dir = this.getStore().getById(bagCount.path.replace(/\/$/, ""));
+                    if (dir) {
+                        dir.set('filteredBagCount', bagCount.count);
+                    }
+                }.bind(this));
+            }.bind(this)
+        });
+    },
     getBagRecords: function(treeNodes) {
         var bags = [];
         if (!treeNodes.length) {
@@ -280,7 +318,15 @@ Ext.define('BagDatabase.views.BagTreePanel', {
         Ext.apply(this, {
             store: Ext.create('BagDatabase.stores.BagTreeStore', {
                 xtype: 'bagTreeStore',
-                storeId: 'bagNodeStore'
+                storeId: 'bagNodeStore',
+                listeners: {
+                    filterchange: function() {
+                        me.updateFilteredBagCounts();
+                    },
+                    load: function() {
+                        me.updateFilteredBagCounts();
+                    }
+                }
             })
         });
 

@@ -35,6 +35,8 @@ import com.github.swrirobotics.bags.persistence.Bag;
 public class BagTreeNode {
     public String id;
     public String parentId;
+    public Long bagCount = -1L;
+    public Long filteredBagCount = -1L;
     public Boolean expanded = false;
     public String filename;
     public Boolean leaf = false;

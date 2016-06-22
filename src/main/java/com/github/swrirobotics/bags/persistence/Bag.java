@@ -47,6 +47,14 @@ import java.util.Set;
 @Entity
 @Table(name="bags")
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+@NamedNativeQuery(name = "Bag.countBagPaths",
+                  query = "SELECT COUNT(b.path) AS count, c.path AS path " +
+                          "FROM bags b " +
+                          "RIGHT JOIN (SELECT a.path FROM bags a GROUP BY a.path) c " +
+                          "  ON b.path LIKE CONCAT(c.path, '%') AND " +
+                          "    LOWER(b.filename) LIKE CONCAT('%', LOWER(:text), '%') " +
+                          "GROUP BY c.path",
+                  resultClass = BagCount.class)
 public class Bag implements Serializable {
     private Long id;
 
