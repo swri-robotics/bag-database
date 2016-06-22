@@ -37,10 +37,10 @@ Ext.apply(Ext.data.SortTypes, {
         }
 
         if (filename.endsWith('.bag')) {
-            return 'z' + filename;
+            return 'z' + filename.toLowerCase();
         }
 
-        return 'a' + filename;
+        return 'a' + filename.toLowerCase();
     }
 });
 

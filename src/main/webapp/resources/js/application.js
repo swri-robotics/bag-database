@@ -34,7 +34,8 @@ Ext.application({
                 'BagDatabase.views.BagTreePanel',
                 'BagDatabase.views.NavigationButton',
                 'BagDatabase.views.MapWindow',
-                'BagDatabase.views.SearchPanel'],
+                'BagDatabase.views.SearchPanel',
+                'BagDatabase.views.BagTreeFilterPanel' ],
     launch: function() {
         Ext.create('Ext.container.Viewport', {
             layout: 'fit',
@@ -59,9 +60,18 @@ Ext.application({
 
                     }]
                 }, {
-                    xtype: 'bagTreePanel',
+                    xtype: 'panel',
+                    layout: 'border',
                     title: 'Folder View',
-                    iconCls: 'folder-icon'
+                    iconCls: 'folder-icon',
+                    items: [{
+                        xtype: 'bagTreeFilterPanel',
+                        region: 'north'
+                    }, {
+                        xtype: 'bagTreePanel',
+                        itemId: 'bagTreePanel',
+                        region: 'center'
+                    }]
                 }],
                 tabBar: {
                     items: [{ xtype: 'tbfill' }, {

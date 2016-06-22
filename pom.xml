@@ -432,6 +432,7 @@
                                 <include>models/Bag-min.js</include>
                                 <include>models/BagTreeNode-min.js</include>
                                 <include>stores/BagStore-min.js</include>
+                                <include>stores/BagTreeStore-min.js</include>
                                 <include>stores/ErrorStore-min.js</include>
                                 <include>views/AboutWindow-min.js</include>
                                 <include>views/BagPropertyGrid-min.js</include>
@@ -450,6 +451,7 @@
                                 <include>views/AdminWindow-min.js</include>
                                 <include>views/BagGrid-min.js</include>
                                 <include>views/BagTreePanel-min.js</include>
+                                <include>views/BagTreeFilterPanel-min.js</include>
                             </includes>
                         </aggregation>
                     </aggregations>

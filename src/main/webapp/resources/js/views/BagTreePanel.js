@@ -31,8 +31,9 @@
 Ext.define('BagDatabase.views.BagTreePanel', {
     extend: 'Ext.tree.Panel',
     alias: 'widget.bagTreePanel',
-    title: 'Bag Tree Panel',
-    requires: [ 'BagDatabase.models.BagTreeNode' ],
+    title: 'Folder Structure',
+    requires: [ 'BagDatabase.models.BagTreeNode',
+                'BagDatabase.stores.BagTreeStore' ],
     reserveScrollbar: true,
     loadMask: true,
     useArrows: true,
@@ -40,6 +41,17 @@ Ext.define('BagDatabase.views.BagTreePanel', {
     selModel: {
         mode: 'MULTI',
         pruneRemoved: false
+    },
+    header: {
+        padding: 6,
+        items: [{
+            xtype: 'button',
+            text: 'Refresh',
+            iconCls: 'refresh-icon',
+            handler: function(button) {
+                button.up('bagTreePanel').getStore().load();
+            }
+        }]
     },
     columns: [{
         xtype: 'treecolumn',
@@ -57,20 +69,41 @@ Ext.define('BagDatabase.views.BagTreePanel', {
     }, {
         text: 'Latitude (Deg)', dataIndex: 'latitudeDeg', flex: 1, editor: {
             xtype: 'numberfield', decimalPrecision: 10 },
-        hidden: true
+        hidden: true,
+        renderer: function(value, metadata, record) {
+            if (!record.get('leaf')) {
+                return '';
+            }
+            return value;
+        }
     }, {
         text: 'Longitude (Deg)', dataIndex: 'longitudeDeg', flex: 1, editor: {
             xtype: 'numberfield', decimalPrecision: 10 },
-        hidden: true
+        hidden: true,
+        renderer: function(value, metadata, record) {
+            if (!record.get('leaf')) {
+                return '';
+            }
+            return value;
+        }
     }, {
         text: 'Missing file?', dataIndex: 'missing', flex: 0.5,
-        hidden: true
+        hidden: true,
+        renderer: function(value, metadata, record) {
+            if (!record.get('leaf')) {
+                return '';
+            }
+            return value;
+        }
     }, {
         text: 'MD5 Sum', dataIndex: 'md5sum', flex: 1,
         hidden: true
     }, {
         text: 'Duration (s)', dataIndex: 'duration', flex: 1,
-        renderer: function(value) {
+        renderer: function(value, metadata, record) {
+            if (!record.get('leaf')) {
+                return '';
+            }
             if (value < 0) {
                 return '(Invalid)';
             }
@@ -92,13 +125,22 @@ Ext.define('BagDatabase.views.BagTreePanel', {
         renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
     }, {
         text: 'Size (MB)', dataIndex: 'size', flex: 1,
-        renderer: function(value) {
+        renderer: function(value, metadata, record) {
+            if (!record.get('leaf')) {
+                return '';
+            }
             return (value / 1024.0 / 1024.0).toFixed(3) ;
         },
         hidden: true
     }, {
         text: 'Messages', dataIndex: 'messageCount', flex: 1,
-        hidden: true
+        hidden: true,
+        renderer: function(value, metadata, record) {
+            if (!record.get('leaf')) {
+                return '';
+            }
+            return value;
+        }
     }, {
         xtype: 'actioncolumn',
         width: 75,
@@ -236,19 +278,9 @@ Ext.define('BagDatabase.views.BagTreePanel', {
     initComponent: function() {
         var me = this;
         Ext.apply(this, {
-            store: Ext.create('Ext.data.TreeStore', {
-                storeId: 'bagNodeStore',
-                model: 'BagDatabase.models.BagTreeNode',
-                proxy: {
-                    type: 'ajax',
-                    reader: 'json',
-                    url: 'bags/treenode'
-                },
-                sorters: [{
-                    property: 'filename',
-                    direction: 'ASC'
-                }],
-                lazyFill: true
+            store: Ext.create('BagDatabase.stores.BagTreeStore', {
+                xtype: 'bagTreeStore',
+                storeId: 'bagNodeStore'
             })
         });
 
