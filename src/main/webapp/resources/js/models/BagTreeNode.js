@@ -52,9 +52,22 @@ Ext.define('BagDatabase.models.BagTreeNode', {
                'BagDatabase.models.Topic'],
     idProperty: 'id',
     fields: [{
+        // This will be the full path to the bag or directory on disk;
+        // paths should be unique.
         name: 'id'
     }, {
+        // For bag files, this will contain the actual Bag object.  For
+        // directories, this will be null.
         name: 'bag', type: 'auto'
+    }, {
+        // For directories, this will contain the total number of bag files
+        // under the directory and all of its subdirectories.  For bag files,
+        // this will be -1.
+        name :'bagCount', type: 'int'
+    }, {
+        // If the tree of bags is filtered, this will contain how many bags
+        // match the filter under the current branch.
+        name: 'filteredBagCount', type: 'int'
     }, {
         name: 'filename', sortType: 'asFilename'
     }, {

@@ -71,6 +71,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -953,6 +954,12 @@ public class BagService extends StatusProvider {
                 childNode.parentId = parentId;
                 childNode.leaf = false;
                 childNode.id = parentId + filename;
+                java.nio.file.Path subdirPath = FileSystems.getDefault().getPath(childNode.id);
+                try (DirectoryStream<java.nio.file.Path> subdirStream = Files.newDirectoryStream(subdirPath)) {
+                    Iterator<java.nio.file.Path> iter = subdirStream.iterator();
+                    childNode.expanded = !iter.hasNext();
+                }
+                childNode.bagCount = bagRepository.countByPathStartsWith(childNode.id);
                 nodes.add(childNode);
             }
         }
@@ -970,6 +977,22 @@ public class BagService extends StatusProvider {
         }
 
         return nodes;
+    }
+
+
+    /**
+     * Examines all of the paths on the filesystem known to the bag database and returns
+     * a recursive count of how many bags there are under that path that match the
+     * given filter text.  If the filter text is empty, all bags will match.
+     * @param filterText The text to filter against.
+     * @return A set of paths and how many matching bags exist under each path.
+     */
+    @Transactional(readOnly = true)
+    public BagCount[] checkFilteredBagCounts(String filterText) {
+        TypedQuery<BagCount> query = myEM.createNamedQuery("Bag.countBagPaths", BagCount.class);
+        query.setParameter("text", filterText);
+        List<BagCount> results = query.getResultList();
+        return results.toArray(new BagCount[results.size()]);
     }
 
     public void removeMissingBags() {

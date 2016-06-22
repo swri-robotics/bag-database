@@ -32,6 +32,7 @@ package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.swrirobotics.bags.persistence.Bag;
+import com.github.swrirobotics.bags.persistence.BagCount;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
@@ -136,7 +137,14 @@ public class BagController {
 
         List<BagTreeNode> nodes = myBagService.getTreePath(node);
 
-        return myBagService.getTreePath(node).toArray(new BagTreeNode[nodes.size()]);
+        return nodes.toArray(new BagTreeNode[nodes.size()]);
+    }
+
+    @RequestMapping("/filteredcount")
+    public BagCount[] checkFilteredBagCounts(@RequestParam String text) {
+        myLogger.info("checkFilteredBagCounts: " + text);
+
+        return myBagService.checkFilteredBagCounts(text);
     }
 
     @InitBinder
