@@ -2,6 +2,7 @@
 
 2.4-SNAPSHOT
 
+- Saving widget states between reloads
 - Adding more database indexes to improve search performance
 - Implementing a hierarchical folder view for the bag list
 - Adding some more button icons

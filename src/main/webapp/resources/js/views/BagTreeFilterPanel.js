@@ -41,6 +41,8 @@ Ext.define('BagDatabase.views.BagTreeFilterPanel', {
             xtype: 'textfield',
             fieldLabel: 'Filter by File Name',
             itemId: 'filterText',
+            stateful: true,
+            stateId: 'filterText',
             name: 'filterText',
             flex: 1,
             margin: 5,
