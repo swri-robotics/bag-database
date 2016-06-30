@@ -37,13 +37,18 @@ Ext.application({
                 'BagDatabase.views.SearchPanel',
                 'BagDatabase.views.BagTreeFilterPanel' ],
     launch: function() {
+        Ext.state.Manager.setProvider(new Ext.state.LocalStorageProvider());
         Ext.create('Ext.container.Viewport', {
             layout: 'fit',
             id: 'viewport',
             items: [{
                 xtype: 'tabpanel',
                 region: 'center',
-                activeTab: 0,
+                id: 'tabPanel',
+                stateful: true,
+                stateId: 'tabPanel',
+                stateEvents: ['tabchange'],
+                activeTab: Ext.state.Manager.get('active_tab', 0),
                 items: [{
                     xtype: 'panel',
                     layout: 'border',
@@ -51,10 +56,14 @@ Ext.application({
                     iconCls: 'table-icon',
                     items: [{
                         xtype: 'searchPanel',
+                        stateful: true,
+                        stateId: 'gridSearchPanel',
                         region: 'north'
                     }, {
                         xtype: 'bagGrid',
                         itemId: 'bagGrid',
+                        stateful: true,
+                        stateId: 'bagGrid',
                         title: 'Search Results',
                         region: 'center'
 
@@ -66,10 +75,14 @@ Ext.application({
                     iconCls: 'folder-icon',
                     items: [{
                         xtype: 'bagTreeFilterPanel',
+                        stateful: true,
+                        stateId: 'bagTreeFilterPanel',
                         region: 'north'
                     }, {
                         xtype: 'bagTreePanel',
                         itemId: 'bagTreePanel',
+                        stateful: true,
+                        stateId: 'bagTreePanel',
                         region: 'center'
                     }]
                 }],
@@ -117,6 +130,9 @@ Ext.application({
                 listeners: {
                     afterrender: function(bagGrid) {
                         bagGrid.down('#statusText').connectWebSocket(bagGrid.down('#errorButton'));
+                    },
+                    tabchange: function() {
+                        Ext.state.Manager.set('active_tab', Ext.getCmp('tabPanel').getActiveTab().getId());
                     }
                 }
             }]

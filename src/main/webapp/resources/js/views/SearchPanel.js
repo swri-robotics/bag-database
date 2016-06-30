@@ -42,6 +42,8 @@ Ext.define('BagDatabase.views.SearchPanel', {
             fieldLabel: 'Full Text Search',
             itemId: 'searchTerms',
             name: 'searchTerms',
+            stateful: true,
+            stateId: 'searchTerms',
             flex: 1,
             margin: 5,
             enableKeyEvents: true,
@@ -79,8 +81,19 @@ Ext.define('BagDatabase.views.SearchPanel', {
     }, {
         xtype: 'checkboxgroup',
         itemId: 'searchFields',
+        stateful: true,
+        stateId: 'gridSearchFields',
         anchor: '100%',
         columns: 7,
+        // The checkboxgroup widget doesn't actually save the states of its
+        // checkboxes by default, so we have to manually do that.
+        stateEvents: ['change'],
+        applyState: function(state) {
+            this.setValue(state);
+        },
+        getState: function() {
+            return this.getValue();
+        },
         getErrors: function(value) {
             var errors = [];
             var tnCheckbox = this.down('#topicNameCheckbox');
