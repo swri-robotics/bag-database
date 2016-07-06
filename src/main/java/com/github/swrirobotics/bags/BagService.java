@@ -563,7 +563,7 @@ public class BagService extends StatusProvider {
         return positions;
     }
 
-    private String getVehicleName(BagFile bag) {
+    public String getVehicleName(BagFile bag) {
         String[] vehicleNames = myConfigService.getConfiguration().getVehicleNameTopics();
         try {
             for (String topic : vehicleNames) {
