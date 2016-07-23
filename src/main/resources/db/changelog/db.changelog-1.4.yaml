@@ -1,0 +1,24 @@
+# Adds a new table for storing key:value pairs
+databaseChangeLog:
+- changeSet:
+    id: 20160709-1
+    author: cbandera
+    changes:
+    - addColumn:
+        tableName: tags
+        columns:
+        - column:
+            constraints:
+              nullable: false
+            name: value
+            type: VARCHAR(255)
+- changeSet:
+    id: 20160709-2
+    author: cbandera
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: value
+        indexName: idx2016070933
+        tableName: tags
