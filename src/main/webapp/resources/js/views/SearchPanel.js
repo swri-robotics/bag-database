@@ -117,6 +117,12 @@ Ext.define('BagDatabase.views.SearchPanel', {
             value: true,
             qtip: 'The textual description of the bag file.'
         }, {
+            boxLabel: 'Tags',
+            name: 'field',
+            inputValue: 'tags',
+            value: true,
+            qtip: 'Additional Metadata.'
+        }, {
             boxLabel: 'Path',
             name: 'field',
             inputValue: 'path',
