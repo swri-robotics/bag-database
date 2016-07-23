@@ -30,58 +30,15 @@
 
 package com.github.swrirobotics.bags.persistence;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.*;
-import java.io.Serializable;
+import java.util.List;
 
-@Entity
-@Table(name="tags", indexes = {@Index(columnList = "tag")})
-@IdClass(TagKey.class)
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "tag")
-public class Tag implements Serializable {
-    @Id
-    @Column(nullable = false, length = 255)
-    private String tag;
-
-    @Id
-    private Long bagId;
-
-    @Column(nullable = false)
-    private String value;
-
-    @MapsId("bagId")
-    @JoinColumn(name = "bagId")
-    @ManyToOne(optional=false, cascade = CascadeType.REMOVE)
-    private Bag bag;
-
-    public Bag getBag() {
-        return bag;
-    }
-
-    public void setBag(Bag bag) {
-        this.bagId = bag.getId();
-        this.bag = bag;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-
-    public void setTag(String tag) {
-        this.tag = tag;
-    }
-
-    public Long getBagId() {
-        return bagId;
-    }
-
-    public void setBagId(Long bagId) {
-        this.bagId = bagId;
-    }
-
-    public String getValue() { return value; }
-
-    public void setValue(String value) { this.value = value; }
+@Repository
+@Transactional(readOnly = true)
+public interface TagRepository extends JpaRepository<Tag, TagKey> {
+    Tag findByTagAndBagId(String tag, Long bagId);
+    List<Tag> findByTag(String tag);
 }
