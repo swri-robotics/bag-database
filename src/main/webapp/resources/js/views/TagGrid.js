@@ -28,19 +28,21 @@
 //
 // *****************************************************************************
 
-Ext.define('BagDatabase.models.Tag', {
-    extend: 'BagDatabase.models.Base',
-    requires: ['BagDatabase.models.Base'],
-    idProperty: 'tag',
-    fields: [{
-        name: 'tag'
-    }, {
-        name: 'bagId',
-        reference: {
-            type: 'Bag',
-            inverse: 'tags'
+Ext.define('BagDatabase.views.TagGrid', {
+    extend: 'Ext.grid.Panel',
+    alias: 'widget.tagGrid',
+    title: 'Tags',
+    store: {
+        xtype: 'jsonstore',
+        model: 'BagDatabase.models.Tag',
+        sorters: 'tag',
+        reader: {
+            type: 'json'
         }
-    },{
-        name: 'value'
+    },
+    columns: [{
+        text: 'Key', dataIndex: 'tag', flex: 2
+    }, {
+        text: 'Value: ', dataIndex: 'value', flex: 1
     }]
 });

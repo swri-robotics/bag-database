@@ -22,3 +22,13 @@ databaseChangeLog:
             name: value
         indexName: idx2016070933
         tableName: tags
+- changeSet:
+    id: 20160709-3
+    author: cbandera
+    changes:
+    - createUniqueConstraint:
+        columnNames: bagid, tag
+        constraintName: unique_tag_per_bag
+        deferrable: false
+        initiallyDeferred: false
+        tableName: tags

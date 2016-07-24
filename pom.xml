@@ -443,6 +443,7 @@
                                 <include>views/NavigationButton-min.js</include>
                                 <include>views/SearchPanel-min.js</include>
                                 <include>views/TopicGrid-min.js</include>
+                                <include>views/TagGrid-min.js</include>
                                 <include>views/BagDetailsWindow-min.js</include>
                                 <include>views/ErrorGrid-min.js</include>
                                 <include>views/ErrorWindow-min.js</include>
