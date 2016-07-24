@@ -604,7 +604,7 @@ public class BagService extends StatusProvider {
             reportStatus(Status.State.ERROR,
                     "Unable to get metadata from bag file " + bagFile.getPath() + ": " + e.getLocalizedMessage());
         }
-        return null;
+        return new String();
     }
 
     public Set<Tag> getTags(BagFile bagFile, Bag bag) {
@@ -612,23 +612,26 @@ public class BagService extends StatusProvider {
         Set<Tag> tags = new HashSet<Tag>();
         String[] lines = metadata.split(System.getProperty("line.separator"));
         for (String line : lines) {
-            if (line.isEmpty())
+            if (line.isEmpty() | !line.contains(":"))
                 continue;
 
             String[] parts = line.split(":", 2);
             String key = parts[0].trim();
             String value = parts[1].trim();
 
-            if (!value.isEmpty())
+            if (value.isEmpty())
                 continue;
-
+            if(value.length() > 255){
+                value = value.substring(0,254);
+            }
             Tag tag = new Tag();
             tag.setTag(key);
             tag.setValue(value);
             tag.setBag(bag);
             tags.add(tag);
         }
-        myLogger.debug("Found " + tags.size() + " tags for bag " + bag.getPath());
+        if (tags.size() > 0)
+            myLogger.debug("Found " + tags.size() + " tags for bag " + bag.getFilename());
         return tags;
     }
 
@@ -817,32 +820,51 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    private void addTagsToBag(final BagFile bagFile,
+    public void addTagsToBag(final BagFile bagFile,
                               final Bag bag) throws BagReaderException {
-        myLogger.trace("Adding tags.");
-        Set<Tag> tags = getTags(bagFile,bag);
+        myLogger.trace("Adding tags to " + bagFile.getPath());
+        Set<Tag> bagTags = getTags(bagFile, bag);
+        List<Tag> dbTags = myTagRepository.findByBagId(bag.getId());
+        List<Tag> marked_for_removal = new ArrayList<Tag>();
 
-        for (Tag tag: tags) {
-            myLogger.trace("Finding existing tags.");
-            Tag bagTag = myTagRepository.findByTagAndBagId(tag.getTag(), bag.getId());
-
-            Tag dbTag;
-            if (bagTag != null) {
-                dbTag = bagTag;
+        // Delete old tags
+        for (Tag dbTag : dbTags) {
+            boolean found = false;
+            for (Tag bagTag : bagTags) {
+                if (Objects.equals(dbTag.getTag(), bagTag.getTag())) {
+                    found = true;
+                    break;
+                }
             }
-            else {
-                //myLogger.info("Creating new topic.");
-                dbTag = new Tag();
-            }
-            dbTag.setTag(tag.getTag());
-            dbTag.setValue(tag.getValue());
-            dbTag.setBag(tag.getBag());
-            dbTag.setBagId(tag.getBagId());
-            if (!bag.getTags().contains(dbTag)) {
-                bag.getTags().add(dbTag);
+            if (!found) {
+                myLogger.debug("Removing old tag '" + dbTag.getTag() + "' which does not exist anymore.");
+                marked_for_removal.add(dbTag);
             }
         }
-        myTagRepository.save(tags);
+        // TODO delete from database: Why is this not working? Fails with 'deleted instance passed to merge'
+        // myTagRepository.delete(marked_for_removal);
+        //for( Tag tag : marked_for_removal)
+        //    dbTags.remove(tag);
+
+        // Update tags
+        for (Tag bagTag : bagTags) {
+            boolean found = false;
+            for (Tag dbTag : dbTags) {
+                if (Objects.equals(dbTag.getTag(), bagTag.getTag())) {
+                    found = true;
+                    if (!Objects.equals(dbTag.getValue(), bagTag.getValue())) {
+                        myLogger.debug("Updating existing tag '" + dbTag.getTag() + "': Old tag value: '" + bagTag.getValue() + "'; New tag value: '" + dbTag.getValue() + "')");
+                        dbTag.setValue(bagTag.getValue());
+                        myTagRepository.save(dbTag);
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                myLogger.debug("Saving new tag '" + bagTag.getTag() + ": " + bagTag.getValue() + "'");
+                myTagRepository.save(bagTag);
+            }
+        }
     }
 
     public void updateBagFile(final File file,

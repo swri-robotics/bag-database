@@ -254,13 +254,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
             String fullPath = bag.getPath() + bag.getFilename();
             try {
                 BagFile bagFile = BagReader.readFile(fullPath);
-                myBagService.getMetadata(bagFile);
-                Set<Tag> tags = myBagService.getTags(bagFile, bag);
-                if (!tags.isEmpty()) {
-                    myLogger.debug("Setting " + tags.size() + " tags for " + fullPath);
-                    bag.setTags(tags);
-                    myBagRepo.save(bag);
-                }
+                myBagService.addTagsToBag(bagFile,bag);
             } catch (BagReaderException e) {
                 reportStatus(Status.State.ERROR,
                         "Unable to get tags from bag file " +

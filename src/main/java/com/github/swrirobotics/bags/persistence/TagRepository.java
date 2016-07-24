@@ -42,4 +42,5 @@ public interface TagRepository extends JpaRepository<Tag, TagKey> {
     Tag findByTagAndBagId(String tag, Long bagId);
     List<Tag> findByTagAndValue(String tag, String value);
     List<Tag> findByTag(String tag);
+    List<Tag> findByBagId(Long bagId);
 }
