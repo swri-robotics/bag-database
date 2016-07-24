@@ -97,6 +97,8 @@ public class BagService extends StatusProvider {
     @Autowired
     private TopicRepository myTopicRepository;
     @Autowired
+    private TagRepository myTagRepository;
+    @Autowired
     public ConfigService myConfigService;
     @Autowired
     private GeocodingService myGeocodingService;
@@ -354,6 +356,7 @@ public class BagService extends StatusProvider {
         dbBag.setCoordinate(makePoint(newBag.getLatitudeDeg(), newBag.getLongitudeDeg()));
         dbBag.setLocation(newBag.getLocation());
         dbBag.setVehicle(newBag.getVehicle());
+        dbBag.setTags(newBag.getTags());
         dbBag.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
         bagRepository.save(dbBag);
     }
@@ -580,6 +583,55 @@ public class BagService extends StatusProvider {
         return null;
     }
 
+    public String getMetadata(BagFile bagFile) {
+        String[] topics = myConfigService.getConfiguration().getMetadataTopics();
+        try {
+            for (String topic : topics) {
+                com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt = bagFile.getFirstMessageOnTopic(topic);
+                int index = 1;
+                try {
+                    // Advance to newest
+                    index++;
+                    mt = bagFile.getMessageOnTopicAtIndex(topic, index);
+                } catch (java.lang.IndexOutOfBoundsException e) {
+                    ;
+                }
+                if (mt != null) {
+                    return mt.<StringType>getField("data").getValue();
+                }
+            }
+        } catch (BagReaderException | UninitializedFieldException | java.util.NoSuchElementException e) {
+            reportStatus(Status.State.ERROR,
+                    "Unable to get metadata from bag file " + bagFile.getPath() + ": " + e.getLocalizedMessage());
+        }
+        return null;
+    }
+
+    public Set<Tag> getTags(BagFile bagFile, Bag bag) {
+        String metadata = getMetadata(bagFile);
+        Set<Tag> tags = new HashSet<Tag>();
+        String[] lines = metadata.split(System.getProperty("line.separator"));
+        for (String line : lines) {
+            if (line.isEmpty())
+                continue;
+
+            String[] parts = line.split(":", 2);
+            String key = parts[0].trim();
+            String value = parts[1].trim();
+
+            if (!value.isEmpty())
+                continue;
+
+            Tag tag = new Tag();
+            tag.setTag(key);
+            tag.setValue(value);
+            tag.setBag(bag);
+            tags.add(tag);
+        }
+        myLogger.debug("Found " + tags.size() + " tags for bag " + bag.getPath());
+        return tags;
+    }
+
     @Transactional
     public void updateGpsPositionsForBagId(long bagId) {
         Bag bag = bagRepository.findOne(bagId);
@@ -701,6 +753,7 @@ public class BagService extends StatusProvider {
         Map<String, MessageType> dbMessageTypes = addMessageTypesToBag(bagFile, bag);
 
         addTopicsToBag(bagFile, bag, dbMessageTypes);
+        addTagsToBag(bagFile, bag);
 
         updateGpsPositions(bag, gpsPositions);
 
@@ -761,6 +814,35 @@ public class BagService extends StatusProvider {
                 bag.getTopics().add(dbTopic);
             }
         }
+    }
+
+    @Transactional
+    private void addTagsToBag(final BagFile bagFile,
+                              final Bag bag) throws BagReaderException {
+        myLogger.trace("Adding tags.");
+        Set<Tag> tags = getTags(bagFile,bag);
+
+        for (Tag tag: tags) {
+            myLogger.trace("Finding existing tags.");
+            Tag bagTag = myTagRepository.findByTagAndBagId(tag.getTag(), bag.getId());
+
+            Tag dbTag;
+            if (bagTag != null) {
+                dbTag = bagTag;
+            }
+            else {
+                //myLogger.info("Creating new topic.");
+                dbTag = new Tag();
+            }
+            dbTag.setTag(tag.getTag());
+            dbTag.setValue(tag.getValue());
+            dbTag.setBag(tag.getBag());
+            dbTag.setBagId(tag.getBagId());
+            if (!bag.getTags().contains(dbTag)) {
+                bag.getTags().add(dbTag);
+            }
+        }
+        myTagRepository.save(tags);
     }
 
     public void updateBagFile(final File file,
@@ -850,7 +932,6 @@ public class BagService extends StatusProvider {
             bagFile = BagReader.readFile(file);
 
             gpsPositions = getAllGpsMessages(bagFile);
-
             if (!gpsPositions.isEmpty()) {
                 GpsPosition firstPos = gpsPositions.get(0);
                 locationName = myGeocodingService.getLocationName(firstPos.latitude, firstPos.longitude);
@@ -905,6 +986,7 @@ public class BagService extends StatusProvider {
             bag.setFilename(file.getName());
             bag.setMissing(false);
             bag.setMd5sum(md5sum);
+            addTagsToBag(bagFile, bag);
         }
         bagRepository.save(bag);
         myLogger.debug("Final bag save; done processing " + file.getAbsolutePath());
