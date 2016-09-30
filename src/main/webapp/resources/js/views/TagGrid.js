@@ -28,60 +28,21 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
-
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-
-import javax.persistence.*;
-import java.io.Serializable;
-
-@Entity
-@Table(name="tags", indexes = {@Index(columnList = "tag")})
-@IdClass(TagKey.class)
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "tag")
-public class Tag implements Serializable {
-    @Id
-    @Column(nullable = false, length = 255)
-    private String tag;
-
-    @Id
-    private Long bagId;
-
-    @Column(nullable = false)
-    private String value;
-
-    @MapsId("bagId")
-    @JoinColumn(name = "bagId")
-    @ManyToOne(optional=false, cascade = CascadeType.REMOVE)
-    private Bag bag;
-
-    public Bag getBag() {
-        return bag;
-    }
-
-    public void setBag(Bag bag) {
-        this.bagId = bag.getId();
-        this.bag = bag;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-
-    public void setTag(String tag) {
-        this.tag = tag;
-    }
-
-    public Long getBagId() {
-        return bagId;
-    }
-
-    public void setBagId(Long bagId) {
-        this.bagId = bagId;
-    }
-
-    public String getValue() { return value; }
-
-    public void setValue(String value) { this.value = value; }
-}
+Ext.define('BagDatabase.views.TagGrid', {
+    extend: 'Ext.grid.Panel',
+    alias: 'widget.tagGrid',
+    title: 'Tags',
+    store: {
+        xtype: 'jsonstore',
+        model: 'BagDatabase.models.Tag',
+        sorters: 'tag',
+        reader: {
+            type: 'json'
+        }
+    },
+    columns: [{
+        text: 'Key', dataIndex: 'tag', flex: 2
+    }, {
+        text: 'Value: ', dataIndex: 'value', flex: 1
+    }]
+});

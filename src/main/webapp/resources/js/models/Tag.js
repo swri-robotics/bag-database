@@ -40,5 +40,7 @@ Ext.define('BagDatabase.models.Tag', {
             type: 'Bag',
             inverse: 'tags'
         }
+    },{
+        name: 'value'
     }]
 });

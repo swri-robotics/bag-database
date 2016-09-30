@@ -97,6 +97,8 @@ public class BagService extends StatusProvider {
     @Autowired
     private TopicRepository myTopicRepository;
     @Autowired
+    private TagRepository myTagRepository;
+    @Autowired
     public ConfigService myConfigService;
     @Autowired
     private GeocodingService myGeocodingService;
@@ -354,6 +356,7 @@ public class BagService extends StatusProvider {
         dbBag.setCoordinate(makePoint(newBag.getLatitudeDeg(), newBag.getLongitudeDeg()));
         dbBag.setLocation(newBag.getLocation());
         dbBag.setVehicle(newBag.getVehicle());
+        dbBag.setTags(newBag.getTags());
         dbBag.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
         bagRepository.save(dbBag);
     }
@@ -580,6 +583,58 @@ public class BagService extends StatusProvider {
         return null;
     }
 
+    public String getMetadata(BagFile bagFile) {
+        String[] topics = myConfigService.getConfiguration().getMetadataTopics();
+        try {
+            for (String topic : topics) {
+                com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt = bagFile.getFirstMessageOnTopic(topic);
+                int index = 1;
+                try {
+                    // Advance to newest
+                    index++;
+                    mt = bagFile.getMessageOnTopicAtIndex(topic, index);
+                } catch (java.lang.IndexOutOfBoundsException e) {
+                    ;
+                }
+                if (mt != null) {
+                    return mt.<StringType>getField("data").getValue();
+                }
+            }
+        } catch (BagReaderException | UninitializedFieldException | java.util.NoSuchElementException e) {
+            reportStatus(Status.State.ERROR,
+                    "Unable to get metadata from bag file " + bagFile.getPath() + ": " + e.getLocalizedMessage());
+        }
+        return new String();
+    }
+
+    public Set<Tag> getTags(BagFile bagFile, Bag bag) {
+        String metadata = getMetadata(bagFile);
+        Set<Tag> tags = new HashSet<Tag>();
+        String[] lines = metadata.split(System.getProperty("line.separator"));
+        for (String line : lines) {
+            if (line.isEmpty() | !line.contains(":"))
+                continue;
+
+            String[] parts = line.split(":", 2);
+            String key = parts[0].trim();
+            String value = parts[1].trim();
+
+            if (value.isEmpty())
+                continue;
+            if(value.length() > 255){
+                value = value.substring(0,254);
+            }
+            Tag tag = new Tag();
+            tag.setTag(key);
+            tag.setValue(value);
+            tag.setBag(bag);
+            tags.add(tag);
+        }
+        if (tags.size() > 0)
+            myLogger.debug("Found " + tags.size() + " tags for bag " + bag.getFilename());
+        return tags;
+    }
+
     @Transactional
     public void updateGpsPositionsForBagId(long bagId) {
         Bag bag = bagRepository.findOne(bagId);
@@ -701,6 +756,7 @@ public class BagService extends StatusProvider {
         Map<String, MessageType> dbMessageTypes = addMessageTypesToBag(bagFile, bag);
 
         addTopicsToBag(bagFile, bag, dbMessageTypes);
+        addTagsToBag(bagFile, bag);
 
         updateGpsPositions(bag, gpsPositions);
 
@@ -759,6 +815,54 @@ public class BagService extends StatusProvider {
             dbTopic.setBag(bag);
             if (!bag.getTopics().contains(dbTopic)) {
                 bag.getTopics().add(dbTopic);
+            }
+        }
+    }
+
+    @Transactional
+    public void addTagsToBag(final BagFile bagFile,
+                              final Bag bag) throws BagReaderException {
+        myLogger.trace("Adding tags to " + bagFile.getPath());
+        Set<Tag> bagTags = getTags(bagFile, bag);
+        List<Tag> dbTags = myTagRepository.findByBagId(bag.getId());
+        List<Tag> marked_for_removal = new ArrayList<Tag>();
+
+        // Delete old tags
+        for (Tag dbTag : dbTags) {
+            boolean found = false;
+            for (Tag bagTag : bagTags) {
+                if (Objects.equals(dbTag.getTag(), bagTag.getTag())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                myLogger.debug("Removing old tag '" + dbTag.getTag() + "' which does not exist anymore.");
+                marked_for_removal.add(dbTag);
+            }
+        }
+        // TODO delete from database: Why is this not working? Fails with 'deleted instance passed to merge'
+        // myTagRepository.delete(marked_for_removal);
+        //for( Tag tag : marked_for_removal)
+        //    dbTags.remove(tag);
+
+        // Update tags
+        for (Tag bagTag : bagTags) {
+            boolean found = false;
+            for (Tag dbTag : dbTags) {
+                if (Objects.equals(dbTag.getTag(), bagTag.getTag())) {
+                    found = true;
+                    if (!Objects.equals(dbTag.getValue(), bagTag.getValue())) {
+                        myLogger.debug("Updating existing tag '" + dbTag.getTag() + "': Old tag value: '" + bagTag.getValue() + "'; New tag value: '" + dbTag.getValue() + "')");
+                        dbTag.setValue(bagTag.getValue());
+                        myTagRepository.save(dbTag);
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                myLogger.debug("Saving new tag '" + bagTag.getTag() + ": " + bagTag.getValue() + "'");
+                myTagRepository.save(bagTag);
             }
         }
     }
@@ -850,7 +954,6 @@ public class BagService extends StatusProvider {
             bagFile = BagReader.readFile(file);
 
             gpsPositions = getAllGpsMessages(bagFile);
-
             if (!gpsPositions.isEmpty()) {
                 GpsPosition firstPos = gpsPositions.get(0);
                 locationName = myGeocodingService.getLocationName(firstPos.latitude, firstPos.longitude);
@@ -905,6 +1008,7 @@ public class BagService extends StatusProvider {
             bag.setFilename(file.getName());
             bag.setMissing(false);
             bag.setMd5sum(md5sum);
+            addTagsToBag(bagFile, bag);
         }
         bagRepository.save(bag);
         myLogger.debug("Final bag save; done processing " + file.getAbsolutePath());

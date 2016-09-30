@@ -10,6 +10,7 @@ GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
 USE_BING=${USE_BING:-false}
 USE_MAPQUEST=${USE_MAPQUEST:-true}
 VEHICLE_NAME_TOPICS='['`echo ${VEHICLE_NAME_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
+METADATA_TOPICS='['`echo ${METADATA_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
 GPS_TOPICS='['`echo ${GPS_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
 DEBUG_JAVASCRIPT=${DEBUG_JAVASCRIPT:-false}
 
@@ -27,6 +28,7 @@ jdbcUsername: ${DB_USER}
 useBing: ${USE_BING}
 useMapQuest: ${USE_MAPQUEST}
 vehicleNameTopics: ${VEHICLE_NAME_TOPICS}
+metadataTopics: ${METADATA_TOPICS}
 gpsTopics: ${GPS_TOPICS}
 debugJavascript: ${DEBUG_JAVASCRIPT}
 " > ${HOME}/.ros-bag-database/settings.yml
