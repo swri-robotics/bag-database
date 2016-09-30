@@ -1,0 +1,111 @@
+# Adds a few indexes that should make searching for bags by message type
+# and topic name faster.
+databaseChangeLog:
+- changeSet:
+    id: indexes-1
+    author: preed
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: message_type_md5sum
+        - column:
+            name: message_type_name
+        indexName: idx_bag_message_types_md5sum_name
+        tableName: bag_message_types
+- changeSet:
+    id: indexes-2
+    author: preed
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: bag_id
+        indexName: idx_bag_message_types_bag_id
+        tableName: bag_message_types
+- changeSet:
+    id: indexes-3
+    author: preed
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: bagid
+        indexName: idx_topics_bag_id
+        tableName: topics
+- changeSet:
+    id: indexes-4
+    author: preed
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: compressed
+        indexName: idx_bags_compressed
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: createdon
+        indexName: idx_bags_createdon
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: duration
+        indexName: idx_bags_duration
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: endtime
+        indexName: idx_bags_endtime
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: haspath
+        indexName: idx_bags_haspath
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: indexed
+        indexName: idx_bags_indexed
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: messagecount
+        indexName: idx_bags_messagecount
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: missing
+        indexName: idx_bags_missing
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: size
+        indexName: idx_bags_size
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: starttime
+        indexName: idx_bags_starttime
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: updatedon
+        indexName: idx_bags_updatedon
+        tableName: bags
+    - createIndex:
+        columns:
+        - column:
+            name: version
+        indexName: idx_bags_version
+        tableName: bags

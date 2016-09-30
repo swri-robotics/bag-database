@@ -38,7 +38,9 @@ import java.util.List;
 
 @Repository
 public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificationExecutor<Bag> {
+    Long countByPathStartsWith(String path);
     List<Bag> findByPathAndFilename(String path, String filename);
+    List<Bag> findByPath(String path);
     List<Bag> findByMissing(boolean isMissing);
     Bag findByMd5sum(String md5sum);
 }

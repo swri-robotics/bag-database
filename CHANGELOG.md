@@ -1,5 +1,13 @@
 # Bag Database changelog
 
+2.4
+
+- Fixing the mass vehicle name updater for the admin tool
+- Saving widget states between reloads
+- Adding more database indexes to improve search performance
+- Implementing a hierarchical folder view for the bag list
+- Adding some more button icons
+
 2.3
 
 - Updating the bag reader library to 1.5 to handle errors better

@@ -44,6 +44,7 @@ import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.BagList;
+import com.github.swrirobotics.support.web.BagTreeNode;
 import com.github.swrirobotics.support.web.ExtJsFilter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -70,6 +71,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -77,6 +79,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -558,7 +563,7 @@ public class BagService extends StatusProvider {
         return positions;
     }
 
-    private String getVehicleName(BagFile bag) {
+    public String getVehicleName(BagFile bag) {
         String[] vehicleNames = myConfigService.getConfiguration().getVehicleNameTopics();
         try {
             for (String topic : vehicleNames) {
@@ -916,6 +921,78 @@ public class BagService extends StatusProvider {
                 bagRepository.save(bag);
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<BagTreeNode> getTreePath(String targetPath) throws IOException {
+        List<BagTreeNode> nodes = Lists.newArrayList();
+        String basePath = myConfigService.getConfiguration().getBagPath();
+        if (targetPath.equals("root")) {
+            targetPath = basePath;
+        }
+        String bagDir = targetPath;
+
+
+        java.nio.file.Path path = FileSystems.getDefault().getPath(bagDir);
+        String parentId = path.toFile().getCanonicalPath() + "/";
+
+        if (!parentId.startsWith(basePath)) {
+            // Don't allow somebody to list paths outside of the bag path.
+            return nodes;
+        }
+
+        // First, add any child directories to the node list.
+        try (DirectoryStream<java.nio.file.Path> dirStream = Files.newDirectoryStream(path)) {
+            for (java.nio.file.Path child : dirStream) {
+                File childFile = child.toFile();
+                if (!childFile.isDirectory()) {
+                    continue;
+                }
+                String filename = childFile.getName();
+                BagTreeNode childNode = new BagTreeNode();
+                childNode.filename = filename;
+                childNode.parentId = parentId;
+                childNode.leaf = false;
+                childNode.id = parentId + filename;
+                java.nio.file.Path subdirPath = FileSystems.getDefault().getPath(childNode.id);
+                try (DirectoryStream<java.nio.file.Path> subdirStream = Files.newDirectoryStream(subdirPath)) {
+                    Iterator<java.nio.file.Path> iter = subdirStream.iterator();
+                    childNode.expanded = !iter.hasNext();
+                }
+                childNode.bagCount = bagRepository.countByPathStartsWith(childNode.id);
+                nodes.add(childNode);
+            }
+        }
+
+        // Next, get all the bags in that directory and add them.
+        List<Bag> bags = bagRepository.findByPath(parentId);
+        for (Bag bag : bags) {
+            BagTreeNode childNode = new BagTreeNode();
+            childNode.filename = bag.getFilename();
+            childNode.parentId = parentId;
+            childNode.leaf = true;
+            childNode.id = parentId + bag.getFilename();
+            childNode.bag = bag;
+            nodes.add(childNode);
+        }
+
+        return nodes;
+    }
+
+
+    /**
+     * Examines all of the paths on the filesystem known to the bag database and returns
+     * a recursive count of how many bags there are under that path that match the
+     * given filter text.  If the filter text is empty, all bags will match.
+     * @param filterText The text to filter against.
+     * @return A set of paths and how many matching bags exist under each path.
+     */
+    @Transactional(readOnly = true)
+    public BagCount[] checkFilteredBagCounts(String filterText) {
+        TypedQuery<BagCount> query = myEM.createNamedQuery("Bag.countBagPaths", BagCount.class);
+        query.setParameter("text", filterText);
+        List<BagCount> results = query.getResultList();
+        return results.toArray(new BagCount[results.size()]);
     }
 
     public void removeMissingBags() {

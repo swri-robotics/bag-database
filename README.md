@@ -29,6 +29,10 @@ are stored and will be manually uploading files there.
   - The topics published
 - **Filtering**: Every column in the grid can by filtered by arbitrary values;
   click the down arrow on a column header to set a filter.
+- **Folder View**: Instead of a flat list of every bag file in the database, you
+  can also see them in a hierarchical view mirroring their layout on the
+  filesystem which indicates how many bags are under every path and can be
+  filtered by filename.
 - **Displaying Metadata**: All of the same information you could obtain with 
   `rosbag info` is extracted and stored so that it can be easily viewed for any
   bag file.
