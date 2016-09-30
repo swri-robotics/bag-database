@@ -1,6 +1,6 @@
 # Bag Database changelog
 
-2.4-SNAPSHOT
+2.4
 
 - Fixing the mass vehicle name updater for the admin tool
 - Saving widget states between reloads
