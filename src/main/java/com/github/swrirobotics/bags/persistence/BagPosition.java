@@ -44,7 +44,7 @@ public class BagPosition {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch=FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="bagId")
     @JsonIgnore
     private Bag bag;

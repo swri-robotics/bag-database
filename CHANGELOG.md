@@ -1,5 +1,11 @@
 # Bag Database changelog
 
+2.5-SNAPSHOT
+
+- Add an option to control whether entries should be removed from the DB if they are deleted from the filesystem
+- Missing bags will be deleted by default
+- Updated Spring & Hibernate-related dependencies to newer versions
+
 2.4
 
 - Fixing the mass vehicle name updater for the admin tool
