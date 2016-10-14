@@ -426,6 +426,10 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                 bagService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 
                 myBagService.markMissingBags(missingBagMd5sums.values());
+
+                if (myConfigService.getConfiguration().getRemoveOnDeletion()) {
+                    myBagService.removeMissingBags();
+                }
             }
             catch (RuntimeException e) {
                 String error = "Unexpected exception when checking bag files: ";

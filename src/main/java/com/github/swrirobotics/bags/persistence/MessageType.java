@@ -52,7 +52,7 @@ public class MessageType implements Serializable {
     @Id
     @Column(nullable = false, length = 32)
     private String md5sum;
-    @ManyToMany(mappedBy = "messageTypes", cascade = CascadeType.REMOVE)
+    @ManyToMany(mappedBy = "messageTypes")
     @JsonIgnore
     private Set<Bag> bags = new HashSet<>();
     @OneToMany(mappedBy = "type")

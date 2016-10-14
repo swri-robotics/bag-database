@@ -196,7 +196,8 @@ public class Bag implements Serializable {
         this.compressed = compressed;
     }
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER,
+                cascade={CascadeType.REFRESH, CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name="bag_message_types",
             joinColumns = {@JoinColumn(name="bag_id", referencedColumnName="id")},
             inverseJoinColumns = {@JoinColumn(name="message_type_name", referencedColumnName = "name"),
@@ -209,7 +210,9 @@ public class Bag implements Serializable {
         this.messageTypes = messageTypes;
     }
 
-    @OneToMany(mappedBy = "bag", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @OneToMany(mappedBy = "bag",
+               cascade={CascadeType.REFRESH, CascadeType.PERSIST, CascadeType.MERGE},
+               fetch = FetchType.EAGER)
     public Set<Topic> getTopics() {
         return topics;
     }
@@ -236,7 +239,8 @@ public class Bag implements Serializable {
         this.missing = missing;
     }
 
-    @OneToMany(mappedBy = "bag", orphanRemoval = true)
+    @OneToMany(mappedBy = "bag",
+               cascade={CascadeType.REFRESH, CascadeType.PERSIST, CascadeType.MERGE})
     @JsonIgnore
     public List<BagPosition> getBagPositions() {
         return bagPositions;
@@ -320,7 +324,9 @@ public class Bag implements Serializable {
         this.longitudeDeg = longitudeDeg;
     }
 
-    @OneToMany(mappedBy = "bag", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "bag",
+               cascade={CascadeType.REFRESH, CascadeType.PERSIST, CascadeType.MERGE},
+               fetch = FetchType.EAGER)
     public Set<Tag> getTags() {
         return tags;
     }

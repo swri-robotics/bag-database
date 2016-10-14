@@ -67,6 +67,12 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             fieldLabel: 'Google API Key',
             name: 'googleApiKey'
         }, {
+            fieldLabel: 'Remove Bags from the Database on Deletion',
+            name: 'removeOnDeletion',
+            xtype: 'checkboxfield',
+            uncheckedValue: false,
+            inputvalue: true
+        }, {
             fieldLabel: 'Use MapQuest',
             name: 'useMapQuest',
             xtype: 'checkboxfield',

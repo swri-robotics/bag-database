@@ -48,6 +48,7 @@ public class Configuration implements Serializable {
     private String[] vehicleNameTopics = new String[0];
     private String[] gpsTopics = new String[0];
     private Boolean debugJavascript = false;
+    private Boolean removeOnDeletion = true;
 
     public String getBagPath() {
         return bagPath;
@@ -151,5 +152,13 @@ public class Configuration implements Serializable {
 
     public void setDebugJavascript(Boolean debugJavascript) {
         this.debugJavascript = debugJavascript;
+    }
+
+    public Boolean getRemoveOnDeletion() {
+        return removeOnDeletion;
+    }
+
+    public void setRemoveOnDeletion(Boolean removeOnDeletion) {
+        this.removeOnDeletion = removeOnDeletion;
     }
 }
