@@ -7,7 +7,10 @@
         /* This is kind of lazy, but there are a few config values that affect the user interface,
          * so I just store them in global variables and access them later.
          */
-        var useMapQuest = /*[[${config.useMapQuest}]]*/ true;
+        var useTileMap = /*[[${config.useMapQuest}]]*/ true;
+        var tileMapUrl = /*[[${config.tileMapUrl}]]*/ "http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg";
+        var tileWidthPx = /*[[${config.tileWidthPx}]]*/ 256;
+        var tileHeightPx = /*[[${config.tileHeightPx}]]*/ 256;
         var useBing = /*[[${config.useBing}]]*/ false;
         var bingKey = /*[[${config.bingKey}]]*/ '';
         var csrfName = /*[[${_csrf.parameterName}]]*/ '';

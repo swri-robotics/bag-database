@@ -452,6 +452,7 @@
                                 <include>views/BagGrid-min.js</include>
                                 <include>views/BagTreePanel-min.js</include>
                                 <include>views/BagTreeFilterPanel-min.js</include>
+                                <include>views/BagDatabaseViewport-min.js</include>
                             </includes>
                         </aggregation>
                     </aggregations>
