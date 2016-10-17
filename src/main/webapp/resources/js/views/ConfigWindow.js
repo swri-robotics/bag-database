@@ -73,11 +73,24 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             uncheckedValue: false,
             inputvalue: true
         }, {
-            fieldLabel: 'Use MapQuest',
+            fieldLabel: 'Use Tile Map',
             name: 'useMapQuest',
             xtype: 'checkboxfield',
             uncheckedValue: false,
             inputValue: true
+        }, {
+            fieldLabel: 'Tile Map URL',
+            name: 'tileMapUrl'
+        }, {
+            fieldLabel: 'Tile Width (px)',
+            name: 'tileWidthPx',
+            xtype: 'numberfield',
+            minValue: 1
+        }, {
+            fieldLabel: 'Tile Height (px)',
+            name: 'tileHeightPx',
+            xtype: 'numberfield',
+            minValue: 1
         }, {
             fieldLabel: 'Use Bing Maps',
             name: 'useBing',
