@@ -438,6 +438,7 @@ public class BagService extends StatusProvider {
                                 // disparity image, which is a single-channel image made of 32-bit floats.
                                 // We'll convert that to an 8-bit grayscale image...
                             case "mono8":
+                            case "8uc1":
                                 myPixelFormat = "gray";
                                 break;
                             case "mono16":
@@ -639,6 +640,7 @@ public class BagService extends StatusProvider {
                 imageType = BufferedImage.TYPE_INT_BGR;
                 break;
             case "mono8":
+            case "8uc1":
                 imageType = BufferedImage.TYPE_BYTE_GRAY;
                 break;
             case "mono16":
