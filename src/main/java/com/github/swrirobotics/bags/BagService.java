@@ -57,6 +57,7 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import nu.pattern.OpenCV;
 import org.apache.commons.io.IOUtils;
+import org.opencv.contrib.Contrib;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -193,72 +194,88 @@ public class BagService extends StatusProvider {
     }
 
     /**
-     * Estimates the frame rate of an Image topic from a bag file by examining
-     * the difference between the timestamps of first and last messages.
+     * Estimates determines the frame rate and duration of a topic from a bag
+     * file.
+     *
+     * Although we only use this for images, this should work for any message
+     * type that has a std_msgs/Header.
      */
     private class FrameRateDeterminer implements MessageHandler {
         private double myDurationS = 0.0;
         private double myFrameRate = 10.0;
-        private long myFrameCount = 0;
+        private long myCurrentFrame = 0;
         private long myTotalFrameCount;
-        private Long myFirstFrameTimeMs = null;
-        private Long myLastFrameTimeMs = null;
+        private List<Long> myFrameTimes = Lists.newArrayList();
+
+        private static final int FRAMES_TO_COUNT = 30;
 
         FrameRateDeterminer(long totalFrameCount) {
             myTotalFrameCount = totalFrameCount;
         }
 
         /**
-         * In order to determine the average frame rate and duration for a video feed,
-         * we have to check the timestamps on the first and last messages on the topic.
+         * The most accurate way to determine the frame rate and duration would be to look
+         * at the first and last timestamps from all of the messages on a topic.
+         *
+         * Unfortunately, this is slow, because it's impossible to index directly to an
+         * arbitrary message in a bag file; it would require iterating through every message
+         * on the topic, and that can take a while for big topics.
+         *
+         * Instead, we figure out reasonable estimates by collecting up to the first ten
+         * timestamps on a topic, determining the average period between them, and combining
+         * that with the number of messages on a topic (which is retrieved from the connection
+         * header) to estimate the frame rate and duration.
          * @param message The message to process; should have a Header with a valid stamp
          * @param connection The connection the message arrived on; unused
          * @return true as long as we're still processing frames, false if there was an error
+         *              or we've collected enough frames.
          */
         @Override
         public boolean process(com.github.swrirobotics.bags.reader.messages.serialization.MessageType message,
                                Connection connection) {
-            long timeMs;
-            if (myFrameCount == 0 || myFrameCount == (myTotalFrameCount-1)) {
-                if (message.getType().equals("stereo_msgs/DisparityImage")) {
-                    message = message.getField("image");
-                }
-                com.github.swrirobotics.bags.reader.messages.serialization.MessageType header =
-                        message.getField("header");
-                TimeType time = header.getField("stamp");
-
-                try {
-                    timeMs = time.getValue().getTime();
-                }
-                catch (UninitializedFieldException e) {
-                    myLogger.warn("Message had uninitialized timestamp in header.");
-                    return false;
-                }
-
-                if (myFrameCount == 0) {
-                    myFirstFrameTimeMs = timeMs;
-                }
-                else if(myFrameCount == (myTotalFrameCount-1)) {
-                    myLastFrameTimeMs = timeMs;
-                }
+            if (myCurrentFrame > FRAMES_TO_COUNT) {
+                return false;
             }
 
-            myFrameCount++;
+            long timeMs;
+            if (message.getType().equals("stereo_msgs/DisparityImage")) {
+                message = message.getField("image");
+            }
+            com.github.swrirobotics.bags.reader.messages.serialization.MessageType header =
+                    message.getField("header");
+            TimeType time = header.getField("stamp");
+
+            try {
+                timeMs = time.getValue().getTime();
+            }
+            catch (UninitializedFieldException e) {
+                myLogger.warn("Message had uninitialized timestamp in header.");
+                return false;
+            }
+
+            myFrameTimes.add(timeMs);
+
+            myCurrentFrame++;
 
             return true;
         }
 
         private void calculateFrameRate() {
-            if (myFirstFrameTimeMs != null && myLastFrameTimeMs != null) {
-                long durationMs = myLastFrameTimeMs - myFirstFrameTimeMs;
-                myDurationS = durationMs / 1000.0;
-                myFrameRate = (double)myTotalFrameCount / myDurationS;
+            if (myFrameTimes.size() > 1) {
+                long sum = 0;
+                long previousTimeMs = myFrameTimes.get(0);
 
-                myLogger.debug("Calculated frame rate: " + myFrameRate);
-                myLogger.debug("Calculated duration (s): " + myDurationS);
+                for (int i = 1; i < myFrameTimes.size(); i++) {
+                    sum += myFrameTimes.get(i) - previousTimeMs;
+                    previousTimeMs = myFrameTimes.get(i);
+                }
 
-                myFirstFrameTimeMs = null;
-                myLastFrameTimeMs = null;
+                double avgPeriodS = ((double)sum / (double)(myFrameTimes.size() - 1)) / 1000.0;
+
+                myFrameRate = 1.0 / avgPeriodS;
+                myDurationS = (double)myTotalFrameCount * avgPeriodS;
+
+                myFrameTimes.clear();
             }
         }
 
@@ -348,15 +365,15 @@ public class BagService extends StatusProvider {
                 String messageType = message.getPackage() + "/" + message.getType();
                 boolean isDisparity = messageType.equals("stereo_msgs/DisparityImage");
                 boolean isCompressed = messageType.equals("sensor_msgs/CompressedImage");
-                float min_disparity = 0.0f;
-                float max_disparity = 0.0f;
+                float minDisparity = 0.0f;
+                float maxDisparity = 0.0f;
 
                 if (isDisparity) {
                     // If we're examining a DisparityImage, it contains the actual image
                     // inside it in a field named "image".  We can just get that and
                     // continue as normal.
-                    min_disparity = message.<Float32Type>getField("min_disparity").getValue();
-                    max_disparity = message.<Float32Type>getField("max_disparity").getValue();
+                    minDisparity = message.<Float32Type>getField("min_disparity").getValue();
+                    maxDisparity = message.<Float32Type>getField("max_disparity").getValue();
                     message = message.getField("image");
                 }
 
@@ -364,49 +381,10 @@ public class BagService extends StatusProvider {
                 byte[] byteData;
 
                 if (isCompressed) {
-                    // If the image is compressed, we need to decompress it and get a few
-                    // pieces of metadata from it.
-                    byte[] compressedData = dataArray.getAsBytes();
-                    try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedData)) {
-                        BufferedImage image = ImageIO.read(byteStream);
-                        if (!myIsInitialized) {
-                            // Only need to check these things for the first image; assume
-                            // the rest are the same.
-                            myWidth = image.getWidth();
-                            myHeight = image.getHeight();
-                            switch (image.getType()) {
-                                case BufferedImage.TYPE_3BYTE_BGR:
-                                    myPixelFormat = "bgr24";
-                                    break;
-                                default:
-                                    myLogger.warn("Unexpected encoding type: " + image.getType());
-                                    return false;
-                            }
-                        }
-
-                        // This probably isn't the most efficient way to do it, but it's
-                        // easiest for us to just extract the raw image bytes so we can
-                        // pipe them into ffmpeg the same way as an uncompressed image.
-                        byteData = new byte[myWidth * myHeight * 3];
-                        int[] intData = new int[myWidth * myHeight * 3];
-                        image.getData().getPixels(0, 0, myWidth, myHeight, intData);
-                        for (int i = 0; i < intData.length; i++) {
-                            byteData[i] = (byte) intData[i];
-                        }
-                    }
+                    byteData = processCompressedImage(dataArray);
                 }
                 else if (isDisparity) {
-                    // For disparity images, we have to convert them into a format
-                    // that ffmpeg can interpret.
-                    dataArray.setOrder(ByteOrder.LITTLE_ENDIAN);
-                    float[] floatData = dataArray.getAsFloats();
-                    float multiplier = 255.0f / (max_disparity - min_disparity);
-                    byteData = new byte[floatData.length];
-                    for (int i = 0; i < floatData.length; i++) {
-                        byteData[i] = (byte)Math.min(255.0f,
-                                                     Math.max(0.0f,
-                                                              (floatData[i] - min_disparity) * multiplier));
-                    }
+                    byteData = processDisparityImage(dataArray, minDisparity, maxDisparity);
                 }
                 else {
                     // If it's not compressed, and it's a regular image, just get the raw image.
@@ -418,41 +396,20 @@ public class BagService extends StatusProvider {
                     byteData = dataArray.getAsBytes();
                 }
 
+                if (byteData == null) {
+                    myLogger.error("Unable to retrieve image bytes.");
+                    return false;
+                }
+
                 if (!myIsInitialized) {
                     if (!isCompressed) {
+                        // For uncompressed images, including disparity, we need to pull the
+                        // encoding, height, and width from the image.  Assume all images on
+                        // the same topic after the first have the same parameters.
+                        // For compressed images, these will be encoded in the image data
+                        // and are set by the processCompressedImage method.
                         String encoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
-                        // Many image formats have the same name between ffmpeg and ROS, but
-                        // some don't, so convert them...
-                        switch (encoding) {
-                            case "bgr8":
-                                myPixelFormat = "bgr24";
-                                break;
-                            case "rgb8":
-                                myPixelFormat = "rgb24";
-                                break;
-                            case "rgba8":
-                                myPixelFormat = "rgba";
-                                break;
-                            case "32fc1":
-                                // If the pixel format is "32fc1", that means we're actually rendering a
-                                // disparity image, which is a single-channel image made of 32-bit floats.
-                                // We'll convert that to an 8-bit grayscale image...
-                            case "mono8":
-                            case "8uc1":
-                                myPixelFormat = "gray";
-                                break;
-                            case "mono16":
-                                if (myIsBigEndian) {
-                                    myPixelFormat = "gray16be";
-                                }
-                                else {
-                                    myPixelFormat = "gray16le";
-                                }
-                                break;
-                            default:
-                                myPixelFormat = encoding;
-                                break;
-                        }
+                        myPixelFormat = convertRosEncodingToFfmpeg(encoding);
 
                         myHeight = message.<UInt32Type>getField("height").getValue().intValue();
                         myWidth = message.<UInt32Type>getField("width").getValue().intValue();
@@ -461,7 +418,8 @@ public class BagService extends StatusProvider {
                     myIsInitialized = true;
                     myLogger.debug("Image format: " + myPixelFormat +
                                    " / " + myWidth + "x" + myHeight +
-                                   " / " + (myDurationS / (double)myFrameSkip) + "s");
+                                   " / " + (myDurationS / (double)myFrameSkip) + "s" +
+                                   " / " + myFrameRate + " Hz");
 
                     startFfmpeg();
                 }
@@ -483,7 +441,95 @@ public class BagService extends StatusProvider {
             }
         }
 
+        /**
+         * Reads in a compressed image from a binary stream using ImageIO and returns
+         * the decompressed bytes.  This also has a side effect of setting the
+         * myPixelFormat, myWidth, and myHeight member variables based on properties
+         * found in the compressed image.
+         * @param dataArray An array from a ROS message containing a compressed image.
+         * @return The decompressed image's bytes.
+         * @throws IOException If there was an error reading the image.
+         */
+        private byte[] processCompressedImage(ArrayType dataArray) throws IOException {
+            // If the image is compressed, we need to decompress it and get a few
+            // pieces of metadata from it.
+            byte[] compressedData = dataArray.getAsBytes();
+            byte[] byteData = null;
+            try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedData)) {
+                BufferedImage image = ImageIO.read(byteStream);
+                if (!myIsInitialized) {
+                    // Only need to check these things for the first image; assume
+                    // the rest are the same.
+                    myWidth = image.getWidth();
+                    myHeight = image.getHeight();
+                    switch (image.getType()) {
+                        case BufferedImage.TYPE_3BYTE_BGR:
+                            myPixelFormat = "bgr24";
+                            break;
+                        default:
+                            myLogger.warn("Unexpected encoding type: " + image.getType());
+                            return null;
+                    }
+                }
+
+                // This probably isn't the most efficient way to do it, but it's
+                // easiest for us to just extract the raw image bytes so we can
+                // pipe them into ffmpeg the same way as an uncompressed image.
+                byteData = new byte[myWidth * myHeight * 3];
+                int[] intData = new int[myWidth * myHeight * 3];
+                image.getData().getPixels(0, 0, myWidth, myHeight, intData);
+                for (int i = 0; i < intData.length; i++) {
+                    byteData[i] = (byte) intData[i];
+                }
+            }
+
+            return byteData;
+        }
+
+        /**
+         * Reads in a disparity image and transforms it into a displayable RGB8 image.
+         * Disparity images are sequences of 32-bit floating point values in a single channel
+         * (32FC1 in OpenCV terms) that are constrained between a minimum and maximum value.
+         * To make the output easier for a human to visually process, we map those values to
+         * integers between 0 and 255 and then put it through a Jet color map.
+         * @param dataArray A ROS byte array containing a disparity image.
+         * @param minDisparity The minimum of any disparity value.
+         * @param maxDisparity The maximum of any dispairty value.
+         * @return A color RGB8 image representing the disparity.
+         */
+        private byte[] processDisparityImage(ArrayType dataArray, float minDisparity, float maxDisparity) {
+            // For disparity images, we have to convert them into a format
+            // that ffmpeg can interpret.
+            dataArray.setOrder(ByteOrder.LITTLE_ENDIAN);
+            float[] floatData = dataArray.getAsFloats();
+            float multiplier = 255.0f / (maxDisparity - minDisparity);
+            byte[] byteData = new byte[floatData.length];
+            for (int i = 0; i < floatData.length; i++) {
+                byteData[i] = (byte)Math.min(255.0f,
+                                             Math.max(0.0f,
+                                                      (floatData[i] - minDisparity) * multiplier));
+            }
+            // At this point we've got an 8-bit grayscale image, but we
+            // can make it prettier by putting it through a color map.
+            Mat grayMat = new Mat(myHeight, myWidth, CvType.CV_8UC1);
+            grayMat.put(0, 0, byteData);
+            Mat colorMat = new Mat();
+            Contrib.applyColorMap(grayMat, colorMat, Contrib.COLORMAP_JET);
+            byteData = new byte[(int)colorMat.total() * colorMat.channels()];
+            colorMat.get(0, 0, byteData);
+
+            return byteData;
+        }
+
+        /**
+         * Launches ffmpeg as an external process and passes in all of the command
+         * line parameters necessary for us to pipe raw images into stdin and
+         * get VP8 frames from stdout.
+         * @throws IOException If there was an error launching ffmpeg.
+         */
         private void startFfmpeg() throws IOException {
+            // TODO This should probably be configurable.  Lower-power system will
+            // want a lower bitrate...
             String bitrate = "1M";
             String durationStr = Double.toString(myDurationS / (double)myFrameSkip);
             String frameRateStr = Double.toString(myFrameRate);
@@ -519,6 +565,51 @@ public class BagService extends StatusProvider {
             myLogger.info("Beginning to stream image data to ffmpeg.");
         }
 
+        /**
+         * Maps a string containing a ROS image encoding to a pixel format that
+         * ffmpeg can understand.
+         * ROS encodings: http://wiki.ros.org/cv_bridge/Tutorials/UsingCvBridgeToConvertBetweenROSImagesAndOpenCVImages
+         * ffmpeg encodings: Execute 'ffmpeg -pix_fmts'
+         * @param encoding A ROS image encoding string
+         * @return The equivalent ffmpeg pixel format
+         */
+        private String convertRosEncodingToFfmpeg(String encoding) {
+            // Many image formats have the same name between ffmpeg and ROS, but
+            // some don't, so convert them...
+            switch (encoding.toLowerCase()) {
+                case "bgr8":
+                    return "bgr24";
+                case "32fc1":
+                    // If the pixel format is "32fc1", that means we're actually rendering a
+                    // disparity image, which is a single-channel image made of 32-bit floats.
+                    // We convert that to an rgb8 image using a OpenCV color map.
+                case "8uc3":
+                case "rgb8":
+                    return "rgb24";
+                case "8uc4":
+                case "rgba8":
+                    return "rgba";
+                case "8uc1":
+                case "mono8":
+                    return "gray";
+                case "16uc1":
+                case "mono16":
+                    if (myIsBigEndian) {
+                        return "gray16be";
+                    }
+                    else {
+                        return "gray16le";
+                    }
+                default:
+                    return encoding;
+            }
+        }
+
+        /**
+         * Closes ffmpeg's output stream, which will make the process exit
+         * and produce any frames it has remaining.
+         * Also prints out anything that ffmpeg printed on stderr.
+         */
         void finish() {
             if (myFfmpegProc != null) {
                 IOUtils.closeQuietly(myFfmpegProc.getOutputStream());
