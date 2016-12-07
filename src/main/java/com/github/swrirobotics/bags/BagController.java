@@ -166,6 +166,8 @@ public class BagController {
      * @param sort The column on which to sort the results
      * @param dir The direction of the sort
      * @param filter ExtJS grid filters to apply to the results
+     * @param fill_topics Whether to fill the topics field of the bag objects
+     * @param fill_types Whether to fill the typcs field of the bag objects
      * @return All bag files that match the given search terms.
      */
     @RequestMapping("/search")
@@ -175,7 +177,9 @@ public class BagController {
                            @RequestParam Integer limit,
                            @RequestParam String sort,
                            @RequestParam String dir,
-                           @RequestParam(required = false) ExtJsFilter[] filter) {
+                           @RequestParam(required = false) ExtJsFilter[] filter,
+                           @RequestParam(required = false) Boolean fill_topics,
+                           @RequestParam(required = false) Boolean fill_types) {
         myLogger.info("getBags: " + text + " / page: " + page +
                       " / limit: " + limit + " / sort: " + sort +
                       " / dir: " + dir);
@@ -209,8 +213,12 @@ public class BagController {
         for (Bag bag : results.getBags()) {
             // The big grid doesn't need this information, and serializing it for
             // every bag will slow things down by a lot.
-            bag.getMessageTypes().clear();
-            bag.getTopics().clear();
+            if (!fill_types) {
+                bag.getMessageTypes().clear();
+            }
+            if (!fill_topics) {
+                bag.getTopics().clear();
+            }
         }
 
         return results;
