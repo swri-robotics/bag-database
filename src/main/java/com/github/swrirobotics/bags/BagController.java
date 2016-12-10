@@ -178,8 +178,8 @@ public class BagController {
                            @RequestParam String sort,
                            @RequestParam String dir,
                            @RequestParam(required = false) ExtJsFilter[] filter,
-                           @RequestParam(required = false) Boolean fill_topics,
-                           @RequestParam(required = false) Boolean fill_types) {
+                           @RequestParam(required = false) Boolean fillTopics,
+                           @RequestParam(required = false) Boolean fillTypes) {
         myLogger.info("getBags: " + text + " / page: " + page +
                       " / limit: " + limit + " / sort: " + sort +
                       " / dir: " + dir);
@@ -213,10 +213,10 @@ public class BagController {
         for (Bag bag : results.getBags()) {
             // The big grid doesn't need this information, and serializing it for
             // every bag will slow things down by a lot.
-            if (!fill_types) {
+            if (!fillTypes) {
                 bag.getMessageTypes().clear();
             }
-            if (!fill_topics) {
+            if (!fillTopics) {
                 bag.getTopics().clear();
             }
         }
