@@ -39,8 +39,8 @@ are stored and will be manually uploading files there.
 - **Message Types and Topics**: You can also easily view all of the different 
   message types and topics used in the bag file.
 - **Displaying GPS Coordinates**: GPS coordinates recorded in a bag file are
-  extracted and stored, and if support for Bing Maps or MapQuest is enabled you
-  can view the vehicle's path on a map.
+  extracted and stored, and you can view the path of the coordinates using
+  either Bing Maps or an arbitrary WMTS tile map server.
 - **Downloading**: Every bag file can be downloaded from the interface without
   needing to find it on the host filesystem.  Links to bag files can also be
   obtained by right-clicking on them.
@@ -147,9 +147,25 @@ The username to use when connecting to the database.
 
 A Google API key that has permission to use the Google Maps GeoCoding API; this is necessary in order to resolve place names for GPS coordinates.
 
-##### USE_MAPQUEST
+##### USE_TILE_MAP
 
-Set this to `true` to use MapQuest for displaying map imagery; set it to `false` to disable MapQuest.  The default is `true`.
+Set this to `true` to use a WMTS tile map for displaying map imagery; set it to `false` to disable MapQuest.  The default is `true`.
+
+##### TILE_MAP_URL
+
+If `USE_TILE_MAP` is `true`, this URL will be used as a template for retrieving 
+map tiles.  See the documentation for the `url` property of OpenLayers' 
+[ol.source.XYZ](http://openlayers.org/en/latest/apidoc/ol.source.XYZ.html) class.  
+The default value is `http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg`, which will
+use the terrain map provided by [Stamen](http://maps.stamen.com/).
+
+##### TILE_WIDTH_PX
+
+The width of the tiles returned from the tile map in pixels.  The default is `256`.
+
+##### TILE_HEIGHT_PX
+
+The height of the tiles returned from the tile map in pixels.  The default is `256`.
 
 ##### USE_BING
 

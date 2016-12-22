@@ -67,11 +67,30 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             fieldLabel: 'Google API Key',
             name: 'googleApiKey'
         }, {
-            fieldLabel: 'Use MapQuest',
+            fieldLabel: 'Remove Bags from the Database on Deletion',
+            name: 'removeOnDeletion',
+            xtype: 'checkboxfield',
+            uncheckedValue: false,
+            inputvalue: true
+        }, {
+            fieldLabel: 'Use Tile Map',
             name: 'useMapQuest',
             xtype: 'checkboxfield',
             uncheckedValue: false,
             inputValue: true
+        }, {
+            fieldLabel: 'Tile Map URL',
+            name: 'tileMapUrl'
+        }, {
+            fieldLabel: 'Tile Width (px)',
+            name: 'tileWidthPx',
+            xtype: 'numberfield',
+            minValue: 1
+        }, {
+            fieldLabel: 'Tile Height (px)',
+            name: 'tileHeightPx',
+            xtype: 'numberfield',
+            minValue: 1
         }, {
             fieldLabel: 'Use Bing Maps',
             name: 'useBing',

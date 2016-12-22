@@ -32,10 +32,19 @@ package com.github.swrirobotics.bags.persistence;
 
 import com.github.swrirobotics.config.WebAppConfigurationAware;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.transaction.TransactionConfiguration;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 
+import static org.junit.Assert.assertEquals;
+
+@Rollback
 public class BagRepositoryTest extends WebAppConfigurationAware {
     @Autowired
     private BagRepository bagRepository;
@@ -46,8 +55,10 @@ public class BagRepositoryTest extends WebAppConfigurationAware {
     @Autowired
     private TopicRepository topicRepository;
 
-    @Test
-    public void addBag() {
+    private static final Logger myLogger = LoggerFactory.getLogger(BagRepositoryTest.class);
+
+    @Transactional
+    private Long insertBag() {
         Bag bag = new Bag();
         bag.setMd5sum("test");
         bag.setCreatedOn(new Timestamp(System.currentTimeMillis()));
@@ -60,7 +71,7 @@ public class BagRepositoryTest extends WebAppConfigurationAware {
         bag.setCompressed(false);
         bag.setIndexed(true);
         bag.setMessageCount(0L);
-        bag.setMissing(false);
+        bag.setMissing(true);
         bag.setSize(0L);
         bag = bagRepository.save(bag);
 
@@ -86,6 +97,22 @@ public class BagRepositoryTest extends WebAppConfigurationAware {
         topic = topicRepository.save(topic);
         bag.getTopics().add(topic);
 
-        bagRepository.save(bag);
+        bag = bagRepository.save(bag);
+
+        return bag.getId();
+    }
+
+    @Test
+    @Transactional
+    public void addBag() {
+        myLogger.info("Inserting bag.");
+        Long bagId = insertBag();
+
+        myLogger.info("Finding bag.");
+        Bag bag = bagRepository.findOne(bagId);
+
+        assertEquals(1, bag.getTopics().size());
+        assertEquals(1, bag.getTags().size());
+        assertEquals(1, bag.getMessageTypes().size());
     }
 }

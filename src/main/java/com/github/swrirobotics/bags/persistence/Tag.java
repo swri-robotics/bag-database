@@ -50,7 +50,7 @@ public class Tag implements Serializable {
 
     @MapsId("bagId")
     @JoinColumn(name = "bagId")
-    @ManyToOne(optional=false, cascade = CascadeType.REMOVE)
+    @ManyToOne(optional=false)
     private Bag bag;
 
     public Bag getBag() {

@@ -39,10 +39,13 @@ Ext.define('BagDatabase.views.MapWindow', {
     listeners: {
         afterrender: function(win) {
             var layers = [];
-            if (useMapQuest) {
+            if (useTileMap) {
                 layers.push(new ol.layer.Tile({
-                    source: new ol.source.MapQuest({layer: 'sat'})
-                }))
+                    source: new ol.source.XYZ({
+                        url: tileMapUrl,
+                        tileSize: [tileWidthPx, tileHeightPx]
+                    })
+                }));
             }
             if (useBing && bingKey && bingKey != '') {
                 layers.push(new ol.layer.Tile({
@@ -52,7 +55,7 @@ Ext.define('BagDatabase.views.MapWindow', {
                         imagerySet: 'Aerial',
                         maxZoom: 19
                     })
-                }))
+                }));
             }
             win.map = new ol.Map({
                 target: win.getId() + '-innerCt', layers: layers,

@@ -127,7 +127,7 @@ public class ConfigService {
         boolean bagPathChanged;
         try {
             // If the config is being set from the web interface, the user can
-            // leave the JDBC password blank to indicate that it sohuld not be
+            // leave the JDBC password blank to indicate that it should not be
             // changed.
             writer = new YamlWriter(new FileWriter(settingsFile.getFile()));
             if (config.getJdbcPassword() == null || config.getJdbcPassword().isEmpty()) {

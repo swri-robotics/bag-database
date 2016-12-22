@@ -71,6 +71,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.awt.image.BufferedImage;
@@ -995,30 +996,18 @@ public class BagService extends StatusProvider {
         return results.toArray(new BagCount[results.size()]);
     }
 
+    @Transactional
     public void removeMissingBags() {
         myLogger.info("removeMissingBags()");
         reportStatus(Status.State.WORKING, "Removing missing bag entries.");
-        List<Bag> missingBags = bagRepository.findByMissing(true);
-        for (Bag bag : missingBags) {
-            try {
-                removeBag(bag.getId());
-            }
-            catch (RuntimeException e) {
-                String error = "Error removing bag:";
-                reportStatus(Status.State.ERROR, error + e.getMessage());
-                myLogger.error(error, e);
-            }
-        }
-        String msg = "Removed " + missingBags.size() + " bags.";
+        // Using bagRepository.delete here doesn't work.  It just executes another
+        // select statement.  No idea why.  Spring Data JPA repositories are so
+        // annoying sometimes.
+        Query query = myEM.createQuery("delete from Bag b where b.missing = true");
+        int numberRemoved = query.executeUpdate();
+        String msg = "Removed " + numberRemoved + " missing bags.";
         myLogger.debug(msg);
         reportStatus(Status.State.IDLE, msg);
-    }
-
-    @Transactional
-    public void removeBag(Long bagId) {
-        Bag bag = bagRepository.findOne(bagId);
-        bag.getMessageTypes().clear();
-        bagRepository.delete(bag);
     }
 
     private MessageType getMessageType(final String name,

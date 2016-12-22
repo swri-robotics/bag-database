@@ -12,6 +12,10 @@ USE_MAPQUEST=${USE_MAPQUEST:-true}
 VEHICLE_NAME_TOPICS='['`echo ${VEHICLE_NAME_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
 GPS_TOPICS='['`echo ${GPS_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
 DEBUG_JAVASCRIPT=${DEBUG_JAVASCRIPT:-false}
+USE_TILE_MAP=${USE_TILE_MAP:-true}
+TILE_MAP_URL=${TILE_MAP_URL-"http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg"}
+TILE_WIDTH_PX=${TILE_WIDTH_PX-256}
+TILE_HEIGHT_PX=${TILE_HEIGHT_PX-256}
 
 if [ ! -f ${HOME}/.ros-bag-database/settings.yml ]
 then
@@ -25,7 +29,10 @@ jdbcPassword: ${DB_PASS}
 jdbcUrl: ${DB_URL}
 jdbcUsername: ${DB_USER}
 useBing: ${USE_BING}
-useMapQuest: ${USE_MAPQUEST}
+useMapQuest: ${USE_TILE_MAP}
+tileMapUrl: ${TILE_MAP_URL}
+tileWidthPx: ${TILE_WIDTH_PX}
+tileHeightPx: ${TILE_HEIGHT_PX}
 vehicleNameTopics: ${VEHICLE_NAME_TOPICS}
 gpsTopics: ${GPS_TOPICS}
 debugJavascript: ${DEBUG_JAVASCRIPT}
