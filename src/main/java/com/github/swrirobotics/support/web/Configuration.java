@@ -45,6 +45,7 @@ public class Configuration implements Serializable {
     private String bingKey = "";
     private String adminPassword = "";
     private String[] vehicleNameTopics = new String[0];
+    private String[] metadataTopics = new String[0];
     private String[] gpsTopics = new String[0];
     private Boolean debugJavascript = false;
     private Boolean removeOnDeletion = true;
@@ -191,5 +192,13 @@ public class Configuration implements Serializable {
 
     public void setTileHeightPx(Integer tileHeightPx) {
         this.tileHeightPx = tileHeightPx;
+    }
+
+    public String[] getMetadataTopics() {
+        return metadataTopics;
+    }
+
+    public void setMetadataTopics(String[] metadataTopics) {
+        this.metadataTopics = metadataTopics;
     }
 }

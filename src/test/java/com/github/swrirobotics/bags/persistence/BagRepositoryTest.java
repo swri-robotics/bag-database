@@ -76,7 +76,8 @@ public class BagRepositoryTest extends WebAppConfigurationAware {
         bag = bagRepository.save(bag);
 
         Tag tag = new Tag();
-        tag.setTag("Test Tag");
+        tag.setTag("Error");
+        tag.setValue("False");
         tag.setBag(bag);
         bag.getTags().add(tag);
 

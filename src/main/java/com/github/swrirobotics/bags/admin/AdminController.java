@@ -151,6 +151,13 @@ public class AdminController {
         myBagScanner.updateAllVehicleNames();
     }
 
+    @RequestMapping("/updateTags")
+    @ResponseBody
+    public void updateTags() {
+        myLogger.trace("updateTags");
+        myBagScanner.updateAllTags();
+    }
+
     @RequestMapping("/removeMissingBags")
     @ResponseBody
     public void removeMissingBags() {

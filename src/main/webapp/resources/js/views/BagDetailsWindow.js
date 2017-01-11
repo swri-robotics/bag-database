@@ -34,12 +34,13 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
     requires: ['BagDatabase.models.MessageType',
                'BagDatabase.models.Topic',
                'BagDatabase.views.BagPropertyGrid',
+               'BagDatabase.views.TagGrid',
                'BagDatabase.views.MessageTypeGrid',
                'BagDatabase.views.TopicGrid'],
     layout: 'border',
     title: 'Bag Details',
     bagId: null,
-    width: 900,
+    width: 1200,
     height: 650,
     loadmask: null,
     constrainHeader: true,
@@ -84,7 +85,15 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 bagId: this.bagId,
                 data: []
             }]
-        }];
+        }, {
+            xtype: 'tagGrid',
+            region: 'east',
+            itemId: 'tags',
+            flex: 1,
+            bagId: this.bagId,
+            data: []
+        }
+        ];
 
         this.callParent(arguments);
 
@@ -124,6 +133,7 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 });
                 me.down('#messageGrid').getStore().loadRawData(bag.messageTypes);
                 me.down('#topics').getStore().loadRawData(bag.topics);
+                me.down('#tags').getStore().loadRawData(bag.tags);
             }
         });
     }

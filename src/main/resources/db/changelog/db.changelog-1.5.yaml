@@ -1,0 +1,34 @@
+# Adds a new table for storing key:value pairs
+databaseChangeLog:
+- changeSet:
+    id: 20160709-1
+    author: cbandera
+    changes:
+    - addColumn:
+        tableName: tags
+        columns:
+        - column:
+            constraints:
+              nullable: false
+            name: value
+            type: VARCHAR(255)
+- changeSet:
+    id: 20160709-2
+    author: cbandera
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: value
+        indexName: idx2016070933
+        tableName: tags
+- changeSet:
+    id: 20160709-3
+    author: cbandera
+    changes:
+    - createUniqueConstraint:
+        columnNames: bagid, tag
+        constraintName: unique_tag_per_bag
+        deferrable: false
+        initiallyDeferred: false
+        tableName: tags
