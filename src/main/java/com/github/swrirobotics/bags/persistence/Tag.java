@@ -41,8 +41,9 @@ import java.io.Serializable;
 @IdClass(TagKey.class)
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "tag")
 public class Tag implements Serializable {
+    private static final long serialVersionUID = -5788649026482712064L;
     @Id
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String tag;
 
     @Id
@@ -84,4 +85,32 @@ public class Tag implements Serializable {
     public String getValue() { return value; }
 
     public void setValue(String value) { this.value = value; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Tag tag1 = (Tag) o;
+
+        if (!tag.equals(tag1.tag)) {
+            return false;
+        }
+        if (bagId != null ? !bagId.equals(tag1.bagId) : tag1.bagId != null) {
+            return false;
+        }
+        return value.equals(tag1.value);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = tag.hashCode();
+        result = 31 * result + (bagId != null ? bagId.hashCode() : 0);
+        result = 31 * result + value.hashCode();
+        return result;
+    }
 }

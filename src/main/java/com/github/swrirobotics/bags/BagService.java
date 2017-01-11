@@ -47,9 +47,11 @@ import com.github.swrirobotics.support.web.BagList;
 import com.github.swrirobotics.support.web.BagTreeNode;
 import com.github.swrirobotics.support.web.ExtJsFilter;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
@@ -357,7 +359,8 @@ public class BagService extends StatusProvider {
         dbBag.setCoordinate(makePoint(newBag.getLatitudeDeg(), newBag.getLongitudeDeg()));
         dbBag.setLocation(newBag.getLocation());
         dbBag.setVehicle(newBag.getVehicle());
-        dbBag.setTags(newBag.getTags());
+        // TODO Make sure this is working right
+        dbBag.getTags().putAll(newBag.getTags());
         dbBag.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
         bagRepository.save(dbBag);
     }
@@ -588,51 +591,55 @@ public class BagService extends StatusProvider {
         String[] topics = myConfigService.getConfiguration().getMetadataTopics();
         try {
             for (String topic : topics) {
-                com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt = bagFile.getFirstMessageOnTopic(topic);
-                int index = 1;
-                try {
-                    // Advance to newest
-                    index++;
-                    mt = bagFile.getMessageOnTopicAtIndex(topic, index);
-                } catch (java.lang.IndexOutOfBoundsException e) {
-                    ;
-                }
-                if (mt != null) {
-                    return mt.<StringType>getField("data").getValue();
+                final String[] metadata = new String[1];
+                bagFile.forMessagesOnTopic(topic, (message, connection) -> {
+                    try {
+                        metadata[0] = message.<StringType>getField("data").getValue();
+                        return true;
+                    }
+                    catch (UninitializedFieldException e) {
+                        // continue
+                    }
+                    return false;
+                });
+                if (metadata[0] != null)
+                {
+                    return metadata[0];
                 }
             }
-        } catch (BagReaderException | UninitializedFieldException | java.util.NoSuchElementException e) {
+        } catch (BagReaderException | java.util.NoSuchElementException e) {
             reportStatus(Status.State.ERROR,
                     "Unable to get metadata from bag file " + bagFile.getPath() + ": " + e.getLocalizedMessage());
         }
-        return new String();
+        return "";
     }
 
-    public Set<Tag> getTags(BagFile bagFile, Bag bag) {
+    public Set<Tag> extractTagsFromBagFile(BagFile bagFile) {
         String metadata = getMetadata(bagFile);
-        Set<Tag> tags = new HashSet<Tag>();
-        String[] lines = metadata.split(System.getProperty("line.separator"));
+        Set<Tag> tags = Sets.newHashSet();
+        Iterable<String> lines =
+                Splitter.on(System.getProperty("line.separator")).omitEmptyStrings().trimResults().split(metadata);
+        Splitter tagSplitter = Splitter.on(':').limit(2).trimResults();
         for (String line : lines) {
-            if (line.isEmpty() | !line.contains(":"))
+            if (!line.contains(":")) {
                 continue;
+            }
 
-            String[] parts = line.split(":", 2);
-            String key = parts[0].trim();
-            String value = parts[1].trim();
+            Iterator<String> parts = tagSplitter.split(line).iterator();
+            String key = parts.next();
+            String value = parts.next();
 
-            if (value.isEmpty())
-                continue;
-            if(value.length() > 255){
+            if(value.length() > 255) {
                 value = value.substring(0,254);
             }
             Tag tag = new Tag();
             tag.setTag(key);
             tag.setValue(value);
-            tag.setBag(bag);
             tags.add(tag);
         }
-        if (tags.size() > 0)
-            myLogger.debug("Found " + tags.size() + " tags for bag " + bag.getFilename());
+        if (tags.size() > 0) {
+            myLogger.debug("Found " + tags.size() + " tags");
+        }
         return tags;
     }
 
@@ -708,6 +715,47 @@ public class BagService extends StatusProvider {
                 }
             }
         }
+    }
+
+    @Transactional
+    public void removeTagForBag(String tagName,
+                                final Long bagId) throws NonexistentBagException {
+        Bag bag = bagRepository.findOne(bagId);
+
+        if (bag == null) {
+            throw new NonexistentBagException("No bag found with ID: " + bagId);
+        }
+
+        tagName = tagName.trim();
+
+        Tag tag = bag.getTags().get(tagName);
+        bag.getTags().remove(tagName);
+        myTagRepository.delete(tag);
+    }
+
+    @Transactional
+    public void setTagForBag(String tagName,
+                             final String value,
+                             final Long bagId) throws NonexistentBagException {
+        Bag bag = bagRepository.findOne(bagId);
+
+        if (bag == null) {
+            throw new NonexistentBagException("No bag found with ID: " + bagId);
+        }
+
+        tagName = tagName.trim();
+
+        Tag tag = bag.getTags().get(tagName);
+        if (tag == null) {
+            myLogger.debug("No tag found with key " + tagName + "; creating a new one.");
+            tag = new Tag();
+            tag.setTag(tagName);
+            tag.setBag(bag);
+        }
+
+        tag.setValue(value == null ? "" : value.trim());
+        myLogger.debug("Setting value of tag with key '" + tagName + "' to '" + tag.getValue() + "'");
+        myTagRepository.save(tag);
     }
 
     @Transactional
@@ -824,12 +872,11 @@ public class BagService extends StatusProvider {
     public void addTagsToBag(final BagFile bagFile,
                               final Bag bag) throws BagReaderException {
         myLogger.trace("Adding tags to " + bagFile.getPath());
-        Set<Tag> bagTags = getTags(bagFile, bag);
-        List<Tag> dbTags = myTagRepository.findByBagId(bag.getId());
-        List<Tag> marked_for_removal = new ArrayList<Tag>();
+        Set<Tag> bagTags = extractTagsFromBagFile(bagFile);
+        //Set<Tag> marked_for_removal = Sets.newHashSet();
 
         // Delete old tags
-        for (Tag dbTag : dbTags) {
+        /*for (Tag dbTag : dbTags) {
             boolean found = false;
             for (Tag bagTag : bagTags) {
                 if (Objects.equals(dbTag.getTag(), bagTag.getTag())) {
@@ -842,27 +889,31 @@ public class BagService extends StatusProvider {
                 marked_for_removal.add(dbTag);
             }
         }
-        // TODO delete from database: Why is this not working? Fails with 'deleted instance passed to merge'
-        // myTagRepository.delete(marked_for_removal);
-        //for( Tag tag : marked_for_removal)
-        //    dbTags.remove(tag);
+
+        myTagRepository.delete(marked_for_removal);
+        bag.extractTagsFromBagFile().removeAll(marked_for_removal);
+        bagRepository.save(bag);*/
 
         // Update tags
         for (Tag bagTag : bagTags) {
             boolean found = false;
-            for (Tag dbTag : dbTags) {
-                if (Objects.equals(dbTag.getTag(), bagTag.getTag())) {
+            for (Map.Entry<String, Tag> dbTag : bag.getTags().entrySet()) {
+                if (dbTag.getKey().equals(bagTag.getTag())) {
                     found = true;
-                    if (!Objects.equals(dbTag.getValue(), bagTag.getValue())) {
-                        myLogger.debug("Updating existing tag '" + dbTag.getTag() + "': Old tag value: '" + bagTag.getValue() + "'; New tag value: '" + dbTag.getValue() + "')");
-                        dbTag.setValue(bagTag.getValue());
-                        myTagRepository.save(dbTag);
+                    if (!dbTag.getValue().getValue().equals(bagTag.getValue())) {
+                        myLogger.debug("Updating existing tag '" + dbTag.getKey() +
+                                       "': Old tag value: '" + bagTag.getValue() +
+                                       "'; New tag value: '" + dbTag.getValue() + "')");
+                        dbTag.getValue().setValue(bagTag.getValue());
+                        myTagRepository.save(dbTag.getValue());
                         break;
                     }
                 }
             }
             if (!found) {
                 myLogger.debug("Saving new tag '" + bagTag.getTag() + ": " + bagTag.getValue() + "'");
+                bagTag.setBag(bag);
+                bag.getTags().put(bagTag.getTag(), bagTag);
                 myTagRepository.save(bagTag);
             }
         }

@@ -217,6 +217,37 @@ public class BagController {
     }
 
     /**
+     * Sets a tag on a bag file.  If no tag with the given name exists, it will
+     * create one; if one does exist, it will overwrite the current value.
+     * @param tagName The name of the tag.
+     * @param value The tag's value.  May be null, which is the same as an empty string.
+     * @param bagId The ID of the bag to set the tag for.
+     * @throws NonexistentBagException If the specified bag doesn't exist.
+     */
+    @RequestMapping("/setTag")
+    public void setTagForBag(@RequestParam String tagName,
+                             @RequestParam(required = false) String value,
+                             @RequestParam Long bagId) throws NonexistentBagException {
+        myLogger.info("setTagForBag: " + tagName + ":" + value + " for bag " + bagId);
+        myBagService.setTagForBag(tagName, value, bagId);
+        myLogger.info("Set tag.");
+    }
+
+    /**
+     * Removes a tag with a given name from a bag file.
+     * @param tagName The name of the tag to remove.
+     * @param bagId The ID of the bag to remove the tag from.
+     * @throws NonexistentBagException If the specified bag doesn't exist.
+     */
+    @RequestMapping("/removeTag")
+    public void removeTagForBag(@RequestParam String tagName,
+                                @RequestParam Long bagId) throws NonexistentBagException {
+        myLogger.info("removeTagForBag: " + tagName + " for bag " + bagId);
+        myBagService.removeTagForBag(tagName, bagId);
+        myLogger.info("Removed tag.");
+    }
+
+    /**
      * Returns all of the GPS coordinates for the given set of bags.  The
      * returned coordinates are a flat list of longitude/latitude pairs that
      * are sorted in ascending order of their timestamp in the database.

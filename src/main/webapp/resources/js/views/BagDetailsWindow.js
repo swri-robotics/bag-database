@@ -89,6 +89,7 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
             xtype: 'tagGrid',
             region: 'east',
             itemId: 'tags',
+            split: true,
             flex: 1,
             bagId: this.bagId,
             data: []
@@ -133,7 +134,13 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 });
                 me.down('#messageGrid').getStore().loadRawData(bag.messageTypes);
                 me.down('#topics').getStore().loadRawData(bag.topics);
-                me.down('#tags').getStore().loadRawData(bag.tags);
+                tagList = [];
+                for (var tag in bag.tags) {
+                    if (bag.tags.hasOwnProperty(tag)) {
+                        tagList.push(bag.tags[tag]);
+                    }
+                }
+                me.down('#tags').getStore().loadRawData(tagList);
             }
         });
     }
