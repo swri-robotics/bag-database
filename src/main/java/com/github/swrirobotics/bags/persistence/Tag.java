@@ -31,6 +31,7 @@
 package com.github.swrirobotics.bags.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import javax.persistence.*;
@@ -55,6 +56,7 @@ public class Tag implements Serializable {
     @MapsId("bagId")
     @JoinColumn(name = "bagId")
     @ManyToOne(optional=false)
+    @JsonIgnore
     private Bag bag;
 
     public Bag getBag() {
@@ -97,20 +99,21 @@ public class Tag implements Serializable {
 
         Tag tag1 = (Tag) o;
 
-        if (!tag.equals(tag1.tag)) {
+        if (tag != null ? !tag.equals(tag1.tag) : tag1.tag != null) {
             return false;
         }
         if (bagId != null ? !bagId.equals(tag1.bagId) : tag1.bagId != null) {
             return false;
         }
-        return value.equals(tag1.value);
+        return value != null ? value.equals(tag1.value) : tag1.value == null;
+
     }
 
     @Override
     public int hashCode() {
-        int result = tag.hashCode();
+        int result = tag != null ? tag.hashCode() : 0;
         result = 31 * result + (bagId != null ? bagId.hashCode() : 0);
-        result = 31 * result + value.hashCode();
+        result = 31 * result + (value != null ? value.hashCode() : 0);
         return result;
     }
 }

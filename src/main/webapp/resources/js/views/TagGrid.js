@@ -32,6 +32,7 @@ Ext.define('BagDatabase.views.TagGrid', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.tagGrid',
     title: 'Tags',
+    requires: ['BagDatabase.views.SetTagWindow'],
     store: {
         xtype: 'jsonstore',
         model: 'BagDatabase.models.Tag',
@@ -40,9 +41,65 @@ Ext.define('BagDatabase.views.TagGrid', {
             type: 'json'
         }
     },
+    selModel: {
+        mode: 'MULTI'
+    },
     columns: [{
         text: 'Key', dataIndex: 'tag', flex: 1
     }, {
         text: 'Value: ', dataIndex: 'value', flex: 1
+    }],
+    buttons: [{
+        text: 'Add',
+        itemId: 'addButton',
+        iconCls: 'tag-add-icon',
+        disabled: false,
+        handler: function(button) {
+            var tagGrid = button.up('tagGrid');
+            var bagId = tagGrid.bagId;
+            // Weird note: 'tagName' must be some kind of reserved word
+            // somewhere in ExtJs, because trying to pass in a parameter
+            // name that causes all kinds of weird issues.
+            var win = Ext.create('BagDatabase.views.SetTagWindow', {
+                bagIds: [bagId],
+                tagGrid: tagGrid
+            });
+            win.show();
+        }
+    }, {
+        text: 'Remove',
+        itemId: 'removeButton',
+        iconCls: 'tag-delete-icon',
+        disabled: false,
+        handler: function(button) {
+            var tagGrid = button.up('tagGrid');
+            var records = tagGrid.getSelection();
+            var bagId = tagGrid.bagId;
+
+            if (records.length > 0) {
+                Ext.Msg.confirm('Delete Confirmation',
+                'Are you sure you want to delete ' + records.length + ' tag(s)?',
+                function(buttonId) {
+                    if (buttonId == 'yes') {
+                        var tagNames = [];
+                        records.forEach(function(record) {
+                            tagNames.push(record.get('tag'));
+                        });
+                        Ext.Ajax.request({
+                            url: 'bags/removeTags',
+                            method: 'GET',
+                            params:  {
+                                tagNames: tagNames,
+                                bagId: bagId
+                            },
+                            callback: function() {
+                                tagGrid.up('window').reloadTags();
+                            }
+                        });
+                    }
+                }
+                );
+            }
+        }
     }]
 });

@@ -91,6 +91,15 @@ div.ol-viewport {
 .table-icon {
     background-image: url('../images/table.png');
 }
+
+.tag-add-icon {
+    background-image: url('../images/tag_blue_add.png');
+}
+
+.tag-delete-icon {
+    background-image: url('../images/tag_blue_delete.png');
+}
+
 .tick-icon {
     background-image: url('../images/tick.png');
 }

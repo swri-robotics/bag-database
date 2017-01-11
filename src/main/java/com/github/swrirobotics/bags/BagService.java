@@ -137,11 +137,15 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional(readOnly = true)
-    public Bag getBag(Long bagId) {
+    public Bag getBag(Long bagId) throws NonexistentBagException {
         try {
             Bag response = bagRepository.findOne(bagId);
             myLogger.debug("Successfully got bag: " + response.getFilename());
             return response;
+        }
+        catch (NullPointerException e) {
+            myLogger.error("Bag not found:", e);
+            throw new NonexistentBagException(e);
         }
         catch (RuntimeException e) {
             myLogger.error("Unable to get bag:", e);
@@ -359,8 +363,7 @@ public class BagService extends StatusProvider {
         dbBag.setCoordinate(makePoint(newBag.getLatitudeDeg(), newBag.getLongitudeDeg()));
         dbBag.setLocation(newBag.getLocation());
         dbBag.setVehicle(newBag.getVehicle());
-        // TODO Make sure this is working right
-        dbBag.getTags().putAll(newBag.getTags());
+        dbBag.getTags().addAll(newBag.getTags());
         dbBag.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
         bagRepository.save(dbBag);
     }
@@ -432,10 +435,8 @@ public class BagService extends StatusProvider {
                                         Root<Bag> root) {
         final String wildcardText = "%" + text.toLowerCase() + "%";
         // We'll be searching through the text fields in all of the related tables
-        // Fields that currently aren't being searched: tags, md5sum
-        // Tags because they don't actually exist yet
+        // Fields that currently aren't being searched: md5sum
         // md5sum because nobody really cares about that
-        //Join<Bag, Tag> tagJoin = root.join(Bag_.tags, JoinType.LEFT);
 
         List<Predicate> preds = Lists.newArrayList();
         for (String field : fields) {
@@ -443,6 +444,11 @@ public class BagService extends StatusProvider {
                 case "messageType":
                     Join<Bag, MessageType> mtJoin = root.join(Bag_.messageTypes, JoinType.LEFT);
                     preds.add(cb.like(cb.lower(mtJoin.get(MessageType_.name)), wildcardText));
+                    break;
+                case "tags":
+                    Join<Bag, Tag> tagJoin = root.join(Bag_.tags, JoinType.LEFT);
+                    preds.add(cb.like(cb.lower(tagJoin.get(Tag_.tag)), wildcardText));
+                    preds.add(cb.like(cb.lower(tagJoin.get(Tag_.value)), wildcardText));
                     break;
                 case "topicName":
                     Join<Bag, Topic> topicJoin = root.join(Bag_.topics, JoinType.LEFT);
@@ -587,56 +593,72 @@ public class BagService extends StatusProvider {
         return null;
     }
 
-    public String getMetadata(BagFile bagFile) {
+    /**
+     * Extracts key:value metadata from a bag file and returns it in a map.
+     * This assumes you have metadata topics defined in the configuration;
+     * for example, "/metadata".  This topic should contain std_msgs/String
+     * messages, and each message should be a newline-separated set of tags
+     * that consist of key:value pairs separated by colons.  For example,
+     * a sample message might contain:
+     * "name: John Doe
+     * email: jdoe@example.com"
+     * This function will create a map that contains every tag on every
+     * metadata topic.  If there are any duplicate keys, the values from
+     * later messages will overwrite earlier messages.
+     * @param bagFile The bag file to read metadata for.
+     * @return A map of all of the key:value metadata in the bag.
+     */
+    private Map<String, String> getMetadata(BagFile bagFile) {
+        final Map<String, String> tags = Maps.newHashMap();
         String[] topics = myConfigService.getConfiguration().getMetadataTopics();
         try {
+            final Splitter tagSplitter = Splitter.on(':').limit(2).trimResults();
+            final Splitter.MapSplitter lineSplitter =
+                    Splitter.on(System.getProperty("line.separator")).omitEmptyStrings().trimResults().withKeyValueSeparator(tagSplitter);
             for (String topic : topics) {
-                final String[] metadata = new String[1];
                 bagFile.forMessagesOnTopic(topic, (message, connection) -> {
                     try {
-                        metadata[0] = message.<StringType>getField("data").getValue();
-                        return true;
+                        String data = message.<StringType>getField("data").getValue();
+                        myLogger.debug("Examining message: " + data);
+                        tags.putAll(lineSplitter.split(data));
                     }
                     catch (UninitializedFieldException e) {
                         // continue
                     }
-                    return false;
+                    return true;
                 });
-                if (metadata[0] != null)
-                {
-                    return metadata[0];
-                }
             }
-        } catch (BagReaderException | java.util.NoSuchElementException e) {
+        }
+        catch (BagReaderException | java.util.NoSuchElementException e) {
             reportStatus(Status.State.ERROR,
                     "Unable to get metadata from bag file " + bagFile.getPath() + ": " + e.getLocalizedMessage());
         }
-        return "";
+        return tags;
     }
 
-    public Set<Tag> extractTagsFromBagFile(BagFile bagFile) {
-        String metadata = getMetadata(bagFile);
+    /**
+     * Extracts metadata tags from a bag file and returns a set of Tags.
+     * This differs slightly from getMetadata in that the Tags it returns
+     * are suitable for inserting into the database, and the lengths of the
+     * value strings are truncated to 255 characters.
+     * @param bagFile The bag file to pull tags from.
+     * @return A set of all of the tags in the bag file.
+     */
+    private Set<Tag> extractTagsFromBagFile(BagFile bagFile) {
+        Map<String, String> metadata = getMetadata(bagFile);
         Set<Tag> tags = Sets.newHashSet();
-        Iterable<String> lines =
-                Splitter.on(System.getProperty("line.separator")).omitEmptyStrings().trimResults().split(metadata);
-        Splitter tagSplitter = Splitter.on(':').limit(2).trimResults();
-        for (String line : lines) {
-            if (!line.contains(":")) {
-                continue;
-            }
 
-            Iterator<String> parts = tagSplitter.split(line).iterator();
-            String key = parts.next();
-            String value = parts.next();
+        final int MAX_VALUE_LENGTH = 255;
 
-            if(value.length() > 255) {
-                value = value.substring(0,254);
-            }
+        for (Map.Entry<String, String> entry : metadata.entrySet()) {
             Tag tag = new Tag();
-            tag.setTag(key);
-            tag.setValue(value);
+            tag.setTag(entry.getKey());
+            String value = entry.getValue();
+            tag.setValue(value.length() > MAX_VALUE_LENGTH ?
+                                 value.substring(0, MAX_VALUE_LENGTH) : value);
             tags.add(tag);
         }
+
         if (tags.size() > 0) {
             myLogger.debug("Found " + tags.size() + " tags");
         }
@@ -718,39 +740,31 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    public void removeTagForBag(String tagName,
+    public void removeTagForBag(Collection<String> tagNames,
                                 final Long bagId) throws NonexistentBagException {
-        Bag bag = bagRepository.findOne(bagId);
-
-        if (bag == null) {
+        if (!bagRepository.exists(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
-        tagName = tagName.trim();
-
-        Tag tag = bag.getTags().get(tagName);
-        bag.getTags().remove(tagName);
-        myTagRepository.delete(tag);
+        myTagRepository.deleteByBagIdAndTagIn(bagId, tagNames);
     }
 
     @Transactional
     public void setTagForBag(String tagName,
                              final String value,
                              final Long bagId) throws NonexistentBagException {
-        Bag bag = bagRepository.findOne(bagId);
-
-        if (bag == null) {
+        if (!bagRepository.exists(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
         tagName = tagName.trim();
 
-        Tag tag = bag.getTags().get(tagName);
+        Tag tag = myTagRepository.findByTagAndBagId(tagName, bagId);
         if (tag == null) {
             myLogger.debug("No tag found with key " + tagName + "; creating a new one.");
             tag = new Tag();
             tag.setTag(tagName);
-            tag.setBag(bag);
+            tag.setBagId(bagId);
         }
 
         tag.setValue(value == null ? "" : value.trim());
@@ -870,42 +884,27 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void addTagsToBag(final BagFile bagFile,
-                              final Bag bag) throws BagReaderException {
+                             final Bag bag) throws BagReaderException {
         myLogger.trace("Adding tags to " + bagFile.getPath());
         Set<Tag> bagTags = extractTagsFromBagFile(bagFile);
-        //Set<Tag> marked_for_removal = Sets.newHashSet();
 
-        // Delete old tags
-        /*for (Tag dbTag : dbTags) {
-            boolean found = false;
-            for (Tag bagTag : bagTags) {
-                if (Objects.equals(dbTag.getTag(), bagTag.getTag())) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                myLogger.debug("Removing old tag '" + dbTag.getTag() + "' which does not exist anymore.");
-                marked_for_removal.add(dbTag);
-            }
-        }
+        // Note that this method doesn't *synchronize* tags between the bag file and
+        // the database, it only adds ones that exist in the bag file to the database.
+        // Tags that a user has created will not be removed, although ones that have
+        // been modified from values that exist in the bag file will be overwritten.
+        // TODO Is that desirable, or should user-entered tags take precedence?
 
-        myTagRepository.delete(marked_for_removal);
-        bag.extractTagsFromBagFile().removeAll(marked_for_removal);
-        bagRepository.save(bag);*/
-
-        // Update tags
         for (Tag bagTag : bagTags) {
             boolean found = false;
-            for (Map.Entry<String, Tag> dbTag : bag.getTags().entrySet()) {
-                if (dbTag.getKey().equals(bagTag.getTag())) {
+            for (Tag dbTag : bag.getTags()) {
+                if (dbTag.getTag().equals(bagTag.getTag())) {
                     found = true;
-                    if (!dbTag.getValue().getValue().equals(bagTag.getValue())) {
-                        myLogger.debug("Updating existing tag '" + dbTag.getKey() +
+                    if (!dbTag.getValue().equals(bagTag.getValue())) {
+                        myLogger.debug("Updating existing tag '" + dbTag.getTag() +
                                        "': Old tag value: '" + bagTag.getValue() +
                                        "'; New tag value: '" + dbTag.getValue() + "')");
-                        dbTag.getValue().setValue(bagTag.getValue());
-                        myTagRepository.save(dbTag.getValue());
+                        dbTag.setValue(bagTag.getValue());
+                        myTagRepository.save(dbTag);
                         break;
                     }
                 }
@@ -913,7 +912,7 @@ public class BagService extends StatusProvider {
             if (!found) {
                 myLogger.debug("Saving new tag '" + bagTag.getTag() + ": " + bagTag.getValue() + "'");
                 bagTag.setBag(bag);
-                bag.getTags().put(bagTag.getTag(), bagTag);
+                bag.getTags().add(bagTag);
                 myTagRepository.save(bagTag);
             }
         }

@@ -79,7 +79,7 @@ public class BagRepositoryTest extends WebAppConfigurationAware {
         tag.setTag("Error");
         tag.setValue("False");
         tag.setBag(bag);
-        bag.getTags().add(tag);
+        bag.getTags().put(tag.getTag(), tag);
 
         MessageType mt = new MessageType();
         mt.setName("TestMessage");

@@ -43,6 +43,7 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
     width: 1200,
     height: 650,
     loadmask: null,
+    tagloadmask: null,
     constrainHeader: true,
     listeners: {
         show: function(win) {
@@ -54,6 +55,29 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
             }
             win.loadmask.show();
         }
+    },
+    reloadTags: function() {
+        var me = this;
+        var tagGrid = me.down('#tags');
+        if (!me.tagloadmask) {
+            me.tagloadmask = new Ext.LoadMask({
+                msg: 'Reloading tags...',
+                target: tagGrid
+            });
+        }
+        me.tagloadmask.show();
+        Ext.Ajax.request({
+            url: 'bags/getTagsForBag',
+            method: 'GET',
+            params: {
+                bagId: me.bagId
+            },
+            callback: function(options, success, response) {
+                me.tagloadmask.hide();
+                var tags = Ext.util.JSON.decode(response.responseText);
+                tagGrid.getStore().loadRawData(tags);
+            }
+        });
     },
     initComponent: function() {
         var me = this;
@@ -110,7 +134,9 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                     return;
                 }
                 if (!success) {
+                    Ext.Msg.alert('Error', 'Error loading bag: ' + response.statusText);
                     console.log('Error retrieving bag.');
+                    me.close();
                     return;
                 }
 
@@ -134,13 +160,7 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 });
                 me.down('#messageGrid').getStore().loadRawData(bag.messageTypes);
                 me.down('#topics').getStore().loadRawData(bag.topics);
-                tagList = [];
-                for (var tag in bag.tags) {
-                    if (bag.tags.hasOwnProperty(tag)) {
-                        tagList.push(bag.tags[tag]);
-                    }
-                }
-                me.down('#tags').getStore().loadRawData(tagList);
+                me.down('#tags').getStore().loadRawData(bag.tags);
             }
         });
     }

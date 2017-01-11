@@ -442,6 +442,7 @@
                                 <include>views/MessageTypeGrid-min.js</include>
                                 <include>views/NavigationButton-min.js</include>
                                 <include>views/SearchPanel-min.js</include>
+                                <include>views/SetTagWindow-min.js</include>
                                 <include>views/TopicGrid-min.js</include>
                                 <include>views/TagGrid-min.js</include>
                                 <include>views/BagDetailsWindow-min.js</include>

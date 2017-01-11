@@ -85,6 +85,12 @@ Ext.define('BagDatabase.views.BagGrid', {
                         grid.ownerCt.showBagDetails(record.get('id'));
                     }
                 }, {
+                    text: 'Add Tag',
+                    iconCls: 'tag-add-icon',
+                    handler: function() {
+                        grid.ownerCt.addTag([record]);
+                    }
+                }, {
                     text: 'Display Bag on Map',
                     iconCls: 'map-icon',
                     handler: function() {
@@ -109,6 +115,12 @@ Ext.define('BagDatabase.views.BagGrid', {
             }
             else {
                 items = [{
+                    text: 'Add Tag',
+                    iconCls: 'tag-add-icon',
+                    handler: function() {
+                        grid.ownerCt.addTag(records);
+                    }
+                }, {
                     text: 'Display Bags on Map',
                     iconCls: 'map-icon',
                     handler: function() {
@@ -219,6 +231,23 @@ Ext.define('BagDatabase.views.BagGrid', {
         text: 'Messages', dataIndex: 'messageCount', flex: 1,
         hidden: true, filter: { type: 'number' }
     }, {
+        text: 'Tags', dataIndex: 'tags', flex: 1.5, sortable: false,
+        renderer: function(value, metadata, record) {
+            var strTags = [];
+            record.tags().each(function(tag) {
+                var key = Ext.String.htmlEncode(tag.get('tag'));
+                var value = tag.get('value');
+                if (value) {
+                    value = Ext.String.htmlEncode(value);
+                }
+                strTags.push(key + (value ? (': ' + value) : value));
+            });
+
+            strTags = strTags.sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+            metadata.tdAttr = 'data-qtip="' + strTags.join("<br>") + '"';
+            return strTags.join(", ");
+        }
+    }, {
         xtype: 'actioncolumn',
         width: 75,
         items: [{
@@ -252,6 +281,19 @@ Ext.define('BagDatabase.views.BagGrid', {
         }
     },
 
+    addTag: function(bagRecords) {
+        var bagIds = [];
+        bagRecords.forEach(function(record) {
+            bagIds.push(record.get('id'));
+        });
+
+        var win = Ext.create('BagDatabase.views.SetTagWindow', {
+            bagIds: bagIds,
+            targetStores: [this.getStore(),
+                this.up('viewport').down('bagTreePanel').getStore()]
+        });
+        win.show();
+    },
     displayBagInfo: function(bagRecord) {
         var bagId = bagRecord.get('id');
         this.showBagDetails(bagId);
