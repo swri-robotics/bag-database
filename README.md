@@ -50,6 +50,9 @@ are stored and will be manually uploading files there.
 - **Viewing Image Streams**: You can view any sensor_msgs/Image or
   sensor_msgs/CompressedImage topic as an embedded video stream by clicking
   on an icon next to the topic in the bag details window.
+- **Tagging**: Bags can be tagged and searched for with arbitrary metadata 
+  strings.  Existing tags on arbitrary metadata topics in bag files will be
+  automatically read.
 
 ## Compiling
 
@@ -103,6 +106,7 @@ docker run -d \
     -e DB_PASS=letmein \
     -e DB_URL="jdbc:postgresql://bagdb-postgres/bag_database" \
     -e DB_USER=bag_database \
+    -e METADATA_TOPICS="/metadata" \
     -e VEHICLE_NAME_TOPICS="/vehicle_name" \
     -e GPS_TOPICS="/localization/gps, /gps, /imu/fix" \
     swrirobotics/bag-database:latest
@@ -149,6 +153,15 @@ The username to use when connecting to the database.
 ##### GOOGLE_API_KEY
 
 A Google API key that has permission to use the Google Maps GeoCoding API; this is necessary in order to resolve place names for GPS coordinates.
+
+##### METADATA_TOPICS
+
+A comma-separated list of `std_msgs/String` topics in bag files that will be searched for metadata.  The messages on the topic should be newline-separated tags that are made of colon-separated key/value pairs; for example:
+```
+name: John Doe
+email: jdoe@example.com
+```
+Every value will be read from every topic specified, but if there are any duplicate keys, the last-read values will take precedence.
 
 ##### USE_TILE_MAP
 

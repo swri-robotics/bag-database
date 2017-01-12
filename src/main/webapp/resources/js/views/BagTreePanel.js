@@ -152,6 +152,28 @@ Ext.define('BagDatabase.views.BagTreePanel', {
             return value;
         }
     }, {
+        text: 'Tags', dataIndex: 'tags', flex: 1.5, sortable: false,
+        renderer: function(value, metadata, record) {
+            var bag = record.get('bag');
+            if (!bag || !bag.tags) {
+                return '';
+            }
+
+            var strTags = [];
+            bag.tags.forEach(function(tag) {
+                var key = Ext.String.htmlEncode(tag['tag']);
+                var value = tag['value'];
+                if (value) {
+                    value = Ext.String.htmlEncode(value);
+                }
+                strTags.push(key + (value ? (': ' + value) : value));
+            });
+
+            strTags = strTags.sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+            metadata.tdAttr = 'data-qtip="' + strTags.join("<br>") + '"';
+            return strTags.join(', ');
+        }
+    }, {
         xtype: 'actioncolumn',
         width: 75,
         items: [{
@@ -252,6 +274,12 @@ Ext.define('BagDatabase.views.BagTreePanel', {
                         }
                     }
                 }, {
+                    text: 'Add Tag',
+                    iconCls: 'tag-add-icon',
+                    handler: function() {
+                        bagGrid.addTag(bags);
+                    }
+                }, {
                     text: 'Display Bag on Map',
                     iconCls: 'map-icon',
                     handler: function() {
@@ -280,6 +308,12 @@ Ext.define('BagDatabase.views.BagTreePanel', {
                     iconCls: 'map-icon',
                     handler: function() {
                         bagGrid.displayBagsOnMap(bags);
+                    }
+                }, {
+                    text: 'Add Tag',
+                    iconCls: 'tag-add-icon',
+                    handler: function() {
+                        bagGrid.addTag(bags);
                     }
                 }, {
                     text: 'Download Bags',

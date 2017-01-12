@@ -84,7 +84,7 @@ Ext.define('BagDatabase.views.SearchPanel', {
         stateful: true,
         stateId: 'gridSearchFields',
         anchor: '100%',
-        columns: 7,
+        columns: 8,
         // The checkboxgroup widget doesn't actually save the states of its
         // checkboxes by default, so we have to manually do that.
         stateEvents: ['change'],
@@ -116,6 +116,12 @@ Ext.define('BagDatabase.views.SearchPanel', {
             inputValue: 'description',
             value: true,
             qtip: 'The textual description of the bag file.'
+        }, {
+            boxLabel: 'Tags',
+            name: 'field',
+            inputValue: 'tags',
+            value: true,
+            qtip: 'Additional Metadata.'
         }, {
             boxLabel: 'Path',
             name: 'field',

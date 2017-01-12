@@ -34,14 +34,16 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
     requires: ['BagDatabase.models.MessageType',
                'BagDatabase.models.Topic',
                'BagDatabase.views.BagPropertyGrid',
+               'BagDatabase.views.TagGrid',
                'BagDatabase.views.MessageTypeGrid',
                'BagDatabase.views.TopicGrid'],
     layout: 'border',
     title: 'Bag Details',
     bagId: null,
-    width: 900,
+    width: 1200,
     height: 650,
     loadmask: null,
+    tagloadmask: null,
     constrainHeader: true,
     listeners: {
         show: function(win) {
@@ -53,6 +55,29 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
             }
             win.loadmask.show();
         }
+    },
+    reloadTags: function() {
+        var me = this;
+        var tagGrid = me.down('#tags');
+        if (!me.tagloadmask) {
+            me.tagloadmask = new Ext.LoadMask({
+                msg: 'Reloading tags...',
+                target: tagGrid
+            });
+        }
+        me.tagloadmask.show();
+        Ext.Ajax.request({
+            url: 'bags/getTagsForBag',
+            method: 'GET',
+            params: {
+                bagId: me.bagId
+            },
+            callback: function(options, success, response) {
+                me.tagloadmask.hide();
+                var tags = Ext.util.JSON.decode(response.responseText);
+                tagGrid.getStore().loadRawData(tags);
+            }
+        });
     },
     initComponent: function() {
         var me = this;
@@ -84,7 +109,16 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 bagId: this.bagId,
                 data: []
             }]
-        }];
+        }, {
+            xtype: 'tagGrid',
+            region: 'east',
+            itemId: 'tags',
+            split: true,
+            flex: 1,
+            bagId: this.bagId,
+            data: []
+        }
+        ];
 
         this.callParent(arguments);
 
@@ -100,7 +134,9 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                     return;
                 }
                 if (!success) {
+                    Ext.Msg.alert('Error', 'Error loading bag: ' + response.statusText);
                     console.log('Error retrieving bag.');
+                    me.close();
                     return;
                 }
 
@@ -124,6 +160,7 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 });
                 me.down('#messageGrid').getStore().loadRawData(bag.messageTypes);
                 me.down('#topics').getStore().loadRawData(bag.topics);
+                me.down('#tags').getStore().loadRawData(bag.tags);
             }
         });
     }

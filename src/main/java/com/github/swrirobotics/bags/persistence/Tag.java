@@ -31,6 +31,7 @@
 package com.github.swrirobotics.bags.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import javax.persistence.*;
@@ -41,16 +42,21 @@ import java.io.Serializable;
 @IdClass(TagKey.class)
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "tag")
 public class Tag implements Serializable {
+    private static final long serialVersionUID = -5788649026482712064L;
     @Id
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String tag;
 
     @Id
     private Long bagId;
 
+    @Column(nullable = false)
+    private String value;
+
     @MapsId("bagId")
     @JoinColumn(name = "bagId")
     @ManyToOne(optional=false)
+    @JsonIgnore
     private Bag bag;
 
     public Bag getBag() {
@@ -76,5 +82,38 @@ public class Tag implements Serializable {
 
     public void setBagId(Long bagId) {
         this.bagId = bagId;
+    }
+
+    public String getValue() { return value; }
+
+    public void setValue(String value) { this.value = value; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Tag tag1 = (Tag) o;
+
+        if (tag != null ? !tag.equals(tag1.tag) : tag1.tag != null) {
+            return false;
+        }
+        if (bagId != null ? !bagId.equals(tag1.bagId) : tag1.bagId != null) {
+            return false;
+        }
+        return value != null ? value.equals(tag1.value) : tag1.value == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = tag != null ? tag.hashCode() : 0;
+        result = 31 * result + (bagId != null ? bagId.hashCode() : 0);
+        result = 31 * result + (value != null ? value.hashCode() : 0);
+        return result;
     }
 }

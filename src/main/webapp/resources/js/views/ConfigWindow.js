@@ -104,6 +104,9 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             fieldLabel: 'Vehicle Name Topics',
             name: 'vehicleNameTopics'
         }, {
+            fieldLabel: 'Metadata Topics',
+            name: 'metadataTopics'
+        }, {
             fieldLabel: 'GPS Topics',
             name: 'gpsTopics'
         }],
