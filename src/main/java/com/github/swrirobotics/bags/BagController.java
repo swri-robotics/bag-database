@@ -33,6 +33,7 @@ package com.github.swrirobotics.bags;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.swrirobotics.bags.persistence.Bag;
 import com.github.swrirobotics.bags.persistence.BagCount;
+import com.github.swrirobotics.bags.persistence.Tag;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
@@ -49,6 +50,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 
 @RestController
@@ -67,26 +69,44 @@ public class BagController {
         Long id = Long.valueOf(bagId);
         myLogger.info("downloadBag: " + id);
 
-        Bag bag = myBagService.getBag(id);
+        Bag bag;
+        try {
+            bag = myBagService.getBag(id);
 
-        if (bag != null) {
-            response.setContentType("application/x-bag");
-            response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
-            response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-            myLogger.info("Found bag: " + bag.getPath() + bag.getFilename());
-            return new FileSystemResource(bag.getPath() + bag.getFilename());
+            if (bag != null) {
+                response.setContentType("application/x-bag");
+                response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
+                response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
+                myLogger.info("Found bag: " + bag.getPath() + bag.getFilename());
+                return new FileSystemResource(bag.getPath() + bag.getFilename());
+            }
+            else {
+                myLogger.warn("Bag not found.");
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return null;
+            }
         }
-        else {
-            myLogger.warn("Bag not found.");
+        catch (NonexistentBagException e) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return null;
         }
     }
 
     @RequestMapping("/get")
-    public Bag getBag(@RequestParam Long bagId) {
-        myLogger.info("getBag: " + bagId);
-        return myBagService.getBag(bagId);
+    public Bag getBag(@RequestParam Long bagId,
+                      HttpServletResponse response) throws IOException {
+        try {
+            myLogger.info("getBag: " + bagId);
+            return myBagService.getBag(bagId);
+        }
+        catch (NonexistentBagException e) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
+        catch (Exception e) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+
+        return null;
     }
 
     @RequestMapping("/image")
@@ -222,6 +242,64 @@ public class BagController {
         }
 
         return results;
+    }
+
+    @RequestMapping("/getTagsForBag")
+    public Collection<Tag> getTagsForBag(@RequestParam Long bagId) throws NonexistentBagException {
+        myLogger.info("getTagsForBag: " + bagId);
+        Bag bag = myBagService.getBag(bagId);
+
+        if (bag == null) {
+            throw new NonexistentBagException("Bag not found: " + bagId);
+        }
+
+        Collection<Tag> tags = bag.getTags();
+        myLogger.info("Returning " + tags.size() + " tags.");
+
+        return tags;
+    }
+
+    /**
+     * Sets a tag on a bag file.  If no tag with the given name exists, it will
+     * create one; if one does exist, it will overwrite the current value.
+     * @param tagName The name of the tag.
+     * @param value The tag's value.  May be null, which is the same as an empty string.
+     * @param bagId The ID of the bag to set the tag for.
+     * @throws NonexistentBagException If the specified bag doesn't exist.
+     */
+    @RequestMapping("/setTag")
+    public void setTagForBag(@RequestParam String tagName,
+                             @RequestParam(required = false) String value,
+                             @RequestParam Long bagId) throws NonexistentBagException {
+        myLogger.info("setTagForBag: " + tagName + ":" + value + " for bag " + bagId);
+        myBagService.setTagForBag(tagName, value, bagId);
+        myLogger.info("Set tag.");
+    }
+
+    @RequestMapping("/setTagForBags")
+    public void setTagForBags(@RequestParam String tagName,
+                              @RequestParam(required = false) String value,
+                              @RequestParam Long[] bagIds) throws NonexistentBagException {
+        myLogger.info("setTagForBag: " + tagName + ":" + value +
+                      " for bags " + Joiner.on(',').join(bagIds));
+        for (Long bagId : bagIds) {
+            myBagService.setTagForBag(tagName, value, bagId);
+        }
+        myLogger.info("Set tags.");
+    }
+
+    /**
+     * Removes tags with given names from a bag file.
+     * @param tagNames The names of the tags to remove.
+     * @param bagId The ID of the bag to remove the tags from.
+     * @throws NonexistentBagException If the specified bag doesn't exist.
+     */
+    @RequestMapping("/removeTags")
+    public void removeTagsForBag(@RequestParam String[] tagNames,
+                                 @RequestParam Long bagId) throws NonexistentBagException {
+        myLogger.info("removeTagsForBag: " + Joiner.on(',').join(tagNames) + " for bag " + bagId);
+        myBagService.removeTagForBag(Lists.newArrayList(tagNames), bagId);
+        myLogger.info("Removed tags.");
     }
 
     /**

@@ -106,6 +106,15 @@ Ext.define('BagDatabase.views.AdminWindow', {
             }
         }, {
             xtype: 'button',
+            text: 'Re-scan all metadata tags',
+            margin: '5 0 0 0',
+            handler: function() {
+                Ext.Ajax.request({
+                    url: 'admin/updateTags'
+                });
+            }
+        }, {
+            xtype: 'button',
             text: 'Remove DB entries for missing bags',
             margin: '5 0 0 0',
             handler: function() {

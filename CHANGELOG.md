@@ -2,6 +2,8 @@
 
 2.5-SNAPSHOT
 
+- Add support for editing, viewing, and searching by arbitrary tags
+- Read metadata topics from bags into tags
 - Remove MapQuest support
 - Add support for loading tiles from generic tile map servers
 - Fix a bug that would cause tabs to be blank after reloading
