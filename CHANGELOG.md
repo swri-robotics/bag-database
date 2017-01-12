@@ -1,6 +1,6 @@
 # Bag Database changelog
 
-2.5-SNAPSHOT
+2.5.0
 
 - Fix "Copy Link" not working in folder view
 - Add ffmpeg to the Docker build

@@ -35,9 +35,9 @@ Ext.define('BagDatabase.views.AboutWindow', {
     layout: 'fit',
     bodyPadding: 5,
     constrainHeader: true,
-    html: "<h2>Bag Database 2.5-SNAPSHOT</h2>" +
+    html: "<h2>Bag Database 2.5.0</h2>" +
         "<p><a href='https://github.com/swri-robotics/bag-database'>https://github.com/swri-robotics/bag-database</a></p>" +
-        "<p>Copyright 2015-2016 Southwest Research Institute</p>" +
+        "<p>Copyright 2015-2017 Southwest Research Institute</p>" +
         "<br>" +
         "<p>Icons provided by <a href='http://www.famfamfam.com/lab/icons/silk/'>http://www.famfamfam.com/lab/icons/silk/</a></p>" +
         "<p>A number of open source libraries were used in the creation of this software;<br>" +
