@@ -298,7 +298,7 @@ Ext.define('BagDatabase.views.BagTreePanel', {
                         bagGrid.copyTextToClipboard(
                             document.location.href +
                             'bags/download?bagId=' +
-                             record.get('id'));
+                             record.get('bagId'));
                     }
                 }];
             }
