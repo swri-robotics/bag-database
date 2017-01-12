@@ -28,114 +28,46 @@
 //
 // *****************************************************************************
 
-Ext.application({
-    name: 'Bag Database',
-    requires: [ 'BagDatabase.views.BagGrid',
-                'BagDatabase.views.BagTreePanel',
-                'BagDatabase.views.NavigationButton',
-                'BagDatabase.views.MapWindow',
-                'BagDatabase.views.SearchPanel',
-                'BagDatabase.views.BagTreeFilterPanel' ],
-    launch: function() {
-        Ext.state.Manager.setProvider(new Ext.state.LocalStorageProvider());
-        Ext.create('Ext.container.Viewport', {
-            layout: 'fit',
-            id: 'viewport',
-            items: [{
-                xtype: 'tabpanel',
-                region: 'center',
-                id: 'tabPanel',
-                stateful: true,
-                stateId: 'tabPanel',
-                stateEvents: ['tabchange'],
-                activeTab: Ext.state.Manager.get('active_tab', 0),
-                items: [{
-                    xtype: 'panel',
-                    layout: 'border',
-                    title: 'List View',
-                    iconCls: 'table-icon',
-                    items: [{
-                        xtype: 'searchPanel',
-                        stateful: true,
-                        stateId: 'gridSearchPanel',
-                        region: 'north'
-                    }, {
-                        xtype: 'bagGrid',
-                        itemId: 'bagGrid',
-                        stateful: true,
-                        stateId: 'bagGrid',
-                        title: 'Search Results',
-                        region: 'center'
+/**
+ * Starts the bag database application.
+ */
+function startApplication() {
+    Ext.application({
+        name: 'Bag Database',
+        requires: [ 'BagDatabase.views.BagDatabaseViewport' ],
+        autoCreateViewport: 'BagDatabase.views.BagDatabaseViewport'
+    });
+}
 
-                    }]
-                }, {
-                    xtype: 'panel',
-                    layout: 'border',
-                    title: 'Folder View',
-                    iconCls: 'folder-icon',
-                    items: [{
-                        xtype: 'bagTreeFilterPanel',
-                        stateful: true,
-                        stateId: 'bagTreeFilterPanel',
-                        region: 'north'
-                    }, {
-                        xtype: 'bagTreePanel',
-                        itemId: 'bagTreePanel',
-                        stateful: true,
-                        stateId: 'bagTreePanel',
-                        region: 'center'
-                    }]
-                }],
-                tabBar: {
-                    items: [{ xtype: 'tbfill' }, {
-                        xtype: 'navigationButton',
-                        iconCls: 'chart-organisation-icon',
-                        isAdmin: isAdmin,
-                        margin: 5
-                    }]
-                },
-                fbar: [{
-                    xtype: 'errorButton',
-                    itemId: 'errorButton'
-                }, '-', {
-                    xtype: 'statusText',
-                    itemId: 'statusText'
-                }, '->'
-                // TODO Re-enable the save button when cell editing is working
-                /*, {
-                    xtype: 'button',
-                    text: 'Save Changes',
-                    itemId: 'saveButton',
-                    disabled: true,
-                    handler: function(button) {
-                        var grid = button.up('grid');
-                        var store = grid.getStore();
-                        var records = store.getRange().filter(function(bag) {
-                            return bag.dirty;
-                        });
-                        var bags = [];
-                        records.forEach(function(record) {
-                            bags.push(record.data);
-                        });
-
-                        if (!grid.saveMask) {
-                            grid.saveMask = new Ext.LoadMask(grid, {msg: 'Saving bags...'});
-                        }
-                        BagDatabase.stores.BagStore.saveBags(bags, grid.saveMask, button);
-                        records.forEach(function(record) {
-                            record.commit();
-                        });
-                    }
-                }*/],
-                listeners: {
-                    afterrender: function(bagGrid) {
-                        bagGrid.down('#statusText').connectWebSocket(bagGrid.down('#errorButton'));
-                    },
-                    tabchange: function() {
-                        Ext.state.Manager.set('active_tab', Ext.getCmp('tabPanel').getActiveTab().getId());
-                    }
-                }
-            }]
-        });
+Ext.onReady(function() {
+    // Set up our state provider before we start the app so we can reliably
+    // restore our previous state.
+    Ext.state.Manager.setProvider(new Ext.state.LocalStorageProvider());
+    try {
+        startApplication();
+    }
+    catch (e) {
+        if (loadCompressed && e.msg.match('Ext.Loader is not enabled')) {
+            // If the app fails to start and it is because we were set to load in non-debug
+            // mode but no classes were available, that probably means we're running in
+            // an and offline test environment (like "mvn tomcat7:run") and the compressed.js
+            // file is not on the classpath.  In order so that we can reliably run, enable
+            // the loader and try requiring a class again; if the class successfully loads,
+            // that will cause the application to start.
+            Ext.Loader.setConfig({enabled: true});
+            Ext.Loader.setPath('BagDatabase', 'resources/js');
+            console.log('Could not load compressed application; retrying in debug mode.')
+            try {
+                Ext.require('BagDatabase.views.BagDatabaseViewport');
+            }
+            catch(e2) {
+                console.error('Error loading application in debug mode:');
+                console.error(e);
+            }
+        }
+        else {
+            console.error('Failed to load Bag Database:');
+            console.error(e);
+        }
     }
 });

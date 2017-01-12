@@ -1,5 +1,6 @@
 FROM tomcat:8-jre8
 EXPOSE 8080
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 RUN rm -rf /usr/local/tomcat/webapps/
 ADD *.war /usr/local/tomcat/webapps/ROOT.war
 ADD entrypoint.sh /

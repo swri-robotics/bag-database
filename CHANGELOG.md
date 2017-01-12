@@ -1,5 +1,21 @@
 # Bag Database changelog
 
+2.5.0
+
+- Fix "Copy Link" not working in folder view
+- Add ffmpeg to the Docker build
+- Use ffmpeg to generate VP8 streams from Image topics
+- Add optional flags to the /bags/search API call to fill in topics 
+  and message types; not used by the GUI, but useful for other scripts
+- Add support for editing, viewing, and searching by arbitrary tags
+- Read metadata topics from bags into tags
+- Remove MapQuest support
+- Add support for loading tiles from generic tile map servers
+- Fix a bug that would cause tabs to be blank after reloading
+- Add an option to control whether entries should be removed from the DB if they are deleted from the filesystem
+- Missing bags will be deleted by default
+- Updated Spring & Hibernate-related dependencies to newer versions
+
 2.4
 
 - Fixing the mass vehicle name updater for the admin tool

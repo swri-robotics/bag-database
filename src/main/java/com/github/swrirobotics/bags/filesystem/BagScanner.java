@@ -32,10 +32,7 @@ package com.github.swrirobotics.bags.filesystem;
 
 import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.bags.persistence.Bag;
-import com.github.swrirobotics.bags.persistence.BagRepository;
-import com.github.swrirobotics.bags.persistence.MessageTypeRepository;
-import com.github.swrirobotics.bags.persistence.TopicRepository;
+import com.github.swrirobotics.bags.persistence.*;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
@@ -89,6 +86,8 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
     private MessageTypeRepository myMTRepo;
     @Autowired
     private TopicRepository myTopicRepo;
+    @Autowired
+    private TagRepository myTagRepository;
     @Autowired
     private BagService myBagService;
     @Autowired
@@ -242,6 +241,31 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         }
     }
 
+    private class TagUpdater extends MassBagUpdater {
+        @Override
+        protected String updateType() {
+            return "tags";
+        }
+
+        @Override
+        @Transactional
+        public void updateBag(Long bagId) {
+            Bag bag = myBagRepo.findOne(bagId);
+            String fullPath = bag.getPath() + bag.getFilename();
+            try {
+                BagFile bagFile = BagReader.readFile(fullPath);
+                myBagService.addTagsToBag(bagFile,bag);
+            } catch (BagReaderException e) {
+                reportStatus(Status.State.ERROR,
+                        "Unable to get tags from bag file " +
+                                fullPath + ": " + e.getLocalizedMessage());
+                reportStatus(Status.State.WORKING,
+                        "Updating tags for all bag files.");
+            }
+        }
+    }
+
+
     private class GpsPathUpdater extends MassBagUpdater {
         @Override
         protected String updateType() {
@@ -320,6 +344,10 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
 
     public void updateAllVehicleNames() {
         myExecutor.execute(new VehicleNameUpdater());
+    }
+
+    public void updateAllTags() {
+        myExecutor.execute(new TagUpdater());
     }
 
     public void scanDirectory(boolean forceUpdate) {
@@ -426,6 +454,10 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                 bagService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 
                 myBagService.markMissingBags(missingBagMd5sums.values());
+
+                if (myConfigService.getConfiguration().getRemoveOnDeletion()) {
+                    myBagService.removeMissingBags();
+                }
             }
             catch (RuntimeException e) {
                 String error = "Unexpected exception when checking bag files: ";

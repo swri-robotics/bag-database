@@ -39,14 +39,20 @@ are stored and will be manually uploading files there.
 - **Message Types and Topics**: You can also easily view all of the different 
   message types and topics used in the bag file.
 - **Displaying GPS Coordinates**: GPS coordinates recorded in a bag file are
-  extracted and stored, and if support for Bing Maps or MapQuest is enabled you
-  can view the vehicle's path on a map.
+  extracted and stored, and you can view the path of the coordinates using
+  either Bing Maps or an arbitrary WMTS tile map server.
 - **Downloading**: Every bag file can be downloaded from the interface without
   needing to find it on the host filesystem.  Links to bag files can also be
   obtained by right-clicking on them.
 - **Viewing Images**: You can view the first image on any sensor_msgs/Image or
-  sensor_msgs/CompressedImage topic by clicking on the icon next to the topic
+  sensor_msgs/CompressedImage topic by clicking on an icon next to the topic
   in the bag details window.
+- **Viewing Image Streams**: You can view any sensor_msgs/Image or
+  sensor_msgs/CompressedImage topic as an embedded video stream by clicking
+  on an icon next to the topic in the bag details window.
+- **Tagging**: Bags can be tagged and searched for with arbitrary metadata 
+  strings.  Existing tags on arbitrary metadata topics in bag files will be
+  automatically read.
 
 ## Compiling
 
@@ -100,6 +106,7 @@ docker run -d \
     -e DB_PASS=letmein \
     -e DB_URL="jdbc:postgresql://bagdb-postgres/bag_database" \
     -e DB_USER=bag_database \
+    -e METADATA_TOPICS="/metadata" \
     -e VEHICLE_NAME_TOPICS="/vehicle_name" \
     -e GPS_TOPICS="/localization/gps, /gps, /imu/fix" \
     swrirobotics/bag-database:latest
@@ -147,9 +154,34 @@ The username to use when connecting to the database.
 
 A Google API key that has permission to use the Google Maps GeoCoding API; this is necessary in order to resolve place names for GPS coordinates.
 
-##### USE_MAPQUEST
+##### METADATA_TOPICS
 
-Set this to `true` to use MapQuest for displaying map imagery; set it to `false` to disable MapQuest.  The default is `true`.
+A comma-separated list of `std_msgs/String` topics in bag files that will be searched for metadata.  The messages on the topic should be newline-separated tags that are made of colon-separated key/value pairs; for example:
+```
+name: John Doe
+email: jdoe@example.com
+```
+Every value will be read from every topic specified, but if there are any duplicate keys, the last-read values will take precedence.
+
+##### USE_TILE_MAP
+
+Set this to `true` to use a WMTS tile map for displaying map imagery; set it to `false` to disable MapQuest.  The default is `true`.
+
+##### TILE_MAP_URL
+
+If `USE_TILE_MAP` is `true`, this URL will be used as a template for retrieving 
+map tiles.  See the documentation for the `url` property of OpenLayers' 
+[ol.source.XYZ](http://openlayers.org/en/latest/apidoc/ol.source.XYZ.html) class.  
+The default value is `http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg`, which will
+use the terrain map provided by [Stamen](http://maps.stamen.com/).
+
+##### TILE_WIDTH_PX
+
+The width of the tiles returned from the tile map in pixels.  The default is `256`.
+
+##### TILE_HEIGHT_PX
+
+The height of the tiles returned from the tile map in pixels.  The default is `256`.
 
 ##### USE_BING
 
@@ -206,3 +238,4 @@ Only Tomcat 8.0 with Java 8.0 has been tested.
     
 5. Look inside the log file at `${TOMCAT_HOME}/logs/bag_database.log` to find the automatically-generated administrator password.
 6. Log in through the GUI and use the Maintenance panel to change the password.
+7. Note that in order for video streaming to work, `ffmpeg` version 3 or higher must be available on the system path.

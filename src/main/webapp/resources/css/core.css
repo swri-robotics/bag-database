@@ -44,6 +44,14 @@ div.ol-viewport {
     background-image: url('../images/database.png');
 }
 
+.film-icon {
+    background-image: url('../images/film.png');
+}
+
+.film-go-icon {
+    background-image: url('../images/film_go.png');
+}
+
 .folder-icon {
     background-image: url('../images/folder.png');
 }
@@ -91,6 +99,15 @@ div.ol-viewport {
 .table-icon {
     background-image: url('../images/table.png');
 }
+
+.tag-add-icon {
+    background-image: url('../images/tag_blue_add.png');
+}
+
+.tag-delete-icon {
+    background-image: url('../images/tag_blue_delete.png');
+}
+
 .tick-icon {
     background-image: url('../images/tick.png');
 }

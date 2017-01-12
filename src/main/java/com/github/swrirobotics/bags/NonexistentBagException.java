@@ -28,71 +28,14 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.bags;
 
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.vividsolutions.jts.geom.Point;
-
-import javax.persistence.*;
-import java.sql.Timestamp;
-
-@Entity
-@Table(name="bag_positions")
-public class BagPosition {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="bagId")
-    @JsonIgnore
-    private Bag bag;
-
-    private Point position;
-
-    private Timestamp positionTime;
-
-    public Long getId() {
-        return id;
+public class NonexistentBagException extends Exception {
+    public NonexistentBagException(Exception e) {
+        super(e);
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Bag getBag() {
-        return bag;
-    }
-
-    public void setBag(Bag bag) {
-        this.bag = bag;
-    }
-
-    @Transient
-    public Double getLatitude() {
-        return position == null ? null : position.getY();
-    }
-
-    @Transient
-    public Double getLongitude() {
-        return position == null ? null : position.getX();
-    }
-
-    @JsonIgnore
-    public Point getPosition() {
-        return position;
-    }
-
-    public void setPosition(Point position) {
-        this.position = position;
-    }
-
-    public Timestamp getPositionTime() {
-        return positionTime;
-    }
-
-    public void setPositionTime(Timestamp positionTime) {
-        this.positionTime = positionTime;
+    public NonexistentBagException(String reason) {
+        super(reason);
     }
 }

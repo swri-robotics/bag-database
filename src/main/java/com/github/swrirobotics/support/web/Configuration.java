@@ -41,13 +41,22 @@ public class Configuration implements Serializable {
     private String jdbcUrl = "jdbc:h2:mem:testdb";
     private String jdbcPassword = "";
     private String googleApiKey = "";
-    private Boolean useMapQuest = true;
     private Boolean useBing = false;
     private String bingKey = "";
     private String adminPassword = "";
     private String[] vehicleNameTopics = new String[0];
+    private String[] metadataTopics = new String[0];
     private String[] gpsTopics = new String[0];
     private Boolean debugJavascript = false;
+    private Boolean removeOnDeletion = true;
+
+    // Named "useMapQuest" for legacy support with older configs;
+    // MapQuest is actually unsupported now and this will enable/disable
+    // generic tile map support.
+    private Boolean useMapQuest = true;
+    private String tileMapUrl = "http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg";
+    private Integer tileWidthPx = 256;
+    private Integer tileHeightPx = 256;
 
     public String getBagPath() {
         return bagPath;
@@ -151,5 +160,45 @@ public class Configuration implements Serializable {
 
     public void setDebugJavascript(Boolean debugJavascript) {
         this.debugJavascript = debugJavascript;
+    }
+
+    public Boolean getRemoveOnDeletion() {
+        return removeOnDeletion;
+    }
+
+    public void setRemoveOnDeletion(Boolean removeOnDeletion) {
+        this.removeOnDeletion = removeOnDeletion;
+    }
+
+    public String getTileMapUrl() {
+        return tileMapUrl;
+    }
+
+    public void setTileMapUrl(String tileMapUrl) {
+        this.tileMapUrl = tileMapUrl;
+    }
+
+    public Integer getTileWidthPx() {
+        return tileWidthPx;
+    }
+
+    public void setTileWidthPx(Integer tileWidthPx) {
+        this.tileWidthPx = tileWidthPx;
+    }
+
+    public Integer getTileHeightPx() {
+        return tileHeightPx;
+    }
+
+    public void setTileHeightPx(Integer tileHeightPx) {
+        this.tileHeightPx = tileHeightPx;
+    }
+
+    public String[] getMetadataTopics() {
+        return metadataTopics;
+    }
+
+    public void setMetadataTopics(String[] metadataTopics) {
+        this.metadataTopics = metadataTopics;
     }
 }

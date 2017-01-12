@@ -1,0 +1,90 @@
+# Adds ON DELETE CASCADE constraints to tables that are linked to the Bags
+# table; having the database handle deleting related rows is faster than
+# doing it manually.
+databaseChangeLog:
+- changeSet:
+    id: cascade-deletes-1
+    author: preed
+    changes:
+    - dropForeignKeyConstraint:
+        baseTableName: bag_message_types
+        constraintName: fkbllasbl4tts9qqlp65smmx27j
+    - dropForeignKeyConstraint:
+        baseTableName: bag_message_types
+        constraintName: fk23bp9x92dlt909c2kh3tlnsme
+    - dropForeignKeyConstraint:
+        baseTableName: topics
+        constraintName: fkq10sryjifovphrbxq3hieccm2
+    - dropForeignKeyConstraint:
+        baseTableName: topics
+        constraintName: fkaiwajp9bca32j0n2pepdwqmg5
+    - dropForeignKeyConstraint:
+        baseTableName: tags
+        constraintName: fk8btgm03vue9r3f7p6wimgdf0g
+    - dropForeignKeyConstraint:
+        baseTableName: bag_positions
+        constraintName: fk25ij3r2ip8jkf31v35kq8gx1f
+- changeSet:
+    id: cascade-deletes-2
+    author: preed
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: bag_id
+        baseTableName: bag_message_types
+        constraintName: fk_bag_message_types_bags
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: CASCADE
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags
+    - addForeignKeyConstraint:
+        baseColumnNames: message_type_md5sum,message_type_name
+        baseTableName: bag_message_types
+        constraintName: fk_bag_message_types_message_types
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: CASCADE
+        onUpdate: NO ACTION
+        referencedColumnNames: md5sum,name
+        referencedTableName: message_types
+    - addForeignKeyConstraint:
+        baseColumnNames: bagid
+        baseTableName: topics
+        constraintName: fk_topics_bags
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: CASCADE
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags
+    - addForeignKeyConstraint:
+        baseColumnNames: bagid
+        baseTableName: tags
+        constraintName: fk_tags_bags
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: CASCADE
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags
+    - addForeignKeyConstraint:
+        baseColumnNames: bagid
+        baseTableName: bag_positions
+        constraintName: fk_bag_positions_bags
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: CASCADE
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: bags
+    - addForeignKeyConstraint:
+        baseColumnNames: message_type_md5sum,message_type_name
+        baseTableName: topics
+        constraintName: fk_topics_message_types
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: CASCADE
+        onUpdate: NO ACTION
+        referencedColumnNames: md5sum,name
+        referencedTableName: message_types

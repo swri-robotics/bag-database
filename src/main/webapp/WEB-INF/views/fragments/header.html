@@ -23,7 +23,8 @@
         // up in the Navigation menu.  It does not give the user the ability to
         // perform administrative actions on the backend.
         var isAdmin = /*[[${#authorization.expression('hasRole(''ROLE_ADMIN'')')}]]*/ false;
-        if (/*[[${config != null and !config.debugJavascript}]]*/ true) {
+        var loadCompressed = /*[[${config != null and !config.debugJavascript}]]*/ true;
+        if (loadCompressed) {
             Ext.Loader.setConfig({enabled: false});
         }
         else {
