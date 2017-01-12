@@ -62,7 +62,7 @@ public class BagController {
 
     private Logger myLogger = LoggerFactory.getLogger(BagController.class);
 
-    @RequestMapping("/download")
+    @RequestMapping(value="/download", produces="application/x-bag")
     public FileSystemResource downloadBag(
             @RequestParam String bagId,
             HttpServletResponse response) throws IOException {
@@ -74,7 +74,6 @@ public class BagController {
             bag = myBagService.getBag(id);
 
             if (bag != null) {
-                response.setContentType("application/x-bag");
                 response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
                 response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
                 myLogger.info("Found bag: " + bag.getPath() + bag.getFilename());
