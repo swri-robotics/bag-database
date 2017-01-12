@@ -2,6 +2,7 @@
 
 2.5-SNAPSHOT
 
+- Fix "Copy Link" not working in folder view
 - Add ffmpeg to the Docker build
 - Use ffmpeg to generate VP8 streams from Image topics
 - Add optional flags to the /bags/search API call to fill in topics 
