@@ -45,8 +45,11 @@ are stored and will be manually uploading files there.
   needing to find it on the host filesystem.  Links to bag files can also be
   obtained by right-clicking on them.
 - **Viewing Images**: You can view the first image on any sensor_msgs/Image or
-  sensor_msgs/CompressedImage topic by clicking on the icon next to the topic
+  sensor_msgs/CompressedImage topic by clicking on an icon next to the topic
   in the bag details window.
+- **Viewing Image Streams**: You can view any sensor_msgs/Image or
+  sensor_msgs/CompressedImage topic as an embedded video stream by clicking
+  on an icon next to the topic in the bag details window.
 - **Tagging**: Bags can be tagged and searched for with arbitrary metadata 
   strings.  Existing tags on arbitrary metadata topics in bag files will be
   automatically read.
@@ -235,3 +238,4 @@ Only Tomcat 8.0 with Java 8.0 has been tested.
     
 5. Look inside the log file at `${TOMCAT_HOME}/logs/bag_database.log` to find the automatically-generated administrator password.
 6. Log in through the GUI and use the Maintenance panel to change the password.
+7. Note that in order for video streaming to work, `ffmpeg` version 3 or higher must be available on the system path.

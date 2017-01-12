@@ -44,6 +44,14 @@ div.ol-viewport {
     background-image: url('../images/database.png');
 }
 
+.film-icon {
+    background-image: url('../images/film.png');
+}
+
+.film-go-icon {
+    background-image: url('../images/film_go.png');
+}
+
 .folder-icon {
     background-image: url('../images/folder.png');
 }

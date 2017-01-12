@@ -2,6 +2,8 @@
 
 2.5-SNAPSHOT
 
+- Add ffmpeg to the Docker build
+- Use ffmpeg to generate VP8 streams from Image topics
 - Add optional flags to the /bags/search API call to fill in topics 
   and message types; not used by the GUI, but useful for other scripts
 - Add support for editing, viewing, and searching by arbitrary tags

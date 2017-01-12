@@ -58,16 +58,70 @@ Ext.define('BagDatabase.views.TopicGrid', {
             iconCls: 'bag-action-icon images-icon',
             isDisabled: function(view, rowIndex, colIndex, item, record) {
                 var mt = record.get('messageType');
-                return mt !== 'sensor_msgs/Image' && mt !== 'sensor_msgs/CompressedImage';
+                return mt !== 'sensor_msgs/Image' &&
+                       mt !== 'sensor_msgs/CompressedImage';
             },
             getTip: function(value, metadata, record) {
                 var mt = record.get('messageType');
-                var isImage = (mt === 'sensor_msgs/Image' || mt === 'sensor_msgs/CompressedImage');
-                return isImage ? 'Display Images' : 'Not an image topic';
+                var isImage = (mt === 'sensor_msgs/Image' ||
+                               mt === 'sensor_msgs/CompressedImage');
+                return isImage ? 'Display First Image' : 'Not an image topic';
             },
             handler: function(grid, rowIndex, colIndex) {
                 var record = grid.getStore().getAt(rowIndex);
                 grid.ownerCt.showImage(record.get('topicName'));
+            }
+        }]
+    }, {
+        xtype: 'actioncolumn',
+        width: 25,
+        items: [{
+            iconCls: 'bag-action-icon film-icon',
+            isDisabled: function(view, rowIndex, colIndex, item, record) {
+                var mt = record.get('messageType');
+                return mt !== 'sensor_msgs/Image' &&
+                       mt !== 'sensor_msgs/CompressedImage' &&
+                       mt !== 'stereo_msgs/DisparityImage';
+            },
+            getTip: function(value, metadata, record) {
+                var mt = record.get('messageType');
+                var isImage = (mt === 'sensor_msgs/Image' ||
+                               mt === 'sensor_msgs/CompressedImage' ||
+                               mt === 'stereo_msgs/DisparityImage');
+                return isImage ? 'Display Video' : 'Not an image topic';
+            },
+            handler: function(grid, rowIndex, colIndex) {
+                var record = grid.getStore().getAt(rowIndex);
+                grid.ownerCt.showVideo(record.get('topicName'), 1);
+            }
+        }]
+    }, {
+        xtype: 'actioncolumn',
+        width: 25,
+        items: [{
+            iconCls: 'bag-action-icon film-go-icon',
+            isDisabled: function(view, rowIndex, colIndex, item, record) {
+                var mt = record.get('messageType');
+                return mt !== 'sensor_msgs/Image' &&
+                       mt !== 'sensor_msgs/CompressedImage' &&
+                       mt !== 'stereo_msgs/DisparityImage';
+            },
+            getTip: function(value, metadata, record) {
+                var mt = record.get('messageType');
+                var isImage = (mt === 'sensor_msgs/Image' ||
+                               mt === 'sensor_msgs/CompressedImage' ||
+                               mt === 'stereo_msgs/DisparityImage');
+                return isImage ? 'Display Video w/ Frame Skip' : 'Not an image topic';
+            },
+            handler: function(grid, rowIndex, colIndex) {
+                Ext.Msg.prompt('Display Video with Frame Skip',
+                    'Only display every nth frame:',
+                    function(btnText, input) {
+                        if (btnText === 'ok') {
+                            var record = grid.getStore().getAt(rowIndex);
+                            grid.ownerCt.showVideo(record.get('topicName'), input);
+                        }
+                    }, window, false, '10');
             }
         }]
     }],
@@ -97,6 +151,22 @@ Ext.define('BagDatabase.views.TopicGrid', {
                     });
                 }.bind(this)
             }
+        });
+        win.show();
+    },
+    showVideo: function(topic, frameSkip) {
+        var vidWidth = 720;
+        var vidHeight = 480;
+        var win = Ext.create('Ext.window.Window', {
+            title: topic,
+            width: vidWidth + 10,
+            height: vidHeight + 41,
+            html: '<div>' +
+                    '<video style="max-width: 100%; max-height: 100%; width: 100%; height: 100%;" controls autoplay>' +
+                        '<source src="bags/video?bagId=' + this.bagId + '&topic=' + topic + '&frameSkip=' + frameSkip + '">' +
+                        'Your browser does not support embedded video.' +
+                    '</video>' +
+                  '</div>'
         });
         win.show();
     }

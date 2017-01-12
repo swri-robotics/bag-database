@@ -264,6 +264,11 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.5</version>
+        </dependency>
+        <dependency>
             <groupId>com.google.maps</groupId>
             <artifactId>google-maps-services</artifactId>
             <version>0.1.12</version>
@@ -288,7 +293,7 @@
         <dependency>
             <groupId>com.github.swri-robotics</groupId>
             <artifactId>bag-reader-java</artifactId>
-            <version>1.5</version>
+            <version>1.6</version>
         </dependency>
 
     </dependencies>
