@@ -474,6 +474,9 @@ public class BagService extends StatusProvider {
                         case BufferedImage.TYPE_3BYTE_BGR:
                             myPixelFormat = "bgr24";
                             break;
+                        case BufferedImage.TYPE_BYTE_GRAY:
+                            myPixelFormat = "gray";
+                            break;
                         default:
                             myLogger.warn("Unexpected encoding type: " + image.getType());
                             return null;
