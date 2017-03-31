@@ -317,6 +317,7 @@ public class BagService extends StatusProvider {
         private OutputStream myOutput;
         private Process myFfmpegProc = null;
         private String myPixelFormat = "";
+        private int byteNb = 3;
 
         private class OutputConsumer extends Thread {
             @Override
@@ -473,9 +474,11 @@ public class BagService extends StatusProvider {
                     switch (image.getType()) {
                         case BufferedImage.TYPE_3BYTE_BGR:
                             myPixelFormat = "bgr24";
+                            byteNb = 3;
                             break;
                         case BufferedImage.TYPE_BYTE_GRAY:
                             myPixelFormat = "gray";
+                            byteNb = 1;
                             break;
                         default:
                             myLogger.warn("Unexpected encoding type: " + image.getType());
@@ -486,8 +489,8 @@ public class BagService extends StatusProvider {
                 // This probably isn't the most efficient way to do it, but it's
                 // easiest for us to just extract the raw image bytes so we can
                 // pipe them into ffmpeg the same way as an uncompressed image.
-                byteData = new byte[myWidth * myHeight * 3];
-                int[] intData = new int[myWidth * myHeight * 3];
+                byteData = new byte[myWidth * myHeight * byteNb];
+                int[] intData = new int[myWidth * myHeight * byteNb];
                 image.getData().getPixels(0, 0, myWidth, myHeight, intData);
                 for (int i = 0; i < intData.length; i++) {
                     byteData[i] = (byte) intData[i];
