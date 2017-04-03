@@ -49,6 +49,7 @@ public class Configuration implements Serializable {
     private String[] gpsTopics = new String[0];
     private Boolean debugJavascript = false;
     private Boolean removeOnDeletion = true;
+    private Boolean fasterCodec = false;
 
     // Named "useMapQuest" for legacy support with older configs;
     // MapQuest is actually unsupported now and this will enable/disable
@@ -200,5 +201,13 @@ public class Configuration implements Serializable {
 
     public void setMetadataTopics(String[] metadataTopics) {
         this.metadataTopics = metadataTopics;
+    }
+
+    public Boolean getFasterCodec() {
+    	return fasterCodec;
+    }
+
+    public void setFasterCodec(Boolean fasterCodec) {
+    	this.fasterCodec = fasterCodec;
     }
 }

@@ -550,28 +550,52 @@ public class BagService extends StatusProvider {
             // Generate key frames for seeking every 3 seconds
             String keyFrameRate = Double.toString(3*myFrameRate);
             // use (n-1) of n available processors, minimum 1
-            String numThreads = Integer.toString(Math.max(Runtime.getRuntime().availableProcessors()-1, 1));
+            String numThreads = Integer.toString(Math.min(16, Math.max(Runtime.getRuntime().availableProcessors()-1, 1)));
 
-            myFfmpegProc = Runtime.getRuntime().exec(
-                    new String[]{"ffmpeg",
-                                 "-f", "rawvideo",
-                                 "-c:v", "rawvideo",
-                                 "-pix_fmt", myPixelFormat,
-                                 "-s:v", myWidth + "x" + myHeight,
-                                 "-r:v", frameRateStr,
-                                 "-i", "pipe:0",
-                                 "-c:v", "libvpx",
-                                 "-f", "webm",
-                                 "-minrate", bitrate,
-                                 "-maxrate", bitrate,
-                                 "-b:v", bitrate,
-                                 "-threads", numThreads,
-                                 "-crf", "10",
-                                 "-t", durationStr,
-                                 "-g", keyFrameRate,
-                                 "pipe:1",
-                                 "-v", "warning"
-                    });
+            // Default encoding to create a VP8 stream
+            String[] command = new String[]{"ffmpeg",
+                    "-f", "rawvideo",
+                    "-c:v", "rawvideo",
+                    "-pix_fmt", myPixelFormat,
+                    "-s:v", myWidth + "x" + myHeight,
+                    "-r:v", frameRateStr,
+                    "-i", "pipe:0",
+                    "-c:v", "libvpx",
+                    "-f", "webm",
+                    "-minrate", bitrate,
+                    "-maxrate", bitrate,
+                    "-b:v", bitrate,
+                    "-threads", numThreads,
+                    "-crf", "10",
+                    "-t", durationStr,
+                    "-g", keyFrameRate,
+                    "pipe:1",
+                    "-v", "warning"
+            };
+
+            // Faster encoding
+            if (myConfigService.getConfiguration().getFasterCodec()) {
+            	command = new String[]{"ffmpeg",
+                        "-f", "rawvideo",
+                        "-c:v", "rawvideo",
+                        "-pix_fmt", myPixelFormat,
+                        "-s:v", myWidth + "x" + myHeight,
+                        "-r:v", frameRateStr,
+                        "-i", "pipe:0",
+                        "-c:v", "libvpx",
+                        "-f", "webm",
+                        "-vf", "scale=400:-1",
+                        "-threads", numThreads,
+                        "-crf", "28",
+                        "-r", "24",
+                        "-t", durationStr,
+                        "-g", keyFrameRate,
+                        "pipe:1",
+                        "-v", "warning"
+                };
+            }
+
+            myFfmpegProc = Runtime.getRuntime().exec(command);
 
             myConsumer = new OutputConsumer();
             myConsumer.start();
