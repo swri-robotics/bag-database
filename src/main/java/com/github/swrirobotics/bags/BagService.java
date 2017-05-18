@@ -59,6 +59,7 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import nu.pattern.OpenCV;
 import org.apache.commons.io.IOUtils;
+import org.hibernate.cfg.Environment;
 import org.opencv.contrib.Contrib;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -66,6 +67,7 @@ import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -1216,7 +1218,7 @@ public class BagService extends StatusProvider {
             return;
         }
 
-        String msg = "Inserting GPS positions for " + bag.getFilename() + ".";
+        String msg = "Inserting GPS positions for " + bag.getFilename();
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);
         bag.setHasPath(!gpsPositions.isEmpty());
@@ -1230,8 +1232,8 @@ public class BagService extends StatusProvider {
         }
         msg = "Saved " + gpsPositions.size() + " GPS positions for " +
                 bag.getFilename() + ".";
-        myLogger.trace(msg);
-        reportStatus(Status.State.IDLE, msg);
+        myLogger.debug(msg);
+        reportStatus(Status.State.WORKING, msg);
     }
 
     @Transactional
@@ -1547,6 +1549,9 @@ public class BagService extends StatusProvider {
         synchronized (myBagDbLock) {
             try {
                 updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions);
+                String msg = "Done processing: " + bagFile.getPath().toFile().toString();
+                myLogger.debug(msg);
+                reportStatus(Status.State.IDLE, msg);
             }
             catch (BagReaderException | DuplicateBagException e) {
                 reportStatus(Status.State.ERROR, "Error reading " +
@@ -1587,7 +1592,9 @@ public class BagService extends StatusProvider {
             addTagsToBag(bagFile, bag);
         }
         bagRepository.save(bag);
-        myLogger.debug("Final bag save; done processing " + file.getAbsolutePath());
+        String msg = "Committing: " + file.getAbsolutePath();
+        myLogger.debug(msg);
+        reportStatus(Status.State.WORKING, msg);
     }
 
     @Transactional

@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+2.6.0-SNAPSHOT
+
+- Add batch inserts for GPS coordinates
+
 2.5.0
 
 - Fix "Copy Link" not working in folder view

@@ -40,8 +40,11 @@ import java.sql.Timestamp;
 @Entity
 @Table(name="bag_positions")
 public class BagPosition {
+    // The allocationSize here must be equal to the incrementBy value of the sequence in the database.
+    // See db.changelog-1.6.yaml
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name="bag_positions_id_seq", sequenceName="bag_positions_id_seq", allocationSize=100)
+    @GeneratedValue(strategy=GenerationType.SEQUENCE, generator="bag_positions_id_seq")
     private Long id;
 
     @ManyToOne(fetch=FetchType.LAZY)
