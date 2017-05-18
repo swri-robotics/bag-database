@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+2.6.0-SNAPSHOT
+
+- Fix date rendering in grids
+
 2.5.0
 
 - Fix "Copy Link" not working in folder view

@@ -82,7 +82,7 @@ Ext.define('BagDatabase.views.BagPropertyGrid', {
         createdOn: {
             displayName: 'Created On',
             type: 'date',
-            renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+            renderer: bagGridDateRenderer
         },
         description: {
             displayName: '<b>Description</b>'
@@ -93,7 +93,7 @@ Ext.define('BagDatabase.views.BagPropertyGrid', {
         endTime: {
             displayName: 'End Time',
             type: 'date',
-            renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+            renderer: bagGridDateRenderer
         },
         filename: {
             displayName: 'Filename'
@@ -147,7 +147,7 @@ Ext.define('BagDatabase.views.BagPropertyGrid', {
         startTime: {
             displayName: 'Start Time',
             type: 'date',
-            renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+            renderer: bagGridDateRenderer
         },
         updatedOn: {
             displayName: 'Updated On',
@@ -156,8 +156,7 @@ Ext.define('BagDatabase.views.BagPropertyGrid', {
                 if (!value || value.getTime() === 0) {
                     return '';
                 }
-                var renderFn = Ext.util.Format.dateRenderer('n/j/Y H:m:s')
-                return renderFn(value);
+                return bagGridDateRenderer(value);
             }
         },
         vehicle: {

@@ -34,7 +34,7 @@ Ext.define('BagDatabase.views.ErrorGrid', {
     requires: ['BagDatabase.stores.ErrorStore'],
     columns: [{
         text: 'Time', dataIndex: 'time', width: 160,
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+        renderer: bagGridDateRenderer
     }, {
         text: 'State', dataIndex: 'state', flex: 1, hidden: true
     }, {
