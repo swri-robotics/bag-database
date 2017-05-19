@@ -34,6 +34,7 @@ import com.github.swrirobotics.Application;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.h2gis.functions.factory.H2GISDBFactory;
+import org.hibernate.cfg.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +59,7 @@ import java.util.Properties;
 @EnableTransactionManagement(mode= AdviceMode.ASPECTJ)
 @EnableJpaRepositories(basePackageClasses = Application.class,
         transactionManagerRef = "annotationDrivenTransactionManager")
-@EnableJdbcHttpSession //(maxInactiveIntervalInSeconds = 60)
+@EnableJdbcHttpSession
 public class JpaConfig implements TransactionManagementConfigurer {
     @Autowired(required = false)
     private DataSourceProperties properties;
@@ -97,7 +98,6 @@ public class JpaConfig implements TransactionManagementConfigurer {
                 myLogger.error("Unable to open spatial H2 database.");
                 return null;
             }
-            //return SFSUtilities.wrapSpatialDataSource(new H2SpatialDataSource(config));
         }
     }
 
@@ -111,7 +111,12 @@ public class JpaConfig implements TransactionManagementConfigurer {
 
         Properties jpaProperties = new Properties();
         // Disable HBM2DDL; we use Liquibase to create our database
-        jpaProperties.put(org.hibernate.cfg.Environment.HBM2DDL_AUTO, "");
+        jpaProperties.put(Environment.HBM2DDL_AUTO, "");
+        // Set a large batch size for better performance over slow network links
+        jpaProperties.put(Environment.STATEMENT_BATCH_SIZE, "100");
+        jpaProperties.put(Environment.ORDER_INSERTS, "true");
+        jpaProperties.put(Environment.ORDER_UPDATES, "true");
+        jpaProperties.put(Environment.USE_NEW_ID_GENERATOR_MAPPINGS, "true");
         entityManagerFactoryBean.setJpaProperties(jpaProperties);
 
         return entityManagerFactoryBean;
@@ -121,24 +126,4 @@ public class JpaConfig implements TransactionManagementConfigurer {
     public PlatformTransactionManager annotationDrivenTransactionManager() {
         return new JpaTransactionManager();
     }
-
-    /*public static class H2SpatialDataSource extends HikariDataSource {
-        public H2SpatialDataSource(HikariConfig config) {
-            super(config);
-        }
-
-        @Override
-        public Connection getConnection() throws SQLException {
-            Connection conn = SFSUtilities.wrapConnection(super.getConnection());
-            H2GISExtension.load(conn);
-            return conn;
-        }
-
-        @Override
-        public Connection getConnection(String username, String password) throws SQLException {
-            Connection conn = SFSUtilities.wrapConnection(super.getConnection(username, password));
-            H2GISExtension.load(conn);
-            return conn;
-        }
-    }*/
 }

@@ -17,6 +17,7 @@ USE_TILE_MAP=${USE_TILE_MAP:-true}
 TILE_MAP_URL=${TILE_MAP_URL-"http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg"}
 TILE_WIDTH_PX=${TILE_WIDTH_PX-256}
 TILE_HEIGHT_PX=${TILE_HEIGHT_PX-256}
+FASTER_CODEC=${FASTER_CODEC:-false}
 
 if [ ! -f ${HOME}/.ros-bag-database/settings.yml ]
 then
@@ -38,6 +39,7 @@ vehicleNameTopics: ${VEHICLE_NAME_TOPICS}
 metadataTopics: ${METADATA_TOPICS}
 gpsTopics: ${GPS_TOPICS}
 debugJavascript: ${DEBUG_JAVASCRIPT}
+fasterCodec: ${FASTER_CODEC}
 " > ${HOME}/.ros-bag-database/settings.yml
 fi
 

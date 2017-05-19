@@ -59,6 +59,7 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import nu.pattern.OpenCV;
 import org.apache.commons.io.IOUtils;
+import org.hibernate.cfg.Environment;
 import org.opencv.contrib.Contrib;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -66,6 +67,7 @@ import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -317,6 +319,7 @@ public class BagService extends StatusProvider {
         private OutputStream myOutput;
         private Process myFfmpegProc = null;
         private String myPixelFormat = "";
+        private int byteNb = 3;
 
         private class OutputConsumer extends Thread {
             @Override
@@ -473,6 +476,11 @@ public class BagService extends StatusProvider {
                     switch (image.getType()) {
                         case BufferedImage.TYPE_3BYTE_BGR:
                             myPixelFormat = "bgr24";
+                            byteNb = 3;
+                            break;
+                        case BufferedImage.TYPE_BYTE_GRAY:
+                            myPixelFormat = "gray";
+                            byteNb = 1;
                             break;
                         default:
                             myLogger.warn("Unexpected encoding type: " + image.getType());
@@ -483,8 +491,8 @@ public class BagService extends StatusProvider {
                 // This probably isn't the most efficient way to do it, but it's
                 // easiest for us to just extract the raw image bytes so we can
                 // pipe them into ffmpeg the same way as an uncompressed image.
-                byteData = new byte[myWidth * myHeight * 3];
-                int[] intData = new int[myWidth * myHeight * 3];
+                byteData = new byte[myWidth * myHeight * byteNb];
+                int[] intData = new int[myWidth * myHeight * byteNb];
                 image.getData().getPixels(0, 0, myWidth, myHeight, intData);
                 for (int i = 0; i < intData.length; i++) {
                     byteData[i] = (byte) intData[i];
@@ -544,28 +552,52 @@ public class BagService extends StatusProvider {
             // Generate key frames for seeking every 3 seconds
             String keyFrameRate = Double.toString(3*myFrameRate);
             // use (n-1) of n available processors, minimum 1
-            String numThreads = Integer.toString(Math.max(Runtime.getRuntime().availableProcessors()-1, 1));
+            String numThreads = Integer.toString(Math.min(16, Math.max(Runtime.getRuntime().availableProcessors()-1, 1)));
 
-            myFfmpegProc = Runtime.getRuntime().exec(
-                    new String[]{"ffmpeg",
-                                 "-f", "rawvideo",
-                                 "-c:v", "rawvideo",
-                                 "-pix_fmt", myPixelFormat,
-                                 "-s:v", myWidth + "x" + myHeight,
-                                 "-r:v", frameRateStr,
-                                 "-i", "pipe:0",
-                                 "-c:v", "libvpx",
-                                 "-f", "webm",
-                                 "-minrate", bitrate,
-                                 "-maxrate", bitrate,
-                                 "-b:v", bitrate,
-                                 "-threads", numThreads,
-                                 "-crf", "10",
-                                 "-t", durationStr,
-                                 "-g", keyFrameRate,
-                                 "pipe:1",
-                                 "-v", "warning"
-                    });
+            // Default encoding to create a VP8 stream
+            String[] command = new String[]{"ffmpeg",
+                    "-f", "rawvideo",
+                    "-c:v", "rawvideo",
+                    "-pix_fmt", myPixelFormat,
+                    "-s:v", myWidth + "x" + myHeight,
+                    "-r:v", frameRateStr,
+                    "-i", "pipe:0",
+                    "-c:v", "libvpx",
+                    "-f", "webm",
+                    "-minrate", bitrate,
+                    "-maxrate", bitrate,
+                    "-b:v", bitrate,
+                    "-threads", numThreads,
+                    "-crf", "10",
+                    "-t", durationStr,
+                    "-g", keyFrameRate,
+                    "pipe:1",
+                    "-v", "warning"
+            };
+
+            // Faster encoding
+            if (myConfigService.getConfiguration().getFasterCodec()) {
+            	command = new String[]{"ffmpeg",
+                        "-f", "rawvideo",
+                        "-c:v", "rawvideo",
+                        "-pix_fmt", myPixelFormat,
+                        "-s:v", myWidth + "x" + myHeight,
+                        "-r:v", frameRateStr,
+                        "-i", "pipe:0",
+                        "-c:v", "libvpx",
+                        "-f", "webm",
+                        "-vf", "scale=400:-1",
+                        "-threads", numThreads,
+                        "-crf", "28",
+                        "-r", "24",
+                        "-t", durationStr,
+                        "-g", keyFrameRate,
+                        "pipe:1",
+                        "-v", "warning"
+                };
+            }
+
+            myFfmpegProc = Runtime.getRuntime().exec(command);
 
             myConsumer = new OutputConsumer();
             myConsumer.start();
@@ -1186,7 +1218,7 @@ public class BagService extends StatusProvider {
             return;
         }
 
-        String msg = "Inserting GPS positions for " + bag.getFilename() + ".";
+        String msg = "Inserting GPS positions for " + bag.getFilename();
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);
         bag.setHasPath(!gpsPositions.isEmpty());
@@ -1200,8 +1232,8 @@ public class BagService extends StatusProvider {
         }
         msg = "Saved " + gpsPositions.size() + " GPS positions for " +
                 bag.getFilename() + ".";
-        myLogger.trace(msg);
-        reportStatus(Status.State.IDLE, msg);
+        myLogger.debug(msg);
+        reportStatus(Status.State.WORKING, msg);
     }
 
     @Transactional
@@ -1517,6 +1549,9 @@ public class BagService extends StatusProvider {
         synchronized (myBagDbLock) {
             try {
                 updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions);
+                String msg = "Done processing: " + bagFile.getPath().toFile().toString();
+                myLogger.debug(msg);
+                reportStatus(Status.State.IDLE, msg);
             }
             catch (BagReaderException | DuplicateBagException e) {
                 reportStatus(Status.State.ERROR, "Error reading " +
@@ -1557,7 +1592,9 @@ public class BagService extends StatusProvider {
             addTagsToBag(bagFile, bag);
         }
         bagRepository.save(bag);
-        myLogger.debug("Final bag save; done processing " + file.getAbsolutePath());
+        String msg = "Committing: " + file.getAbsolutePath();
+        myLogger.debug(msg);
+        reportStatus(Status.State.WORKING, msg);
     }
 
     @Transactional

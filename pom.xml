@@ -7,7 +7,7 @@
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-database</artifactId>
     <packaging>war</packaging>
-    <version>2.5.0</version>
+    <version>2.6.0</version>
     <name>Bag Database</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -293,7 +293,7 @@
         <dependency>
             <groupId>com.github.swri-robotics</groupId>
             <artifactId>bag-reader-java</artifactId>
-            <version>1.6</version>
+            <version>1.7</version>
         </dependency>
 
     </dependencies>
