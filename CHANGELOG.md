@@ -1,9 +1,12 @@
 # Bag Database changelog
 
-2.6.0-SNAPSHOT
+2.6.0
 
 - Fix date rendering in grids
 - Add batch inserts for GPS coordinates
+- Support grayscale videos
+- Lower video codec bitrate to improve performance
+- Cap error list at 10000 entries
 
 2.5.0
 

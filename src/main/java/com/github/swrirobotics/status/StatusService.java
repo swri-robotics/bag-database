@@ -32,6 +32,7 @@ package com.github.swrirobotics.status;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ import com.github.swrirobotics.bags.filesystem.BagScanner;
 import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 @Service
 public class StatusService implements StatusListener {
@@ -55,16 +57,17 @@ public class StatusService implements StatusListener {
 
     private final Map<String, Status> myStates = Maps.newHashMap();
 
-    private final List<Status> myErrors = Lists.newArrayList();
+    private final Queue<Status> myErrors = Queues.newArrayDeque();
 
     private final LatestStatus myLatestStatus = new LatestStatus();
 
     private final Logger myLogger = LoggerFactory.getLogger(StatusService.class);
 
+    private static final int MAX_ERRORS = 10000;
+
     public class LatestStatus {
         private String source = "";
         private Status status = new Status(Status.State.IDLE, "");
-        private long errorCount;
 
         public void update(String source, Status status) {
             this.source = source;
@@ -98,6 +101,9 @@ public class StatusService implements StatusListener {
                 " / " + status.getState().toString() + " / " + status.getMessage());
         myStates.put(source, status);
         if (status.getState() == Status.State.ERROR) {
+            if (myErrors.size() >= MAX_ERRORS) {
+                myErrors.remove();
+            }
             myErrors.add(status);
         }
         if (status.getTime().after(myLatestStatus.getStatus().getTime())) {
@@ -110,7 +116,7 @@ public class StatusService implements StatusListener {
         return myLatestStatus;
     }
 
-    public List<Status> getErrors() {
+    public Queue<Status> getErrors() {
         return myErrors;
     }
 
