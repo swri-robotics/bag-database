@@ -1,0 +1,11 @@
+# Changes the "increment_by" value for the bag_positions_id_seq sequence
+# This number should be equal to the allocationSize set in BagPosition.java.
+databaseChangeLog:
+- changeSet:
+    id: add-bag-positions-sequence-1
+    author: preed
+    dbms: postgresql
+    changes:
+        - alterSequence:
+            sequenceName: bag_positions_id_seq
+            incrementBy: 100
