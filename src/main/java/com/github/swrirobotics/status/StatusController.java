@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 @RestController
 @RequestMapping("status")
@@ -48,7 +49,7 @@ public class StatusController {
     private final Logger myLogger = LoggerFactory.getLogger(StatusController.class);
 
     @RequestMapping("/errors")
-    public List<Status> getErrors() {
+    public Queue<Status> getErrors() {
         myLogger.trace("getErrors");
         return myStatusService.getErrors();
     }
