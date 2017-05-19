@@ -209,18 +209,18 @@ Ext.define('BagDatabase.views.BagGrid', {
         }
     }, {
         text: 'Created On', dataIndex: 'createdOn', flex: 1,
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s'),
+        renderer: bagGridDateRenderer,
         hidden: true, filter: { type: 'date', dateFormat: 'time' }
     }, {
         text: 'Updated On', dataIndex: 'updatedOn', flex: 1,
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s'),
+        renderer: bagGridDateRenderer,
         hidden: true, filter: { type: 'date', dateFormat: 'time' }
     }, {
         text: 'Start Time', dataIndex: 'startTime', flex: 1, filter: { type: 'date', dateFormat: 'time' },
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+        renderer: bagGridDateRenderer
     }, {
         text: 'End Time', dataIndex: 'endTime', flex: 1, filter: { type: 'date', dateFormat: 'time' },
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+        renderer: bagGridDateRenderer
     }, {
         text: 'Size (MB)', dataIndex: 'size', flex: 1, filter: { type: 'number' },
         renderer: function(value) {

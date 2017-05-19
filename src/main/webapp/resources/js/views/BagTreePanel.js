@@ -121,18 +121,18 @@ Ext.define('BagDatabase.views.BagTreePanel', {
         }
     }, {
         text: 'Created On', dataIndex: 'createdOn', flex: 1,
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s'),
+        renderer: bagGridDateRenderer,
         hidden: true
     }, {
         text: 'Updated On', dataIndex: 'updatedOn', flex: 1,
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s'),
+        renderer: bagGridDateRenderer,
         hidden: true
     }, {
         text: 'Start Time', dataIndex: 'startTime', flex: 1,
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+        renderer: bagGridDateRenderer
     }, {
         text: 'End Time', dataIndex: 'endTime', flex: 1,
-        renderer: Ext.util.Format.dateRenderer('n/j/Y H:m:s')
+        renderer: bagGridDateRenderer
     }, {
         text: 'Size (MB)', dataIndex: 'size', flex: 1,
         renderer: function(value, metadata, record) {

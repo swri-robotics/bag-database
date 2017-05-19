@@ -2,6 +2,7 @@
 
 2.6.0-SNAPSHOT
 
+- Fix date rendering in grids
 - Add batch inserts for GPS coordinates
 
 2.5.0

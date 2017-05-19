@@ -293,7 +293,7 @@
         <dependency>
             <groupId>com.github.swri-robotics</groupId>
             <artifactId>bag-reader-java</artifactId>
-            <version>1.6</version>
+            <version>1.7</version>
         </dependency>
 
     </dependencies>
