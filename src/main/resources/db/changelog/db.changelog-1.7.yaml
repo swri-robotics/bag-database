@@ -1,0 +1,14 @@
+# Session objects created by Spring Security 4.2.x are incompatible
+# with older versions of Spring Security; so, when we upgrade to 4.2,
+# we need to clear out all old sessions in order to prevent errors.
+databaseChangeLog:
+- changeSet:
+    id: clear-sessions-1
+    author: preed
+    changes:
+    - sql:
+        dbms: postgresql
+        sql: DELETE FROM spring_session_attributes;
+    - sql:
+        dbms: postgresql
+        sql: DELETE FROM spring_session;

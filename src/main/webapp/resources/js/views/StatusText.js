@@ -69,8 +69,9 @@ Ext.define('BagDatabase.views.StatusText', {
         });
 
         // Then connect a web socket to handle future updates.
-        var socket = new SockJS(window.location.pathname + 'register');
-        me.stompClient = Stomp.over(socket);
+        me.stompClient = Stomp.over(function() {
+            return new SockJS(window.location.pathname + 'register');
+        });
         me.stompClient.connect({},
             function(frame) {
                 me.stompClient.subscribe('/topic/status', function(status){

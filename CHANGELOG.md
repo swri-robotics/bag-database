@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+Forthcoming
+
+- Updated dependencies
+
 2.6.0
 
 - Fix date rendering in grids
