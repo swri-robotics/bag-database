@@ -76,13 +76,6 @@
             <groupId>org.thymeleaf</groupId>
             <artifactId>thymeleaf-spring4</artifactId>
             <version>3.0.6.RELEASE</version>
-            <!-- Avoid org.hibernate.jpa.boot.archive.spi.ArchiveException: Could not build ClassFile in Java 8 -->
-            <exclusions>
-                <exclusion>
-                    <artifactId>javassist</artifactId>
-                    <groupId>org.javassist</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.thymeleaf.extras</groupId>
@@ -108,13 +101,6 @@
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-entitymanager</artifactId>
             <version>${hibernate.version}</version>
-            <!-- Avoid issue #72 Could not initialize class org.thymeleaf.templateresolver.ServletContextTemplateResolver due to 'validation is not supported' -->
-            <exclusions>
-                <exclusion>
-            		<artifactId>pull-parser</artifactId>
-            		<groupId>pull-parser</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.hibernate</groupId>
@@ -293,7 +279,6 @@
             <artifactId>tomcat-embed-el</artifactId>
             <version>8.5.15</version>
         </dependency>
-
 
         <!-- OpenCV for image processing; note that this includes platform-
              specific libraries -->

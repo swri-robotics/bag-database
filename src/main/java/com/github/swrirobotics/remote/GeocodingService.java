@@ -70,7 +70,8 @@ public class GeocodingService {
             }
         }
         catch (Exception e) {
-            myLogger.error("Reverse geocoding failed:", e);
+            myLogger.error("Reverse geocoding failed for (" + latitudeDeg +
+                           ", " + longitudeDeg + "):", e);
         }
 
         return name;
