@@ -2,6 +2,7 @@
 
 Forthcoming
 
+- Fix issues decompressing LZ4-compressed chunks
 - Updated dependencies
 
 2.6.0
