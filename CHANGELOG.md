@@ -2,6 +2,7 @@
 
 Forthcoming
 
+- Fix improper column types because created on newer Postgres DBs
 - Fix issues decompressing LZ4-compressed chunks
 - Updated dependencies
 
