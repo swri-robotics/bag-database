@@ -887,7 +887,14 @@ public class BagService extends StatusProvider {
     public void updateBag(Bag newBag) {
         Bag dbBag = bagRepository.findOne(newBag.getId());
         dbBag.setDescription(newBag.getDescription());
-        dbBag.setCoordinate(makePoint(newBag.getLatitudeDeg(), newBag.getLongitudeDeg()));
+        if (newBag.getLatitudeDeg() != null && newBag.getLongitudeDeg() != null)
+        {
+            dbBag.setCoordinate(makePoint(newBag.getLatitudeDeg(), newBag.getLongitudeDeg()));
+        }
+        else
+        {
+            dbBag.setCoordinate(null);
+        }
         dbBag.setLocation(newBag.getLocation());
         dbBag.setVehicle(newBag.getVehicle());
         dbBag.getTags().addAll(newBag.getTags());
