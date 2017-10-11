@@ -1,6 +1,6 @@
 # Bag Database changelog
 
-Forthcoming
+2.7.0
 
 - Fix manually setting metadata on bags without GPS coordinates
 - Fix improper column types because created on newer Postgres DBs
