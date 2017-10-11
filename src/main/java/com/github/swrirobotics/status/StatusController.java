@@ -67,9 +67,10 @@ public class StatusController {
     }
 
     @RequestMapping("/clear")
-    public void clearErrors() {
+    public boolean clearErrors() {
         myLogger.trace("clearErrors");
         myStatusService.clearErrors();
+        return true;
     }
 
     @RequestMapping("/test")

@@ -1,5 +1,12 @@
 # Bag Database changelog
 
+2.7.0
+
+- Fix manually setting metadata on bags without GPS coordinates
+- Fix improper column types because created on newer Postgres DBs
+- Fix issues decompressing LZ4-compressed chunks
+- Updated dependencies
+
 2.6.0
 
 - Fix date rendering in grids

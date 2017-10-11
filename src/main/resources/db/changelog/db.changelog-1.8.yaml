@@ -1,0 +1,29 @@
+# At some point, columns defined with a type of "blob" began to be
+# created as "oid" columns rather than "bytea" columns in Postgres.
+# The spring_session_attributes table had a "blob" column that we
+# need to be "bytea", so drop the old column and create it with
+# the right type of necessary.
+# Note that there's no need to worry about migrating data, because if
+# it had been created as an "oid", we never would have successfully
+# inserted data into it in the first place.
+databaseChangeLog:
+- changeSet:
+    id: replace-oid-column-with-bytea-1
+    author: preed
+    preConditions:
+        - onFail: MARK_RAN
+        - dbms:
+            type: postgresql
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT COUNT(column_name) FROM information_schema.columns WHERE table_name = 'spring_session_attributes' AND data_type = 'oid'
+    changes:
+    - dropColumn:
+        tableName: spring_session_attributes
+        columnName: attribute_bytes
+    - addColumn:
+        tableName: spring_session_attributes
+        columns:
+        - column:
+            name: attribute_bytes
+            type: bytea
