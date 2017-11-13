@@ -329,7 +329,7 @@ Ext.define('BagDatabase.views.BagTreePanel', {
                         bags.forEach(function(record) {
                             links.push(document.location.href +
                                 'bags/download?bagId=' +
-                                 record.get('id'));
+                                 record.get('bagId'));
                         });
                         bagGrid.copyTextToClipboard(links.join('\n'));
                     }
