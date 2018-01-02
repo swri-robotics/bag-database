@@ -65,7 +65,19 @@ WAR package, run:
 The preferred mechanism for running the bag database is as a 
 [Docker](https://www.docker.com/) container.  To build the docker image, run:
 
-`mvn package && sudo mvn docker:build`
+```bash
+cd src/main/docker
+sudo docker build . -t bag-database:latest
+```
+
+By default, the Dockerfile will build a Docker image based on the latest tagged
+release.  You can use the `BAGDB_REPO` and `BAGDB_BRANCH` build arguments
+to make it build from a different repository and branch or tag; for example:
+
+```bash
+cd src/main/docker
+sudo docker build --build-arg BAGDB_REPO="https://github.com/swri-robotics/bag-database.git" --build-arg BAGDB_BRANCH="develop" . -t bag-database-develop:latest
+```
 
 ## Upgrading
 
