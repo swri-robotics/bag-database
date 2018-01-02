@@ -82,6 +82,7 @@ public class JpaConfig implements TransactionManagementConfigurer {
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         config.addDataSourceProperty("useServerPrepStmts", "true");
+        config.addDataSourceProperty("initializationFailTimeout", "10000");
 
         if (properties.getDriver().equals("org.postgresql.Driver")) {
             System.setProperty("hibernate.dialect", "org.hibernate.spatial.dialect.postgis.PostgisDialect");
