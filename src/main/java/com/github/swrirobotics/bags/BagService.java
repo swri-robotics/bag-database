@@ -1081,6 +1081,12 @@ public class BagService extends StatusProvider {
             catch (UninitializedFieldException e) {
                 return false;
             }
+            catch (NullPointerException e) {
+                // This will be thrown if the topic we're looking at doesn't actually
+                // have "latitude", "longitude", or "header" fields, in which case
+                // it's pointless to look at any other messages on this topic.
+                return true;
+            }
             return true;
         });
 

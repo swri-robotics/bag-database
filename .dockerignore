@@ -13,3 +13,4 @@ indexes/
 # instead it puts them in /com/ . Ignore it until that's fixed...
 /com/
 /aspectj-generated-sources/
+

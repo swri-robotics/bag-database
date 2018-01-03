@@ -65,7 +65,10 @@ WAR package, run:
 The preferred mechanism for running the bag database is as a 
 [Docker](https://www.docker.com/) container.  To build the docker image, run:
 
-`mvn package && sudo mvn docker:build`
+```bash
+cd src/main/docker
+sudo docker build . -t bag-database:latest
+```
 
 ## Upgrading
 

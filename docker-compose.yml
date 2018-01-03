@@ -1,0 +1,35 @@
+version: '2'
+services:
+    bagdb:
+        build: .
+        networks:
+            - bagdb
+        depends_on:
+            - bagdb-postgres
+        ports:
+            - "8080:8080"
+        volumes:
+            - /home/preed/public_html/bags:/bags:ro
+        environment:
+            ADMIN_PASSWORD: "letmein"
+            DB_DRIVER: org.postgresql.Driver
+            DB_PASS: letmein
+            DB_URL: "jdbc:postgresql://bagdb-postgres/bag_database"
+            DB_USER: bag_database
+            USE_BING: "false"
+            USE_TILE_MAP: "true"
+            METADATA_TOPICS: "/metadata"
+            VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"
+            GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"
+    bagdb-postgres:
+        image: mdillon/postgis:latest
+        networks:
+            - bagdb
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_PASSWORD: letmein
+            POSTGRES_USER: bag_database
+            POSTGRES_DB: bag_database
+networks:
+    bagdb: {}

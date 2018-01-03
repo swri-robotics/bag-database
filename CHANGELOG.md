@@ -1,5 +1,12 @@
 # Bag Database changelog
 
+2.7.1
+
+- Fix issue with indexing bags with GPS topics that don't have latitude/longitude fields
+- Rewrite Dockerfile to produce smaller images
+- Add docker-compose.yml for easy testing
+- BagDB will wait up to 10s on startup for a database connection
+
 2.7.0
 
 - Fix manually setting metadata on bags without GPS coordinates
