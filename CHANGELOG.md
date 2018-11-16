@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+2.7.2
+
+- Update dependencies
+
 2.7.1
 
 - Fix issue with indexing bags with GPS topics that don't have latitude/longitude fields
