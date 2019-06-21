@@ -111,13 +111,6 @@ docker run -d \
     -v /bag/location:/bags \
     --name bagdb \
     --net bagdb \
-    -e DB_DRIVER=org.postgresql.Driver \
-    -e DB_PASS=letmein \
-    -e DB_URL="jdbc:postgresql://bagdb-postgres/bag_database" \
-    -e DB_USER=bag_database \
-    -e METADATA_TOPICS="/metadata" \
-    -e VEHICLE_NAME_TOPICS="/vehicle_name" \
-    -e GPS_TOPICS="/localization/gps, /gps, /imu/fix" \
     swrirobotics/bag-database:latest
 ```
 
@@ -135,9 +128,9 @@ The location which will be monitored for bag files.
 
 The location where Tomcat places its log files.
 
-#### Environment Variables
+#### Configuration file
 
-Several environment variables can be set to configure the Docker container:
+A configuration file automatically created if the solution was started in a Docker container under `${HOME}/.ros-bag-database/settings.yml`. The supported configuration values are:
 
 ##### ADMIN_PASSWORD
 
