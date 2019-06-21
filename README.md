@@ -108,9 +108,13 @@ The bag database exposes port 8080 and expects to find bag files in a volume at 
 ```
 docker run -d \
     -p 8080:8080 \
-    -v /bag/location:/bags \
+    -v <YOUR LOCAL BAG FOLDER>:/bags \
     --name bagdb \
     --net bagdb \
+    -e DB_DRIVER=org.postgresql.Driver \
+    -e DB_PASS=letmein \
+    -e DB_URL="jdbc:postgresql://bagdb-postgres/bag_database" \
+    -e DB_USER=bag_database \
     swrirobotics/bag-database:latest
 ```
 
