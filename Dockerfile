@@ -20,7 +20,7 @@ LABEL maintainer="preed@swri.org"
 VOLUME ["/bags", "/root/.ros-bag-database/indexes", "/usr/local/tomcat/logs"]
 EXPOSE 8080
 
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg perl
 RUN rm -rf /usr/local/tomcat/webapps/
 COPY --from=base-layer /src/target/*.war /usr/local/tomcat/webapps/ROOT.war
 COPY src/main/docker/entrypoint.sh /
