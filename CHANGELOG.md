@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+2.7.2
+
+- Add perl to Dockerfile to fix parsing GPS, metadata, and vehicle name topics
+
 2.7.1
 
 - Fix issue with indexing bags with GPS topics that don't have latitude/longitude fields
