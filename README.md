@@ -87,10 +87,16 @@ if you do so it will have to rebuild the database every time it restarts.  Inste
 you should link it to an external database.  PostgreSQL with PostGIS extensions is
 the only supported database.
 
-To start a PostgreSQL container with PostGIS support:
+First, create a virtual network for the containers:
+```bash
+docker network create bagdb
+```
+
+Start a PostgreSQL container with PostGIS support:
 ```
 docker run -d \
     --name bagdb-postgres \
+    --net bagdb \
     -v /var/lib/bagdb-postgres:/var/lib/postgresql/data \
     -e POSTGRES_PASSWORD=letmein \
     -e POSTGRES_USER=bag_database \
@@ -104,7 +110,7 @@ docker run -d \
     -p 8080:8080 \
     -v /bag/location:/bags \
     --name bagdb \
-    --link bagdb-postgres:bagdb-postgres \
+    --net bagdb \
     -e DB_DRIVER=org.postgresql.Driver \
     -e DB_PASS=letmein \
     -e DB_URL="jdbc:postgresql://bagdb-postgres/bag_database" \
