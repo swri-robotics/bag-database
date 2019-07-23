@@ -71,6 +71,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Profile("default")
@@ -362,29 +364,35 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         myExecutor.execute(new FullScanner(forceUpdate, bagDir));
     }
 
+    private boolean presentSpecialCharacters(Path dir){
+        String dirName = dir.toString();
+        Pattern p = Pattern.compile("@.*");
+        Matcher m = p.matcher(dirName);
+        return m.find();
+    }
+
     private Set<File> getBagFiles(Path dir) {
         Set<File> bagFiles = Sets.newHashSet();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.bag")) {
-            for (Path bagFile : stream) {
-                myLogger.trace("  Adding: " + bagFile.toString());
-                bagFiles.add(bagFile.toAbsolutePath().toFile());
+        if (!presentSpecialCharacters(dir.getFileName())) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.bag")) {
+                for (Path bagFile : stream) {
+                    myLogger.trace("  Adding: " + bagFile.toString());
+                    bagFiles.add(bagFile.toAbsolutePath().toFile());
+                }
+            } catch (IOException e) {
+                myLogger.error("Error parsing directory:", e);
+                reportStatus(Status.State.ERROR, "Unable to read directory: " + dir.toString());
+            }
+
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, myDirFilter)) {
+                for (Path subdir : stream) {
+                    myLogger.trace("  Checking subdir: " + subdir.toString());
+                    bagFiles.addAll(getBagFiles(subdir));
+                }
+            } catch (IOException e) {
+                myLogger.error("Error parsing subdirectory:", e);
             }
         }
-        catch (IOException e) {
-            myLogger.error("Error parsing directory:", e);
-            reportStatus(Status.State.ERROR, "Unable to read directory: " + dir.toString());
-        }
-
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, myDirFilter)) {
-            for (Path subdir : stream) {
-                myLogger.trace("  Checking subdir: " + subdir.toString());
-                bagFiles.addAll(getBagFiles(subdir));
-            }
-        }
-        catch (IOException e) {
-            myLogger.error("Error parsing subdirectory:", e);
-        }
-
         return bagFiles;
     }
 
