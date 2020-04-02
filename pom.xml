@@ -17,7 +17,7 @@
         <!-- AssertJ is not a part of Spring IO platform, so the version must be provided explicitly -->
         <assertj-core-version>3.6.2</assertj-core-version>
         <hibernate.version>5.3.7.Final</hibernate.version>
-        <aspectj.version>1.9.2</aspectj.version>
+        <aspectj.version>1.9.5</aspectj.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -321,7 +321,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>aspectj-maven-plugin</artifactId>
-                <version>1.10</version>
+                <version>1.11</version>
                 <configuration>
                     <showWeaveInfo>true</showWeaveInfo>
                     <source>${java-version}</source>
