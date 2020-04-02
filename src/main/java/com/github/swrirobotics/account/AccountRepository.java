@@ -36,43 +36,45 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 
 @Repository
-@Transactional(readOnly = true)
+@Transactional
+@EnableTransactionManagement
 public class AccountRepository {
 	@PersistenceContext
 	private EntityManager myEM;
-	
+
 	@Autowired(required = false)
 	private PasswordEncoder myPasswordEncoder;
 
-    private Logger myLogger = LoggerFactory.getLogger(AccountRepository.class);
-	
+	private Logger myLogger = LoggerFactory.getLogger(AccountRepository.class);
+
 	@Transactional
 	public Account save(Account account) {
 		account.setPassword(myPasswordEncoder.encode(account.getPassword()));
 		myEM.persist(account);
 		return account;
 	}
-	
+
+	@Transactional
 	public Account findByEmail(String email) {
 		try {
-            myLogger.debug("Looking up user by email: " + email);
+			myLogger.debug("Looking up user by email: " + email);
 			return myEM.createNamedQuery(Account.FIND_BY_EMAIL, Account.class)
-                       .setParameter("email", email)
-                       .getSingleResult();
+					.setParameter("email", email)
+					.getSingleResult();
 		}
 		catch (PersistenceException | EmptyResultDataAccessException e) {
-            myLogger.warn("No user found", e);
+			myLogger.warn("No user found", e);
 			return null;
 		}
 	}
 
-	
+
 }
