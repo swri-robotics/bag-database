@@ -53,6 +53,22 @@ are stored and will be manually uploading files there.
 - **Tagging**: Bags can be tagged and searched for with arbitrary metadata 
   strings.  Existing tags on arbitrary metadata topics in bag files will be
   automatically read.
+- **Ldap Login**: Authenticating users via LDAP server, just provide the 
+  correct server address in `SecurityConfig.java` file. Exclusive group access 
+  can also be done by specifying the name of a specific group. If you are 
+  looking for a simple LDAP just check the branch with openLDAP feature 
+  and replace the address with your institute's LDAP address. In this scheme, 
+  there are two types of users, one is authenticated from LDAP and another 
+  one is admin. All users have to login first via LDAP login page except 
+  admin, he can login directly by visiting the url `/signin`. Admin can also 
+  login once logged in as LDAP user and then by accessing Admin login option 
+  in the navigation menu, see images below for understanding. First one is 
+  LDAP login page and second one is after LDAP login. There's only one logout 
+  button in all scenarios which will end the session and bring you out to LDAP 
+  login page again.
+  
+  ![Sample Screenshot](doc/LDAP_login.png)
+  ![Sample Screenshot](doc/LDAP_Admin_login.png)
 
 ## Compiling
 
