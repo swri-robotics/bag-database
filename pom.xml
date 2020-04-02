@@ -279,6 +279,19 @@
             <artifactId>tomcat-embed-el</artifactId>
             <version>8.5.15</version>
         </dependency>
+		<!-- API, java.xml.bind module -->
+		<dependency>
+			<groupId>jakarta.xml.bind</groupId>
+			<artifactId>jakarta.xml.bind-api</artifactId>
+			<version>2.3.3</version>
+		</dependency>
+
+		<!-- Runtime, com.sun.xml.bind module -->
+		<dependency>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-runtime</artifactId>
+			<version>2.3.2</version>
+		</dependency>
 
         <!-- OpenCV for image processing; note that this includes platform-
              specific libraries -->
