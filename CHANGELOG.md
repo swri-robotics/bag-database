@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+Forthcoming
+
+- Update dependencies
+
 2.7.3
 
 - Add perl to Dockerfile to fix parsing GPS, metadata, and vehicle name topics
