@@ -17,15 +17,14 @@
         <!-- AssertJ is not a part of Spring IO platform, so the version must be provided explicitly -->
         <assertj-core-version>3.6.2</assertj-core-version>
         <hibernate.version>5.3.7.Final</hibernate.version>
-        <aspectj.version>1.9.2</aspectj.version>
-
+        <aspectj.version>1.9.5</aspectj.version>
     </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>io.spring.platform</groupId>
                 <artifactId>platform-bom</artifactId>
-                <version>Brussels-SR14</version>
+                <version>Brussels-SR17</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -321,7 +320,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.18</version>
+            <version>1.19</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -367,7 +366,7 @@
         <dependency>
             <groupId>com.github.swri-robotics</groupId>
             <artifactId>bag-reader-java</artifactId>
-            <version>1.10.2</version>
+            <version>1.10.3</version>
         </dependency>
 
     </dependencies>
