@@ -7,7 +7,7 @@
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-database</artifactId>
     <packaging>war</packaging>
-    <version>2.7.2</version>
+    <version>2.7.3</version>
     <name>Bag Database</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -17,14 +17,14 @@
         <!-- AssertJ is not a part of Spring IO platform, so the version must be provided explicitly -->
         <assertj-core-version>3.6.2</assertj-core-version>
         <hibernate.version>5.3.7.Final</hibernate.version>
-        <aspectj.version>1.9.2</aspectj.version>
+        <aspectj.version>1.9.5</aspectj.version>
     </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>io.spring.platform</groupId>
                 <artifactId>platform-bom</artifactId>
-                <version>Brussels-SR14</version>
+                <version>Brussels-SR17</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -294,7 +294,7 @@
         <dependency>
             <groupId>com.github.swri-robotics</groupId>
             <artifactId>bag-reader-java</artifactId>
-            <version>1.10.1</version>
+            <version>1.10.2</version>
         </dependency>
 
     </dependencies>
