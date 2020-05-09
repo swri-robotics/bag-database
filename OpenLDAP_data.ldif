@@ -1,0 +1,44 @@
+dn: ou=People,dc=example,dc=com
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=Artist,ou=Groups,dc=example,dc=com
+objectClass: posixGroup
+cn: SUBGROUP
+gidNumber: 5000
+
+dn: uid=ben,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: ben
+sn: Affleck
+givenName: Ben
+cn: Ben Affleck
+displayName: Ben
+uidNumber: 10001
+gidNumber: 5000
+userPassword: benspassword
+gecos: Ben Affleck
+loginShell: /bin/bash
+homeDirectory: USERDIRECTORY1
+
+dn: uid=bob,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: bob
+sn: Marley
+givenName: Bob
+cn: Bob Marley
+displayName: Bob
+uidNumber: 10002
+gidNumber: 5000
+userPassword: bobspassword
+gecos: Bob Marley
+loginShell: /bin/bash
+homeDirectory: USERDIRECTORY2

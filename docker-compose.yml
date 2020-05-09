@@ -5,7 +5,8 @@ services:
         networks:
             - bagdb
         depends_on:
-            - bagdb-postgres
+            - postgres
+            - openldap
         ports:
             - "8080:8080"
         volumes:
@@ -14,22 +15,47 @@ services:
             ADMIN_PASSWORD: "letmein"
             DB_DRIVER: org.postgresql.Driver
             DB_PASS: letmein
-            DB_URL: "jdbc:postgresql://bagdb-postgres/bag_database"
+            DB_URL: "jdbc:postgresql://postgres/bag_database"
             DB_USER: bag_database
             USE_BING: "false"
             USE_TILE_MAP: "true"
             METADATA_TOPICS: "/metadata"
             VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"
             GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"
-    bagdb-postgres:
+            LDAP_BINDDN: "cn=admin,dc=example,dc=com"
+            LDAP_BIND_PASSWORD: "P@ssw0rd"
+            LDAP_SEARCH_BASE: "ou=People,dc=example,dc=com"
+            LDAP_SERVER: 'ldap://openldap' # Replace this with an empty string to disable LDAP auth
+            LDAP_USER_PATTERN: "uid={0},ou=People,dc=example,dc=com"
+    postgres:
         image: mdillon/postgis:latest
         networks:
             - bagdb
+        volumes:
+            - postgres:/var/lib/postgresql/data
         ports:
             - "5432:5432"
         environment:
             POSTGRES_PASSWORD: letmein
             POSTGRES_USER: bag_database
             POSTGRES_DB: bag_database
+    openldap:
+        image: osixia/openldap:1.3.0
+        networks:
+            - bagdb
+        volumes:
+            - ldap:/var/lib/ldap
+            - slapd:/etc/ldap/slapd.d
+        ports:
+            - "389:389"
+            - "636:636"
+        environment:
+            LDAP_ORGANIZATION: "Example Organization"
+            LDAP_DOMAIN: "example.com"
+            LDAP_ADMIN_PASSWORD: "P@ssw0rd"
 networks:
     bagdb: {}
+volumes:
+    postgres:
+    ldap:
+    slapd:
