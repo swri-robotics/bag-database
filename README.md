@@ -53,6 +53,16 @@ are stored and will be manually uploading files there.
 - **Tagging**: Bags can be tagged and searched for with arbitrary metadata 
   strings.  Existing tags on arbitrary metadata topics in bag files will be
   automatically read.
+- **LDAP Login**: If enabled, the bag database will authenticate users against
+  an LDAP database before allowing access.  LDAP configuration details can
+  be provided by customizing environment variables when starting it as a
+  Docker container.  
+  The Admin user is still handled separately and can log in directly by
+  visiting the URL `/signin` or by loggin in as a normal user and then using
+  the Navigation menu.
+
+  ![Sample Screenshot](doc/LDAP_login.png)
+  ![Sample Screenshot](doc/LDAP_Admin_login.png)
 
 ## Compiling
 
@@ -86,6 +96,10 @@ The bag database can run standalone in order to demonstrate its functionality, b
 if you do so it will have to rebuild the database every time it restarts.  Instead
 you should link it to an external database.  PostgreSQL with PostGIS extensions is
 the only supported database.
+
+The instructions here will describe how to manually create Docker containers, but
+you may find it easier to use [Docker Compose](https://docs.docker.com/compose/) to
+run the included `docker-compose.yml` file instead; just customize it to your needs.
 
 First, create a virtual network for the containers:
 ```bash
@@ -214,6 +228,26 @@ Header header
 ```
 If there are no topics configured or none of them are found, it will try to use the first topic it can find that publishes the `sensor_msgs/NavSatFix`, `gps_common/GPSFix`, or `marti_gps_common/GPSFix` messages, in that order.
 
+##### LDAP_BINDDN
+
+If authenticating against an LDAP server that requires authentication, the Bind DN.  If this is left blank, it will not attempt to authenticate.
+
+##### LDAP_BIND_PASSWORD
+
+If authenticating against an LDAP server that requires authentication, the password for the Bind DN.
+
+##### LDAP_SEARCH_BASE
+
+The search base for finding users in the LDAP server.
+
+##### LDAP_SERVER
+
+The LDAP server for authentication.  If set to an empty string, LDAP authentication will not be enabled, and anonymous users may connect.
+
+##### LDAP_USER_PATTERN
+
+The pattern for finding user DNs in the LDAP server.  `{0}` will be replaced with the username from the login form.
+
 ##### DEBUG_JAVASCRIPT
 
 Set this to `true` to force the application to load non-minified versions of Javascript files.  This will increase load times.  The default is `false`.
@@ -244,7 +278,73 @@ Only Tomcat 8.0 with Java 8.0 has been tested.
     vehicleNameTopics: 
     - /vms/vehicle_name
     ```
-    
+
 5. Look inside the log file at `${TOMCAT_HOME}/logs/bag_database.log` to find the automatically-generated administrator password.
 6. Log in through the GUI and use the Maintenance panel to change the password.
 7. Note that in order for video streaming to work, `ffmpeg` version 3 or higher must be available on the system path.
+
+
+#### Set up a Standalone LDAP Server
+
+All these steps are inspired from this [blog](https://www.linux.com/topic/desktop/how-install-openldap-ubuntu-server-1804/).
+
+1. Installation:
+    ```
+    sudo apt-get update
+    sudo apt-get upgrade -y
+    sudo apt-get install slapd ldap-utils -y
+    ```
+
+   During the setup, it will ask you to provide an Administrator password.
+
+2. Configuration:
+    ```
+   sudo dpkg-reconfigure slapd
+    ```
+
+   It will ask you several questions for configuring SLAPD; these example values have been tested.
+
+   - Omit: No (Keeps default configuration of the ldap server)
+   - DNS domain name: example.com
+   - Organisation name: Example Organization
+   - Admin password: pwd (Keep same as the earlier one and confirm the same)
+   - Database Type: MDB
+   - Purging Database: Yes
+   - Move old Database: Yes
+
+3. There is an example file in this repository named `OpenLDAP_data.ldif` that will
+   create a few organizational units in your LDAP database and then add a few users.
+   You should customize this to suit your organization. The base structure of the
+   file is also adapted from the [blog](https://www.linux.com/topic/desktop/how-install-openldap-ubuntu-server-1804/).
+    ``` 
+    ldapadd -x -D cn=admin,dc=example,dc=com -W -f OpenLDAP_data.ldif
+    ```
+
+   You will be asked for the `admin` password here.
+
+4. The OpenLDAP server should be running by now, you can check the status with the
+    following command:
+    ```
+    sudo systemctl status slapd
+    ```
+
+    If you need to manually restart or enable it use the following commands:
+    ```
+    sudo systemctl enable slapd
+    sudo systemctl restart slapd
+    ```
+
+5. In case you need to remove OpenLDAP use the following commands taken from this [blog](https://installlion.com/ubuntu/xenial/main/s/slapd/uninstall/index.html):
+    ```
+    sudo apt-get remove --auto-remove slapd  
+    ```
+
+    And to completely purge remove:
+    ```
+    sudo apt-get purge --auto-remove slapd
+    ```
+
+6. Now you can launch the Bag Database.  If you used the example LDIF file to load users,
+   you can log in with these credentials:
+    - username: ben, password: benspassword
+    - username: bob, password: bobspassword

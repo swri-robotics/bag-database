@@ -22,6 +22,8 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.nio.file.StandardWatchEventKinds.*;
@@ -84,6 +86,13 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
 		watchService.close();
 	}
 
+	private boolean presentSpecialCharacters(Path dir){
+		String dirName = dir.toString();
+		Pattern p = Pattern.compile("@.*");
+		Matcher m = p.matcher(dirName);
+		return m.find();
+	}
+
 	private synchronized void walkTreeAndSetWatches() {
 		logger.log(Level.INFO, "Registering new folders at watch service ...");
 
@@ -91,7 +100,7 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
 			Files.walkFileTree(root, new FileVisitor<Path>() {
 				@Override
 				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-					if (ignorePaths.contains(dir)) {
+					if (ignorePaths.contains(dir)||presentSpecialCharacters(dir.getFileName())) {
 						return FileVisitResult.SKIP_SUBTREE;
 					}
 					else {

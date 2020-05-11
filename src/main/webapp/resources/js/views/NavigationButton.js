@@ -78,11 +78,22 @@ Ext.define('BagDatabase.views.NavigationButton', {
         }
         else {
             this.menu.push({
-                text: 'Log In', iconCls: 'login-icon', handler: function() {
+                text: 'Admin Login', iconCls: 'login-icon', handler: function() {
                     var win = Ext.create('BagDatabase.views.LoginWindow');
 
                     win.show();
                     win.focus();
+                }
+            });
+            this.menu.push({
+                text: 'Log out', iconCls: 'logout-icon', handler: function() {
+                    Ext.Ajax.request({
+                        url: 'logout',
+                        params: params,
+                        callback: function() {
+                           window.location = 'ldap_login?logout';
+                        }
+                    });
                 }
             });
         }

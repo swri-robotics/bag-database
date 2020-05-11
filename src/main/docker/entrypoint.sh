@@ -18,6 +18,11 @@ TILE_MAP_URL=${TILE_MAP_URL-"http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jp
 TILE_WIDTH_PX=${TILE_WIDTH_PX-256}
 TILE_HEIGHT_PX=${TILE_HEIGHT_PX-256}
 FASTER_CODEC=${FASTER_CODEC:-false}
+LDAP_BINDDN=${LDAP_BINDDN:-}
+LDAP_BIND_PASSWORD=${LDAP_BIND_PASSWORD:-}
+LDAP_SEARCH_BASE=${LDAP_SEARCH_BASE:-}
+LDAP_SERVER=${LDAP_SERVER:-}
+LDAP_USER_PATTERN=${LDAP_USER_PATTERN:-}
 
 if [ ! -f ${HOME}/.ros-bag-database/settings.yml ]
 then
@@ -40,6 +45,11 @@ metadataTopics: ${METADATA_TOPICS}
 gpsTopics: ${GPS_TOPICS}
 debugJavascript: ${DEBUG_JAVASCRIPT}
 fasterCodec: ${FASTER_CODEC}
+ldapBindDn: ${LDAP_BINDDN}
+ldapBindPassword: ${LDAP_BIND_PASSWORD}
+ldapSearchBase: ${LDAP_SEARCH_BASE}
+ldapServer: ${LDAP_SERVER}
+ldapUserPattern: ${LDAP_USER_PATTERN}
 " > ${HOME}/.ros-bag-database/settings.yml
 fi
 

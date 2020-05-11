@@ -42,9 +42,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.FileNotFoundException;
@@ -127,22 +130,31 @@ public class BagController {
     }
 
     @RequestMapping("/video")
-    public void getVideo(@RequestParam Long bagId,
-                         @RequestParam String topic,
-                         @RequestParam Long frameSkip,
-                         HttpServletResponse response) {
+    public ResponseEntity<StreamingResponseBody> getVideo(@RequestParam Long bagId,
+                                                          @RequestParam String topic,
+                                                          @RequestParam Long frameSkip,
+                                                          HttpServletResponse response) {
         myLogger.info("getVideo: " + bagId + ":" + topic);
         try {
             OutputStream output = response.getOutputStream();
             response.setContentType("video/webm;codecs=\"vp8\"");
-            myBagService.writeVideoStream(bagId, topic, frameSkip, output);
+            StreamingResponseBody stream = out -> {
+                try {
+                    myBagService.writeVideoStream(bagId, topic, frameSkip, output);
+                }
+                catch (BagReaderException e) {
+                    myLogger.error("Error reading bag file:", e);
+                }
+            };
+            return new ResponseEntity<>(stream, HttpStatus.OK);
         }
-        catch (BagReaderException | IOException e) {
+        catch (IOException e) {
             myLogger.error("Error getting video stream:", e);
         }
         finally {
             myLogger.info("Finished getVideo()");
         }
+        return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @RequestMapping("/update")

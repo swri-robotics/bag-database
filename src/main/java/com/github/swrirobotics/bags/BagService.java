@@ -90,6 +90,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -1649,6 +1651,11 @@ public class BagService extends StatusProvider {
                     continue;
                 }
                 String filename = childFile.getName();
+                Pattern p = Pattern.compile("@.*");
+                Matcher m = p.matcher(filename);
+                if(m.find()){
+                    continue;
+                }
                 BagTreeNode childNode = new BagTreeNode();
                 childNode.filename = filename;
                 childNode.parentId = parentId;

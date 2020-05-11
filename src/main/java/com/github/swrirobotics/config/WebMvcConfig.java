@@ -30,7 +30,7 @@
 
 package com.github.swrirobotics.config;
 
-import com.github.swrirobotics.Application;
+import com.github.swrirobotics.BagApplication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.MessageSource;
@@ -44,9 +44,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
+import org.springframework.web.servlet.config.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.thymeleaf.extras.springsecurity4.dialect.SpringSecurityDialect;
 import org.thymeleaf.spring4.SpringTemplateEngine;
@@ -59,10 +57,11 @@ import static org.springframework.context.annotation.ComponentScan.Filter;
 
 @Configuration
 @PropertySource("classpath:application.properties")
-@ComponentScan(basePackageClasses = Application.class,
+@ComponentScan(basePackageClasses = BagApplication.class,
                includeFilters = {@Filter(Controller.class)},
                useDefaultFilters = false)
-class WebMvcConfig extends WebMvcConfigurationSupport {
+@EnableWebMvc
+class WebMvcConfig extends WebMvcConfigurerAdapter {
 
     private static final String MESSAGE_SOURCE = "/WEB-INF/i18n/messages";
     private static final String VIEWS = "/WEB-INF/views/";
@@ -76,14 +75,6 @@ class WebMvcConfig extends WebMvcConfigurationSupport {
     @Bean
     public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
         return new PropertySourcesPlaceholderConfigurer();
-    }
-
-    @Override
-    public RequestMappingHandlerMapping requestMappingHandlerMapping() {
-        RequestMappingHandlerMapping requestMappingHandlerMapping = super.requestMappingHandlerMapping();
-        requestMappingHandlerMapping.setUseSuffixPatternMatch(false);
-        requestMappingHandlerMapping.setUseTrailingSlashMatch(false);
-        return requestMappingHandlerMapping;
     }
 
     @Bean(name = "messageSource")

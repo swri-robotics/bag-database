@@ -30,7 +30,7 @@
 
 package com.github.swrirobotics.config;
 
-import com.github.swrirobotics.Application;
+import com.github.swrirobotics.BagApplication;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.h2gis.functions.factory.H2GISDBFactory;
@@ -57,7 +57,7 @@ import java.util.Properties;
 
 @Configuration
 @EnableTransactionManagement(mode= AdviceMode.ASPECTJ)
-@EnableJpaRepositories(basePackageClasses = Application.class,
+@EnableJpaRepositories(basePackageClasses = BagApplication.class,
         transactionManagerRef = "annotationDrivenTransactionManager")
 @EnableJdbcHttpSession
 public class JpaConfig implements TransactionManagementConfigurer {

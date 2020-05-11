@@ -36,15 +36,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 
 @Repository
-@Transactional(readOnly = true)
+@Transactional
+@EnableTransactionManagement
 public class AccountRepository {
 	@PersistenceContext
 	private EntityManager myEM;
@@ -60,7 +61,8 @@ public class AccountRepository {
 		myEM.persist(account);
 		return account;
 	}
-	
+
+	@Transactional
 	public Account findByEmail(String email) {
 		try {
             myLogger.debug("Looking up user by email: " + email);

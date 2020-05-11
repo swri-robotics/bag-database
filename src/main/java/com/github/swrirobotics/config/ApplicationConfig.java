@@ -35,12 +35,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.stereotype.Controller;
-import com.github.swrirobotics.Application;
+import com.github.swrirobotics.BagApplication;
 
 import static org.springframework.context.annotation.ComponentScan.Filter;
 
 @Configuration
-@ComponentScan(basePackageClasses = Application.class, excludeFilters = @Filter({Controller.class, Configuration.class}))
+@ComponentScan(basePackageClasses = BagApplication.class, excludeFilters = @Filter({Controller.class, Configuration.class}))
 public class ApplicationConfig {
     public static final String SETTINGS_PATH = "file://${HOME}/.ros-bag-database/";
     public static final String SETTINGS_LOCATION = SETTINGS_PATH + "settings.yml";

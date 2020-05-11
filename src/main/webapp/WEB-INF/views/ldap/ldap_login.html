@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:include="fragments/header :: libs">
+    <meta charset="UTF-8">
+    <title>Bag Database Login</title>
+</head>
+
+<!-- Bootstrap core CSS -->
+<link th:href="@{/resources/css/bootstrap.min.css}" rel="stylesheet">
+<meta name="theme-color" content="#563d7c">
+
+<style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+    </style>
+<!-- Custom styles for this template -->
+<link th:href="@{resources/css/login.css}" rel="stylesheet">
+
+<body class="text-center">
+
+<div th:fragment="content">
+    <form class="form-signin" name="f" th:action="@{/ldap_login}" method="post">
+        <img class="mb-4" th:src="@{resources/images/bootstrap-solid.svg}" alt="Bootstrap Logo" height="72" width="72">
+
+        <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+        <div th:if="${param.error}" class="alert alert-danger">
+            Invalid username and password.
+        </div>
+        <div th:if="${param.logout}" class="alert alert-success">
+            You have been logged out.
+        </div>
+        <label for="username" class="sr-only">User Name</label>
+        <input type="text" id="username" class="form-control" placeholder="User name" name="username" required autofocus>
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" id="inputPassword" class="form-control" placeholder="Password" name="password" required>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Log in</button>
+<!--        <p class="mt-5 mb-3 text-muted">Copyright &copy; 2020 Company Name</p>-->
+    </form>
+</div>
+</body>
+</html>
