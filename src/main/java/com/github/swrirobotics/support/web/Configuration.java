@@ -50,6 +50,11 @@ public class Configuration implements Serializable {
     private Boolean debugJavascript = false;
     private Boolean removeOnDeletion = true;
     private Boolean fasterCodec = false;
+    private String ldapBindDn = "";
+    private String ldapBindPassword = "";
+    private String ldapSearchBase = "";
+    private String ldapServer = "";
+    private String ldapUserPattern = "";
 
     // Named "useMapQuest" for legacy support with older configs;
     // MapQuest is actually unsupported now and this will enable/disable
@@ -209,5 +214,45 @@ public class Configuration implements Serializable {
 
     public void setFasterCodec(Boolean fasterCodec) {
     	this.fasterCodec = fasterCodec;
+    }
+
+    public String getLdapBindDn() {
+        return ldapBindDn;
+    }
+
+    public void setLdapBindDn(String ldapBindDn) {
+        this.ldapBindDn = ldapBindDn;
+    }
+
+    public String getLdapBindPassword() {
+        return ldapBindPassword;
+    }
+
+    public void setLdapBindPassword(String ldapBindPassword) {
+        this.ldapBindPassword = ldapBindPassword;
+    }
+
+    public String getLdapServer() {
+        return ldapServer;
+    }
+
+    public void setLdapServer(String ldapServer) {
+        this.ldapServer = ldapServer;
+    }
+
+    public String getLdapSearchBase() {
+        return ldapSearchBase;
+    }
+
+    public void setLdapSearchBase(String ldapSearchBase) {
+        this.ldapSearchBase = ldapSearchBase;
+    }
+
+    public String getLdapUserPattern() {
+        return ldapUserPattern;
+    }
+
+    public void setLdapUserPattern(String ldapUserPattern) {
+        this.ldapUserPattern = ldapUserPattern;
     }
 }
