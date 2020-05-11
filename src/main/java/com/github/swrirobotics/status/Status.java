@@ -39,9 +39,9 @@ public class Status {
         IDLE
     }
 
-    private State myState;
-    private String myMessage;
-    private Timestamp myTime = new Timestamp(System.currentTimeMillis());
+    private final State myState;
+    private final String myMessage;
+    private final Timestamp myTime = new Timestamp(System.currentTimeMillis());
 
     public Status(State state, String message) {
         myState = state;

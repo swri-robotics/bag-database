@@ -45,7 +45,7 @@ public class GeocodingService {
     @Autowired
     private ConfigService myConfigService;
 
-    private static Logger myLogger = LoggerFactory.getLogger(GeocodingService.class);
+    private static final Logger myLogger = LoggerFactory.getLogger(GeocodingService.class);
 
     public String getLocationName(double latitudeDeg, double longitudeDeg) {
         myLogger.trace("Reverse geocoding lat/long (" + latitudeDeg + ", " + longitudeDeg + ")");

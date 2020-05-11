@@ -55,7 +55,7 @@ public class ConfigController {
     @Autowired
     private ConfigService myConfigService;
 
-    private Logger myLogger = LoggerFactory.getLogger(ConfigController.class);
+    private final Logger myLogger = LoggerFactory.getLogger(ConfigController.class);
 
     @RequestMapping(value="", method=RequestMethod.GET)
     public String getConfig(Model model) {

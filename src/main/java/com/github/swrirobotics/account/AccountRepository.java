@@ -47,34 +47,32 @@ import javax.persistence.PersistenceException;
 @Transactional
 @EnableTransactionManagement
 public class AccountRepository {
-	@PersistenceContext
-	private EntityManager myEM;
-	
-	@Autowired(required = false)
-	private PasswordEncoder myPasswordEncoder;
+    @PersistenceContext
+    private EntityManager myEM;
 
-    private Logger myLogger = LoggerFactory.getLogger(AccountRepository.class);
-	
-	@Transactional
-	public Account save(Account account) {
-		account.setPassword(myPasswordEncoder.encode(account.getPassword()));
-		myEM.persist(account);
-		return account;
-	}
+    @Autowired(required = false)
+    private PasswordEncoder myPasswordEncoder;
 
-	@Transactional
-	public Account findByEmail(String email) {
-		try {
+    private final Logger myLogger = LoggerFactory.getLogger(AccountRepository.class);
+
+    @Transactional
+    public Account save(Account account) {
+        account.setPassword(myPasswordEncoder.encode(account.getPassword()));
+        myEM.persist(account);
+        return account;
+    }
+
+    @Transactional
+    public Account findByEmail(String email) {
+        try {
             myLogger.debug("Looking up user by email: " + email);
-			return myEM.createNamedQuery(Account.FIND_BY_EMAIL, Account.class)
-                       .setParameter("email", email)
-                       .getSingleResult();
-		}
-		catch (PersistenceException | EmptyResultDataAccessException e) {
+            return myEM.createNamedQuery(Account.FIND_BY_EMAIL, Account.class)
+                    .setParameter("email", email)
+                    .getSingleResult();
+        }
+        catch (PersistenceException | EmptyResultDataAccessException e) {
             myLogger.warn("No user found", e);
-			return null;
-		}
-	}
-
-	
+            return null;
+        }
+    }
 }

@@ -39,7 +39,6 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
-import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
@@ -135,7 +134,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         if (bagDir != null && !bagDir.isEmpty()) {
             Path path = FileSystems.getDefault().getPath(bagDir);
             myWatcher = RecursiveWatcher.createRecursiveWatcher(
-                    path, new ArrayList<Path>(), 3000, this);
+                    path, new ArrayList<>(), 3000, this);
             try {
                 myWatcher.start();
             }
@@ -409,7 +408,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
 
     private class FullScanner implements Runnable {
         private boolean forceUpdate = false;
-        private String myBagDirectory;
+        private final String myBagDirectory;
 
         private final ExecutorService bagService = Executors.newFixedThreadPool(
                 Runtime.getRuntime().availableProcessors());
