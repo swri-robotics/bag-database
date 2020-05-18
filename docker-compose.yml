@@ -10,7 +10,8 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - /home/preed/public_html/bags:/bags:ro
+            - /home/preed/public_html/bags:/bags:ro # Replace this with the path to your bag files
+            - indexes:/root/.ros-bag-database/indexes
         environment:
             ADMIN_PASSWORD: "letmein"
             DB_DRIVER: org.postgresql.Driver
@@ -59,3 +60,4 @@ volumes:
     postgres:
     ldap:
     slapd:
+    indexes:
