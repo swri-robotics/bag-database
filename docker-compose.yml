@@ -29,7 +29,7 @@ services:
             LDAP_SERVER: 'ldap://openldap' # Replace this with an empty string to disable LDAP auth
             LDAP_USER_PATTERN: "uid={0},ou=People,dc=example,dc=com"
     postgres:
-        image: mdillon/postgis:latest
+        image: postgis/postgis:11-2.5
         networks:
             - bagdb
         volumes:
