@@ -94,7 +94,7 @@ variables to see what's been changed or added.
 
 The bag database can run standalone in order to demonstrate its functionality, but
 if you do so it will have to rebuild the database every time it restarts.  Instead
-you should link it to an external database.  PostgreSQL with PostGIS extensions is
+you should link it to an external database.  PostgreSQL 11 with PostGIS 2.5 is
 the only supported database.
 
 The instructions here will describe how to manually create Docker containers, but
@@ -115,7 +115,7 @@ docker run -d \
     -e POSTGRES_PASSWORD=letmein \
     -e POSTGRES_USER=bag_database \
     -e POSTGRES_DB=bag_database \
-    mdillon/postgis:latest
+    postgis/postgis:11-2.5
 ```
 
 The bag database exposes port 8080 and expects to find bag files in a volume at /bags by default.  You can run it like so:
