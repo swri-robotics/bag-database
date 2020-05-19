@@ -349,9 +349,9 @@
         <!-- OpenCV for image processing; note that this includes platform-
              specific libraries -->
         <dependency>
-            <groupId>nu.pattern</groupId>
+            <groupId>org.openpnp</groupId>
             <artifactId>opencv</artifactId>
-            <version>2.4.9-7</version>
+            <version>4.3.0-1</version>
         </dependency>
 
         <!-- Other SwRI libraries -->

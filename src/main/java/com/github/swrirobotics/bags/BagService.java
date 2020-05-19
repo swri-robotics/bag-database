@@ -53,13 +53,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import nu.pattern.OpenCV;
 import org.apache.commons.io.IOUtils;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-import org.opencv.contrib.Contrib;
+
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -120,7 +119,7 @@ public class BagService extends StatusProvider {
 
     static {
         try {
-            OpenCV.loadShared();
+            nu.pattern.OpenCV.loadShared();
         }
         catch (Exception e) {
             myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadlable", e);
@@ -530,7 +529,7 @@ public class BagService extends StatusProvider {
             Mat grayMat = new Mat(myHeight, myWidth, CvType.CV_8UC1);
             grayMat.put(0, 0, byteData);
             Mat colorMat = new Mat();
-            Contrib.applyColorMap(grayMat, colorMat, Contrib.COLORMAP_JET);
+            Imgproc.applyColorMap(grayMat, colorMat, Imgproc.COLORMAP_JET);
             byteData = new byte[(int)colorMat.total() * colorMat.channels()];
             colorMat.get(0, 0, byteData);
 
