@@ -45,9 +45,9 @@ public class ApplicationConfig {
     public static final String SETTINGS_PATH = "file://${HOME}/.ros-bag-database/";
     public static final String SETTINGS_LOCATION = SETTINGS_PATH + "settings.yml";
 
-	@Bean
-	public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
-		return new PropertySourcesPlaceholderConfigurer();
-	}
-	
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+        return new PropertySourcesPlaceholderConfigurer();
+    }
+
 }

@@ -52,7 +52,6 @@ import org.springframework.security.ldap.authentication.BindAuthenticator;
 import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
 import org.springframework.security.ldap.authentication.LdapAuthenticator;
 import org.springframework.security.ldap.ppolicy.PasswordPolicyAwareContextSource;
-import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -202,8 +201,7 @@ class SecurityConfig {
 
         @Bean
         public LdapAuthenticationProvider ldapAuthenticationProvider() throws Exception {
-            LdapAuthenticationProvider lAP = new LdapAuthenticationProvider(ldapAuthenticator(), ldapAuthoritiesPopulator());
-            return lAP;
+            return new LdapAuthenticationProvider(ldapAuthenticator(), ldapAuthoritiesPopulator());
         }
 
         private LdapAuthoritiesPopulator ldapAuthoritiesPopulator() throws Exception {

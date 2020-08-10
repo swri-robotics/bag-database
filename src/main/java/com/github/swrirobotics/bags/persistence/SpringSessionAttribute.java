@@ -30,11 +30,10 @@
 
 package com.github.swrirobotics.bags.persistence;
 
-import org.hibernate.annotations.Type;
-
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * This table is designed to model the table used by Spring Session to store user
@@ -71,10 +70,10 @@ public class SpringSessionAttribute implements Serializable {
 
         SpringSessionAttribute that = (SpringSessionAttribute) o;
 
-        if (session != null ? !session.equals(that.session) : that.session != null) {
+        if (!Objects.equals(session, that.session)) {
             return false;
         }
-        if (attribute_name != null ? !attribute_name.equals(that.attribute_name) : that.attribute_name != null) {
+        if (!Objects.equals(attribute_name, that.attribute_name)) {
             return false;
         }
         return attribute_bytes != null ? Arrays.equals(that.attribute_bytes, attribute_bytes) : that.attribute_bytes == null;

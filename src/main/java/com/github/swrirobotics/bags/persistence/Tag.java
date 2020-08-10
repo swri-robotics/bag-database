@@ -36,6 +36,7 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.Objects;
 
 @Entity
 @Table(name="tags", indexes = {@Index(columnList = "tag")})
@@ -99,13 +100,13 @@ public class Tag implements Serializable {
 
         Tag tag1 = (Tag) o;
 
-        if (tag != null ? !tag.equals(tag1.tag) : tag1.tag != null) {
+        if (!Objects.equals(tag, tag1.tag)) {
             return false;
         }
-        if (bagId != null ? !bagId.equals(tag1.bagId) : tag1.bagId != null) {
+        if (!Objects.equals(bagId, tag1.bagId)) {
             return false;
         }
-        return value != null ? value.equals(tag1.value) : tag1.value == null;
+        return Objects.equals(value, tag1.value);
 
     }
 

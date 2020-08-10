@@ -10,7 +10,8 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - /home/preed/public_html/bags:/bags:ro
+            - /home/preed/public_html/bags:/bags:ro # Replace this with the path to your bag files
+            - indexes:/root/.ros-bag-database/indexes
         environment:
             ADMIN_PASSWORD: "letmein"
             DB_DRIVER: org.postgresql.Driver
@@ -28,7 +29,7 @@ services:
             LDAP_SERVER: 'ldap://openldap' # Replace this with an empty string to disable LDAP auth
             LDAP_USER_PATTERN: "uid={0},ou=People,dc=example,dc=com"
     postgres:
-        image: mdillon/postgis:latest
+        image: postgis/postgis:11-2.5
         networks:
             - bagdb
         volumes:
@@ -59,3 +60,4 @@ volumes:
     postgres:
     ldap:
     slapd:
+    indexes:

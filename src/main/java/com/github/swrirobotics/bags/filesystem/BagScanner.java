@@ -30,6 +30,7 @@
 
 package com.github.swrirobotics.bags.filesystem;
 
+
 import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
 import com.github.swrirobotics.bags.persistence.*;
@@ -39,13 +40,13 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
-import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -135,7 +136,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         if (bagDir != null && !bagDir.isEmpty()) {
             Path path = FileSystems.getDefault().getPath(bagDir);
             myWatcher = RecursiveWatcher.createRecursiveWatcher(
-                    path, new ArrayList<Path>(), 3000, this);
+                    path, new ArrayList<>(), 3000, this);
             try {
                 myWatcher.start();
             }
@@ -409,7 +410,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
 
     private class FullScanner implements Runnable {
         private boolean forceUpdate = false;
-        private String myBagDirectory;
+        private final String myBagDirectory;
 
         private final ExecutorService bagService = Executors.newFixedThreadPool(
                 Runtime.getRuntime().availableProcessors());
@@ -450,6 +451,22 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                                                        existingBagPaths,
                                                        missingBagMd5sums,
                                                        forceUpdate);
+                        }
+                        catch (ConstraintViolationException e) {
+                            // Constraint name is hard-coded in db.changelog-1.0.yaml
+                            if ("uk_a2r00kd2qd94dohkimsp5rdgn".equals(e.getConstraintName())) {
+                                String message = "The data in " + file.getName() + " seems to be a duplicate " +
+                                        "of an existing bag file.  If you believe this is incorrect, please " +
+                                        "report it as a bug.";
+                                reportStatus(Status.State.ERROR, message);
+                                myLogger.warn(message);
+                                myLogger.warn(e.getLocalizedMessage());
+                            }
+                            else {
+                                String message = e.getLocalizedMessage();
+                                reportStatus(Status.State.ERROR,"Error checking bag file: " + message);
+                                myLogger.error("Unexpected error updating bag file:", e);
+                            }
                         }
                         catch (RuntimeException e) {
                             reportStatus(Status.State.ERROR,

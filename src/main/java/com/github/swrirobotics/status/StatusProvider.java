@@ -35,7 +35,7 @@ import com.google.common.collect.Sets;
 import java.util.Set;
 
 public abstract class StatusProvider {
-    private Set<StatusListener> myStatusListeners = Sets.newHashSet();
+    private final Set<StatusListener> myStatusListeners = Sets.newHashSet();
 
     abstract protected String getStatusProviderName();
 

@@ -209,11 +209,11 @@ public class Configuration implements Serializable {
     }
 
     public Boolean getFasterCodec() {
-    	return fasterCodec;
+        return fasterCodec;
     }
 
     public void setFasterCodec(Boolean fasterCodec) {
-    	this.fasterCodec = fasterCodec;
+        this.fasterCodec = fasterCodec;
     }
 
     public String getLdapBindDn() {

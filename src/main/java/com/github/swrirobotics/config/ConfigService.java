@@ -58,7 +58,7 @@ public class ConfigService {
     @Value(ApplicationConfig.SETTINGS_LOCATION)
     private String filename;
 
-    private Logger myLogger = LoggerFactory.getLogger(ConfigService.class);
+    private final Logger myLogger = LoggerFactory.getLogger(ConfigService.class);
 
     public Configuration getConfiguration() {
         Configuration config = new Configuration();

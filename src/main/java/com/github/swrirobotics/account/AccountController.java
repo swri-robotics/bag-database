@@ -46,7 +46,7 @@ import java.security.Principal;
 @Secured("ROLE_USER")
 class AccountController {
 
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
 
     @Autowired
     public AccountController(AccountRepository accountRepository) {
@@ -57,7 +57,7 @@ class AccountController {
     @ResponseStatus(value = HttpStatus.OK)
     @ResponseBody
     public Account accounts(Principal principal) {
-        Assert.notNull(principal);
+        Assert.notNull(principal, "Account principal was null.");
         return accountRepository.findByEmail(principal.getName());
     }
 }

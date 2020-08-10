@@ -64,7 +64,7 @@ public class BagController {
     @Autowired
     private BagService myBagService;
 
-    private Logger myLogger = LoggerFactory.getLogger(BagController.class);
+    private final Logger myLogger = LoggerFactory.getLogger(BagController.class);
 
     @RequestMapping(value="/download", produces="application/x-bag")
     public FileSystemResource downloadBag(

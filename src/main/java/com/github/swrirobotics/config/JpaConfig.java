@@ -64,7 +64,7 @@ public class JpaConfig implements TransactionManagementConfigurer {
     @Autowired(required = false)
     private DataSourceProperties properties;
 
-    private Logger myLogger = LoggerFactory.getLogger(JpaConfig.class);
+    private final Logger myLogger = LoggerFactory.getLogger(JpaConfig.class);
 
     @Bean
     @Profile("!test")

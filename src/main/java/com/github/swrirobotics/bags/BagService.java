@@ -53,21 +53,18 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import nu.pattern.OpenCV;
 import org.apache.commons.io.IOUtils;
-import org.hibernate.cfg.Environment;
-import org.opencv.contrib.Contrib;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
+
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -84,7 +81,7 @@ import javax.persistence.criteria.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -122,7 +119,7 @@ public class BagService extends StatusProvider {
 
     static {
         try {
-            OpenCV.loadShared();
+            nu.pattern.OpenCV.loadShared();
         }
         catch (Exception e) {
             myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadlable", e);
@@ -216,8 +213,8 @@ public class BagService extends StatusProvider {
         private double myDurationS = 0.0;
         private double myFrameRate = 10.0;
         private long myCurrentFrame = 0;
-        private long myTotalFrameCount;
-        private List<Long> myFrameTimes = Lists.newArrayList();
+        private final long myTotalFrameCount;
+        private final List<Long> myFrameTimes = Lists.newArrayList();
 
         private static final int FRAMES_TO_COUNT = 30;
 
@@ -312,13 +309,13 @@ public class BagService extends StatusProvider {
         private boolean myIsBigEndian = false;
         private boolean myIsInitialized = false;
         private long myFrameCount = 0;
-        private double myDurationS;
-        private double myFrameRate;
+        private final double myDurationS;
+        private final double myFrameRate;
         private int myHeight = 0;
         private int myWidth = 0;
         private long myFrameSkip = 1;
         private OutputConsumer myConsumer = null;
-        private OutputStream myOutput;
+        private final OutputStream myOutput;
         private Process myFfmpegProc = null;
         private String myPixelFormat = "";
         private int byteNb = 3;
@@ -532,7 +529,7 @@ public class BagService extends StatusProvider {
             Mat grayMat = new Mat(myHeight, myWidth, CvType.CV_8UC1);
             grayMat.put(0, 0, byteData);
             Mat colorMat = new Mat();
-            Contrib.applyColorMap(grayMat, colorMat, Contrib.COLORMAP_JET);
+            Imgproc.applyColorMap(grayMat, colorMat, Imgproc.COLORMAP_JET);
             byteData = new byte[(int)colorMat.total() * colorMat.channels()];
             colorMat.get(0, 0, byteData);
 
@@ -579,7 +576,7 @@ public class BagService extends StatusProvider {
 
             // Faster encoding
             if (myConfigService.getConfiguration().getFasterCodec()) {
-            	command = new String[]{"ffmpeg",
+                command = new String[]{"ffmpeg",
                         "-f", "rawvideo",
                         "-c:v", "rawvideo",
                         "-pix_fmt", myPixelFormat,
@@ -659,7 +656,7 @@ public class BagService extends StatusProvider {
                     myConsumer.join();
 
                     List<String> lines =
-                            IOUtils.readLines(myFfmpegProc.getErrorStream(), Charset.forName("UTF-8"));
+                            IOUtils.readLines(myFfmpegProc.getErrorStream(), StandardCharsets.UTF_8);
                     String output = Joiner.on("\n").skipNulls().join(lines).trim();
                     if (!output.isEmpty()) {
                         myLogger.error("ffmpeg output:\n" + Joiner.on("\n").join(lines));
@@ -716,7 +713,7 @@ public class BagService extends StatusProvider {
             throw new BagReaderException(e);
         }
         catch (Exception e) {
-            myLogger.error("Unexpected exception:", e.getLocalizedMessage());
+            myLogger.error("Unexpected exception: " + e.getLocalizedMessage());
             throw new BagReaderException(e);
         }
         finally {
@@ -852,11 +849,7 @@ public class BagService extends StatusProvider {
         Map<String, List<Bag>> md5Bags = Maps.newHashMap();
 
         for (Bag bag : bags) {
-            List<Bag> tmp = md5Bags.get(bag.getMd5sum());
-            if (tmp == null) {
-                tmp = Lists.newArrayList();
-                md5Bags.put(bag.getMd5sum(), tmp);
-            }
+            List<Bag> tmp = md5Bags.computeIfAbsent(bag.getMd5sum(), k -> Lists.newArrayList());
             tmp.add(bag);
         }
 
@@ -919,7 +912,7 @@ public class BagService extends StatusProvider {
             case "endTime":
             case "updatedOn":
             case "createdOn":
-                ts = new Timestamp(Long.valueOf(filter.getValue()));
+                ts = new Timestamp(Long.parseLong(filter.getValue()));
                 break;
         }
 
@@ -996,7 +989,7 @@ public class BagService extends StatusProvider {
             }
         }
 
-        return cb.or(preds.toArray(new Predicate[preds.size()]));
+        return cb.or(preds.toArray(new Predicate[0]));
     }
 
     @Transactional(readOnly = true)
@@ -1036,7 +1029,7 @@ public class BagService extends StatusProvider {
                     return preds.get(0);
                 }
                 else {
-                    return cb.and(preds.toArray(new Predicate[preds.size()]));
+                    return cb.and(preds.toArray(new Predicate[0]));
                 }
             }, pageReq);
         }
@@ -1078,7 +1071,7 @@ public class BagService extends StatusProvider {
                 positions.add(new GpsPosition(message.getField("latitude"),
                                               message.getField("longitude"),
                                               message.<com.github.swrirobotics.bags.reader.messages.serialization.MessageType>getField(
-                                                      "header").<TimeType>getField("stamp")));
+                                                      "header").getField("stamp")));
             }
             catch (UninitializedFieldException e) {
                 return false;
@@ -1418,9 +1411,7 @@ public class BagService extends StatusProvider {
             dbTopic.setMessageCount(topic.getMessageCount());
             dbTopic.setConnectionCount(topic.getConnectionCount());
             dbTopic.setBag(bag);
-            if (!bag.getTopics().contains(dbTopic)) {
-                bag.getTopics().add(dbTopic);
-            }
+            bag.getTopics().add(dbTopic);
         }
     }
 
@@ -1699,7 +1690,7 @@ public class BagService extends StatusProvider {
         TypedQuery<BagCount> query = myEM.createNamedQuery("Bag.countBagPaths", BagCount.class);
         query.setParameter("text", filterText);
         List<BagCount> results = query.getResultList();
-        return results.toArray(new BagCount[results.size()]);
+        return results.toArray(new BagCount[0]);
     }
 
     @Transactional
@@ -1734,9 +1725,7 @@ public class BagService extends StatusProvider {
             myLogger.debug("Found existing MessageType in DB: " +
                                    name + " / " + md5sum);
         }
-        if (!bag.getMessageTypes().contains(dbType)) {
-            bag.getMessageTypes().add(dbType);
-        }
+        bag.getMessageTypes().add(dbType);
         return dbType;
     }
 

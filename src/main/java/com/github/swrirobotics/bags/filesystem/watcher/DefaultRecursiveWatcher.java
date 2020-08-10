@@ -43,129 +43,129 @@ import static java.nio.file.StandardWatchEventKinds.*;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class DefaultRecursiveWatcher extends RecursiveWatcher {
-	private WatchService watchService;
-	private Map<Path, WatchKey> watchPathKeyMap;
+    private WatchService watchService;
+    private final Map<Path, WatchKey> watchPathKeyMap;
 
-	public DefaultRecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
-		super(root, ignorePaths, settleDelay, listener);
+    public DefaultRecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
+        super(root, ignorePaths, settleDelay, listener);
 
-		this.watchService = null;
-		this.watchPathKeyMap = new HashMap<>();
-	}
+        this.watchService = null;
+        this.watchPathKeyMap = new HashMap<>();
+    }
 
-	@Override
-	public void beforeStart() throws Exception {
-		watchService = FileSystems.getDefault().newWatchService();
-	}
+    @Override
+    public void beforeStart() throws Exception {
+        watchService = FileSystems.getDefault().newWatchService();
+    }
 
-	@Override
-	protected void beforePollEventLoop() {
-		walkTreeAndSetWatches();
-	}
+    @Override
+    protected void beforePollEventLoop() {
+        walkTreeAndSetWatches();
+    }
 
-	@Override
-	protected boolean pollEvents() throws InterruptedException {
-		// Take events, but don't care what they are!
-		WatchKey watchKey = watchService.take();
+    @Override
+    protected boolean pollEvents() throws InterruptedException {
+        // Take events, but don't care what they are!
+        WatchKey watchKey = watchService.take();
 
-		watchKey.pollEvents();
-		watchKey.reset();
+        watchKey.pollEvents();
+        watchKey.reset();
 
-		// Events are always relevant; ignored paths are not monitored
-		return true;
-	}
+        // Events are always relevant; ignored paths are not monitored
+        return true;
+    }
 
-	@Override
-	protected void watchEventsOccurred() {
-		walkTreeAndSetWatches();
-		unregisterStaleWatches();
-	}
+    @Override
+    protected void watchEventsOccurred() {
+        walkTreeAndSetWatches();
+        unregisterStaleWatches();
+    }
 
-	@Override
-	public void afterStop() throws IOException {
-		watchService.close();
-	}
+    @Override
+    public void afterStop() throws IOException {
+        watchService.close();
+    }
 
-	private boolean presentSpecialCharacters(Path dir){
-		String dirName = dir.toString();
-		Pattern p = Pattern.compile("@.*");
-		Matcher m = p.matcher(dirName);
-		return m.find();
-	}
+    private boolean presentSpecialCharacters(Path dir){
+        String dirName = dir.toString();
+        Pattern p = Pattern.compile("@.*");
+        Matcher m = p.matcher(dirName);
+        return m.find();
+    }
 
-	private synchronized void walkTreeAndSetWatches() {
-		logger.log(Level.INFO, "Registering new folders at watch service ...");
+    private synchronized void walkTreeAndSetWatches() {
+        logger.log(Level.INFO, "Registering new folders at watch service ...");
 
-		try {
-			Files.walkFileTree(root, new FileVisitor<Path>() {
-				@Override
-				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-					if (ignorePaths.contains(dir)||presentSpecialCharacters(dir.getFileName())) {
-						return FileVisitResult.SKIP_SUBTREE;
-					}
-					else {
-						registerWatch(dir);
-						return FileVisitResult.CONTINUE;
-					}
-				}
+        try {
+            Files.walkFileTree(root, new FileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    if (ignorePaths.contains(dir)||presentSpecialCharacters(dir.getFileName())) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                    else {
+                        registerWatch(dir);
+                        return FileVisitResult.CONTINUE;
+                    }
+                }
 
-				@Override
-				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-					return FileVisitResult.CONTINUE;
-				}
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
 
-				@Override
-				public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-					return FileVisitResult.CONTINUE;
-				}
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
 
-				@Override
-				public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-					return FileVisitResult.CONTINUE;
-				}
-			});
-		}
-		catch (IOException e) {
-			logger.log(Level.FINE, "IO failed", e);
-		}
-	}
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
+        catch (IOException e) {
+            logger.log(Level.FINE, "IO failed", e);
+        }
+    }
 
-	private synchronized void unregisterStaleWatches() {
-		Set<Path> paths = new HashSet<>(watchPathKeyMap.keySet());
-		Set<Path> stalePaths = paths.parallelStream().filter(path -> !Files.exists(path, LinkOption.NOFOLLOW_LINKS))
-									.collect(Collectors.toSet());
+    private synchronized void unregisterStaleWatches() {
+        Set<Path> paths = new HashSet<>(watchPathKeyMap.keySet());
+        Set<Path> stalePaths = paths.parallelStream().filter(path -> !Files.exists(path, LinkOption.NOFOLLOW_LINKS))
+                                    .collect(Collectors.toSet());
 
-		if (stalePaths.size() > 0) {
-			logger.log(Level.INFO, "Cancelling stale path watches ...");
+        if (stalePaths.size() > 0) {
+            logger.log(Level.INFO, "Cancelling stale path watches ...");
 
-			for (Path stalePath : stalePaths) {
-				unregisterWatch(stalePath);
-			}
-		}
-	}
+            for (Path stalePath : stalePaths) {
+                unregisterWatch(stalePath);
+            }
+        }
+    }
 
-	private synchronized void registerWatch(Path dir) {
-		if (!watchPathKeyMap.containsKey(dir)) {
-			logger.log(Level.INFO, "- Registering " + dir);
+    private synchronized void registerWatch(Path dir) {
+        if (!watchPathKeyMap.containsKey(dir)) {
+            logger.log(Level.INFO, "- Registering " + dir);
 
-			try {
-				WatchKey watchKey = dir.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY, OVERFLOW);
-				watchPathKeyMap.put(dir, watchKey);
-			}
-			catch (IOException e) {
-				logger.log(Level.FINE, "IO Failed", e);
-			}
-		}
-	}
+            try {
+                WatchKey watchKey = dir.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY, OVERFLOW);
+                watchPathKeyMap.put(dir, watchKey);
+            }
+            catch (IOException e) {
+                logger.log(Level.FINE, "IO Failed", e);
+            }
+        }
+    }
 
-	private synchronized void unregisterWatch(Path dir) {
-		WatchKey watchKey = watchPathKeyMap.get(dir);
+    private synchronized void unregisterWatch(Path dir) {
+        WatchKey watchKey = watchPathKeyMap.get(dir);
 
-		if (watchKey != null) {
-			logger.log(Level.INFO, "- Cancelling " + dir);
+        if (watchKey != null) {
+            logger.log(Level.INFO, "- Cancelling " + dir);
 
-			watchKey.cancel();
-			watchPathKeyMap.remove(dir);
-		}
-	}
+            watchKey.cancel();
+            watchPathKeyMap.remove(dir);
+        }
+    }
 }

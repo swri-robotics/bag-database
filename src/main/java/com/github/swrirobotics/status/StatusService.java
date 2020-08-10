@@ -30,7 +30,6 @@
 
 package com.github.swrirobotics.status;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import org.slf4j.Logger;
@@ -42,7 +41,6 @@ import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.filesystem.BagScanner;
 
 import javax.annotation.PostConstruct;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
