@@ -1,0 +1,93 @@
+# This is the biggest update in a long time, so make a new major version.
+# This adds tables for representing scripts that can do post-processing
+# and analysis on bag files.
+databaseChangeLog:
+  - changeSet:
+      id: add-script-tables
+      author: preed
+      changes:
+        - createTable:
+            tableName: 'scripts'
+            columns:
+              - column:
+                  autoIncrement: true
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: scripts_pkey
+              - column:
+                  name: allowNetworkAccess
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: dockerImage
+                  type: VARCHAR(128)
+              - column:
+                  name: memoryLimitBytes
+                  type: FLOAT
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: runAutomatically
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: script
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: timeoutSecs
+                  type: FLOAT
+        - createTable:
+            tableName: 'script_criteria'
+            columns:
+              - column:
+                  autoIncrement: true
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: script_criteria_pkey
+              - column:
+                  name: bagId
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: directory
+                  type: VARCHAR(1024)
+              - column:
+                  name: filename
+                  type: VARCHAR(1024)
+              - column:
+                  name: messageTypes
+                  type: TEXT
+              - column:
+                  name: topicNames
+                  type: TEXT
+  - changeSet:
+      id: add-script-foreign-key
+      author: preed
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: bagId
+            baseTableName: script_criteria
+            constraintName: fk_script_criteria_scripts
+            deferrable: false
+            initiallyDeferred: false
+            onDelete: CASCADE
+            onUpdate: NO ACTION
+            referencedColumnNames: id
+            referencedTableName: scripts
