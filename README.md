@@ -66,7 +66,7 @@ are stored and will be manually uploading files there.
 
 ## Compiling
 
-The bag database is a Spring-based web application that requires Java 8.0 or later.
+The bag database is a Spring-based web application that requires Java 11 or later.
 To compile it, you need JDK 8.0 or later and Maven 3.0.5 or later.  To build a
 WAR package, run:
 
@@ -254,7 +254,7 @@ Set this to `true` to force the application to load non-minified versions of Jav
 
 ### As An Application Server Servlet
 
-Only Tomcat 8.0 with Java 8.0 has been tested.
+This has been tested with Java 11 and Tomcat 9.
 
 1. Start up a PostgreSQL server; create an empty database and a user with access to it.
 2. Start up your application server and deploy the WAR file to it.
