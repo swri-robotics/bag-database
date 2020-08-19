@@ -141,7 +141,7 @@ public class BagService extends StatusProvider {
     @Transactional(readOnly = true)
     public Bag getBag(Long bagId) throws NonexistentBagException {
         try {
-            Bag response = bagRepository.findOne(bagId);
+            Bag response = bagRepository.findById(bagId).orElseThrow();
             myLogger.debug("Successfully got bag: " + response.getFilename());
             return response;
         }
@@ -158,7 +158,7 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     public byte[] getImage(Long bagId, String topicName, int index) throws BagReaderException {
-        Bag bag = bagRepository.findOne(bagId);
+        Bag bag = bagRepository.findById(bagId).orElse(null);
         if (bag == null) {
             throw new BagReaderException("Bag not found: " + bagId);
         }
@@ -674,7 +674,7 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     void writeVideoStream(Long bagId, String topicName, Long frameSkip, OutputStream output) throws BagReaderException {
-        Bag bag = bagRepository.findOne(bagId);
+        Bag bag = bagRepository.findById(bagId).orElse(null);
         if (bag == null) {
             throw new BagReaderException("Bag not found: " + bagId);
         }
@@ -880,7 +880,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void updateBag(Bag newBag) {
-        Bag dbBag = bagRepository.findOne(newBag.getId());
+        Bag dbBag = bagRepository.findById(newBag.getId()).orElse(null);
         dbBag.setDescription(newBag.getDescription());
         if (newBag.getLatitudeDeg() != null && newBag.getLongitudeDeg() != null)
         {
@@ -1202,7 +1202,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void updateGpsPositionsForBagId(long bagId) {
-        Bag bag = bagRepository.findOne(bagId);
+        Bag bag = bagRepository.findById(bagId).orElseThrow();
         String fullPath = bag.getPath() + bag.getFilename();
         try {
             BagFile bagFile = BagReader.readFile(fullPath);
@@ -1277,7 +1277,7 @@ public class BagService extends StatusProvider {
     @Transactional
     public void removeTagForBag(Collection<String> tagNames,
                                 final Long bagId) throws NonexistentBagException {
-        if (!bagRepository.exists(bagId)) {
+        if (!bagRepository.existsById(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
@@ -1288,7 +1288,7 @@ public class BagService extends StatusProvider {
     public void setTagForBag(String tagName,
                              final String value,
                              final Long bagId) throws NonexistentBagException {
-        if (!bagRepository.exists(bagId)) {
+        if (!bagRepository.existsById(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
@@ -1590,7 +1590,7 @@ public class BagService extends StatusProvider {
             // If we found a missing one, remove it from the list and update
             // its path.
             String path = file.getPath().replace(file.getName(), "");
-            bag = bagRepository.findOne(bagId);
+            bag = bagRepository.findById(bagId).orElseThrow();
             bag.setPath(path);
             bag.setFilename(file.getName());
             bag.setMissing(false);
@@ -1606,7 +1606,7 @@ public class BagService extends StatusProvider {
     @Transactional
     public void markMissingBags(final Collection<Long> missingBags) {
         for (Long bagId : missingBags) {
-            Bag bag = bagRepository.findOne(bagId);
+            Bag bag = bagRepository.findById(bagId).orElseThrow();
             if (!bag.getMissing()) {
                 myLogger.warn("Bag " + bag.getPath() + bag.getFilename() +
                                       " was missing and we couldn't find it.");
@@ -1713,7 +1713,7 @@ public class BagService extends StatusProvider {
         MessageTypeKey key = new MessageTypeKey();
         key.name = name;
         key.md5sum = md5sum;
-        MessageType dbType = myMTRepository.findOne(key);
+        MessageType dbType = myMTRepository.findById(key).orElse(null);
         if (dbType == null) {
             myLogger.info("Adding new MessageType to DB: " +
                                   name + " / " + md5sum);

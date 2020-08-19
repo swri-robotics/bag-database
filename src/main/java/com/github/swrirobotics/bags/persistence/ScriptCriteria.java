@@ -41,10 +41,14 @@ import java.util.List;
 @Table(name="script_criteria")
 public class ScriptCriteria implements Serializable {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Long bagId;
+    @Column(length = 1024)
     private String directory;
+    @Column(length = 1024)
     private String filename;
     @ElementCollection
     private List<String> messageTypes = Lists.newArrayList();
@@ -53,7 +57,7 @@ public class ScriptCriteria implements Serializable {
 
     @MapsId("bagId")
     @JoinColumn(name = "bagId")
-    @ManyToOne(optional=false)
+    @ManyToOne(optional = false)
     @JsonIgnore
     private Bag bag;
 

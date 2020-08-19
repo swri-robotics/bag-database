@@ -40,14 +40,20 @@ import java.util.Set;
 @Table(name="scripts")
 public class Script implements Serializable {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Boolean allowNetworkAccess;
     private String description;
+    @Column(length = 128)
     private String dockerImage;
     private Double memoryLimitBytes;
+    @Column(nullable = false)
     private String name;
+    @Column(nullable = false)
     private Boolean runAutomatically;
+    @Column(nullable = false)
     private String script;
     private Double timeoutSecs;
 

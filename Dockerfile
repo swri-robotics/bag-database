@@ -1,4 +1,4 @@
-FROM maven:3.6.3-jdk-8-slim as base-layer
+FROM maven:3.6.3-openjdk-11 as base-layer
 
 LABEL maintainer="preed@swri.org"
 

@@ -108,7 +108,7 @@ public class BagRepositoryTest extends WebAppConfigurationAware {
         Long bagId = insertBag();
 
         myLogger.info("Finding bag.");
-        Bag bag = bagRepository.findOne(bagId);
+        Bag bag = bagRepository.findById(bagId).orElseThrow();
 
         assertEquals(1, bag.getTopics().size());
         assertEquals(1, bag.getTags().size());

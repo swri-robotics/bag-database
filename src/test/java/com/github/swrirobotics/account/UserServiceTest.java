@@ -50,10 +50,10 @@ import static org.mockito.Mockito.*;
 public class UserServiceTest {
 
     @InjectMocks
-    private final UserService userService = new UserService();
+    public UserService userService = new UserService();
 
     @Mock
-    private AccountRepository accountRepositoryMock;
+    public AccountRepository accountRepositoryMock;
 
     @Rule
     public final ExpectedException thrown = ExpectedException.none();

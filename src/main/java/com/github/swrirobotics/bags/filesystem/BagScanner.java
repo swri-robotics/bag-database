@@ -191,7 +191,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if ((bag.getLocation() == null || bag.getLocation().isEmpty()) &&
                     bag.getLatitudeDeg() != null && bag.getLongitudeDeg() != null &&
                     Math.abs(bag.getLatitudeDeg()) > 0.0001 &&
@@ -220,7 +220,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                 return;
             }
 
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if (bag.getVehicle() == null || bag.getVehicle().isEmpty()) {
                 String fullPath = bag.getPath() + bag.getFilename();
                 try {
@@ -253,7 +253,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             String fullPath = bag.getPath() + bag.getFilename();
             try {
                 BagFile bagFile = BagReader.readFile(fullPath);
@@ -291,7 +291,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
 
             if (bag.getLatitudeDeg() == null ||
                     bag.getLongitudeDeg() == null ||
