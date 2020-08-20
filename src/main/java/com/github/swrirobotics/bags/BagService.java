@@ -209,7 +209,7 @@ public class BagService extends StatusProvider {
      * Although we only use this for images, this should work for any message
      * type that has a std_msgs/Header.
      */
-    private class FrameRateDeterminer implements MessageHandler {
+    private static class FrameRateDeterminer implements MessageHandler {
         private double myDurationS = 0.0;
         private double myFrameRate = 10.0;
         private long myCurrentFrame = 0;
@@ -343,7 +343,7 @@ public class BagService extends StatusProvider {
             }
         }
 
-        FfmpegImageHandler(OutputStream output, double frameRate, double durationS) throws IOException {
+        FfmpegImageHandler(OutputStream output, double frameRate, double durationS) {
             myOutput = output;
             myFrameRate = frameRate;
             myDurationS = durationS;
@@ -464,7 +464,7 @@ public class BagService extends StatusProvider {
             // If the image is compressed, we need to decompress it and get a few
             // pieces of metadata from it.
             byte[] compressedData = dataArray.getAsBytes();
-            byte[] byteData = null;
+            byte[] byteData;
             try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedData)) {
                 BufferedImage image = ImageIO.read(byteStream);
                 if (!myIsInitialized) {
@@ -749,7 +749,7 @@ public class BagService extends StatusProvider {
     }
 
     private BufferedImage getUncompressedImage(com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt)
-            throws UninitializedFieldException, IOException, BagReaderException {
+            throws UninitializedFieldException, BagReaderException {
 
         String encoding = mt.<StringType>getField("encoding").getValue().trim().toLowerCase();
         int imageType;
@@ -880,7 +880,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void updateBag(Bag newBag) {
-        Bag dbBag = bagRepository.findById(newBag.getId()).orElse(null);
+        Bag dbBag = bagRepository.findById(newBag.getId()).orElseThrow();
         dbBag.setDescription(newBag.getDescription());
         if (newBag.getLatitudeDeg() != null && newBag.getLongitudeDeg() != null)
         {
@@ -899,7 +899,7 @@ public class BagService extends StatusProvider {
 
     private Pageable createPageRequest(int page, int size, String dir, String sort) {
         // ExtJS starts counting pages at 1, but Spring Data JPA starts counting at 0.
-        return new PageRequest(page-1,
+        return PageRequest.of(page-1,
                                size,
                                dir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC,
                                sort);
@@ -1216,7 +1216,7 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    public void updateGpsPositions(final Bag bag, Collection<GpsPosition> gpsPositions) throws BagReaderException {
+    public void updateGpsPositions(final Bag bag, Collection<GpsPosition> gpsPositions) {
         List<BagPosition> existingPositions = bag.getBagPositions();
         if (!existingPositions.isEmpty()) {
             myLogger.warn("Adding new GPS positions for a bag that already has " +
@@ -1417,7 +1417,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void addTagsToBag(final BagFile bagFile,
-                             final Bag bag) throws BagReaderException {
+                             final Bag bag) {
         myLogger.trace("Adding tags to " + bagFile.getPath());
         Set<Tag> bagTags = extractTagsFromBagFile(bagFile);
 

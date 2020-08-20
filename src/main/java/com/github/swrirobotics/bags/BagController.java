@@ -115,7 +115,7 @@ public class BagController {
     @RequestMapping("/image")
     public ModelAndView getImage(@RequestParam Long bagId,
                                  @RequestParam String topic,
-                                 @RequestParam Integer index) throws FileNotFoundException {
+                                 @RequestParam Integer index) {
         myLogger.info("getImage: " + bagId + " / " + topic + " / " + index);
         ModelAndView mav = new ModelAndView("image/image");
         try {
@@ -188,7 +188,7 @@ public class BagController {
 
         List<BagTreeNode> nodes = myBagService.getTreePath(node);
 
-        return nodes.toArray(new BagTreeNode[nodes.size()]);
+        return nodes.toArray(new BagTreeNode[0]);
     }
 
     @RequestMapping("/filteredcount")

@@ -251,7 +251,7 @@ public class Bag implements Serializable {
     }
 
     public Boolean getHasPath() {
-        return hasPath == null ? false : hasPath;
+        return hasPath != null && hasPath;
     }
 
     public void setHasPath(Boolean hasPath) {
