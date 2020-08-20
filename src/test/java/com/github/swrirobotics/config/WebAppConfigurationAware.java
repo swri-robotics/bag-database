@@ -53,9 +53,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
         LiquibaseConfig.class,
         WebMvcConfig.class,
         WebSocketConfig.class,
-        SecurityConfig.class,
-        SecurityConfig.AdminSecurityConfig.class,
-        SecurityConfig.WebSecurityConfig.class
+        SecurityConfig.class
 })
 public abstract class WebAppConfigurationAware {
 
