@@ -33,7 +33,8 @@ Ext.define('BagDatabase.views.ScriptGrid', {
     alias: 'widget.scriptGrid',
     title: 'Scripts',
     requires: ['BagDatabase.models.Script',
-               'BagDatabase.stores.ScriptStore'],
+               'BagDatabase.stores.ScriptStore',
+               'BagDatabase.views.ScriptWindow'],
     store: Ext.create('BagDatabase.stores.ScriptStore'),
     columns: [{
         text: 'Name', dataIndex: 'name'
@@ -50,17 +51,37 @@ Ext.define('BagDatabase.views.ScriptGrid', {
     }, {
         text: 'Timeout (s)', dataIndex: 'timeoutSecs'
     }, {
-        text: 'Created On', dataIndex: 'createdOn'
+        text: 'Created On', dataIndex: 'createdOn', renderer: bagGridDateRenderer
     }, {
-        text: 'Updated On', dataIndex: 'updatedOn'
+        text: 'Updated On', dataIndex: 'updatedOn', renderer: bagGridDateRenderer
     }, {
         text: 'Description', dataIndex: 'description'
     }],
+    listeners: {
+        rowdblclick: function(grid, record) {
+            var scriptId = record.get('id');
+            grid.ownerCt.showScriptDetails(scriptId);
+        }
+    },
     buttons: [{
+        text: 'Create',
+        itemId: 'createButton',
+        handler: function() {
+            var win = Ext.create('BagDatabase.views.ScriptWindow');
+            win.show();
+        }
+    }, {
         text: 'Run',
         itemId: 'runButton'
     }, {
         text: 'Delete',
         itemId: 'deleteButton'
-    }]
+    }],
+    showScriptDetails: function(scriptId) {
+        var win = Ext.create({
+            xtype: 'scriptWindow',
+            scriptId: scriptId
+        });
+        win.show();
+    }
 });

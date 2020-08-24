@@ -28,101 +28,93 @@
 //
 // *****************************************************************************
 
-Ext.define('BagDatabase.views.ConfigWindow', {
+Ext.define('BagDatabase.views.ScriptWindow', {
     extend: 'Ext.window.Window',
-    alias: 'widget.configWindow',
+    alias: 'widget.scriptWindow',
     layout: 'fit',
-    title: 'Bag Database Configuration',
+    title: 'Script Properties',
     width: 500,
     constrainHeader: true,
     items: [{
         xtype: 'form',
         bodyPadding: 5,
-        itemId: 'configForm',
-        url: 'config/get',
+        itemId: 'scriptForm',
+        url: 'scripts/save',
         defaultType: 'textfield',
         defaults: {
             labelWidth: 140,
             width: '100%'
         },
         items: [{
-            fieldLabel: 'Bag Path',
-            name: 'bagPath'
+            fieldLabel: 'Id',
+            name: 'id',
+            xtype: 'hidden',
+            value: 0
         }, {
-            fieldLabel: 'JDBC Driver',
-            name: 'driver',
+            fieldLabel: 'Name',
+            name: 'name',
             allowBlank: false
         }, {
-            fieldLabel: 'JDBC URL',
-            name: 'jdbcUrl',
-            allowBlank: false
-        }, {
-            fieldLabel: 'JDBC Username',
-            name: 'jdbcUsername'
-        }, {
-            fieldLabel: 'JDBC Password',
-            inputType: 'password',
-            name: 'jdbcPassword'
-        }, {
-            fieldLabel: 'Google API Key',
-            name: 'googleApiKey'
-        }, {
-            fieldLabel: 'Remove Bags from the Database on Deletion',
-            name: 'removeOnDeletion',
+            fieldLabel: 'Allow Network Access',
+            name: 'allowNetworkAccess',
             xtype: 'checkboxfield',
             uncheckedValue: false,
             inputValue: true
         }, {
-            fieldLabel: 'Use Tile Map',
-            name: 'useMapQuest',
+            fieldLabel: 'Description',
+            name: 'description'
+        }, {
+            fieldLabel: 'Memory Limit (Bytes)',
+            name: 'memoryLimitBytes',
+            xtype: 'numberfield'
+        }, {
+            fieldLabel: 'Docker Image',
+            name: 'dockerImage',
+            allowBlank: false
+        }, {
+            fieldLabel: 'Run Automatically',
+            name: 'runAutomatically',
             xtype: 'checkboxfield',
             uncheckedValue: false,
             inputValue: true
         }, {
-            fieldLabel: 'Tile Map URL',
-            name: 'tileMapUrl'
-        }, {
-            fieldLabel: 'Tile Width (px)',
-            name: 'tileWidthPx',
+            fieldLabel: 'Timeout (s)',
+            name: 'timeoutSecs',
             xtype: 'numberfield',
             minValue: 1
         }, {
-            fieldLabel: 'Tile Height (px)',
-            name: 'tileHeightPx',
-            xtype: 'numberfield',
-            minValue: 1
+            fieldLabel: 'Script',
+            name: 'script',
+            xtype: 'textareafield',
+            allowBlank: false
         }, {
-            fieldLabel: 'Use Bing Maps',
-            name: 'useBing',
-            xtype: 'checkboxfield',
-            uncheckedValue: false,
-            inputValue: true
+            fieldLabel: 'Created On',
+            name: 'createdOn',
+            xtype: 'hidden',
+            value: 0
         }, {
-            fieldLabel: 'Bing Maps API Key',
-            name: 'bingKey'
-        }, {
-            fieldLabel: 'Vehicle Name Topics',
-            name: 'vehicleNameTopics'
-        }, {
-            fieldLabel: 'Metadata Topics',
-            name: 'metadataTopics'
-        }, {
-            fieldLabel: 'GPS Topics',
-            name: 'gpsTopics'
+            fieldLabel: 'Updated On',
+            name: 'updatedOn',
+            xtype: 'hidden',
+            value: 0
         }],
         buttons: [{
             text: 'Save',
             formBind: true,
             disabled: true,
             handler: function() {
-                var form = this.up('form').getForm();
+                var form, params;
+                form = this.up('form').getForm();
                 if (form.isValid()) {
+                    params = {};
+                    params[csrfName] = csrfToken;
                     form.submit({
+                        params: params,
                         success: function() {
-                            Ext.Msg.alert('Success', 'Configuration has been updated.');
+                            Ext.Msg.alert('Success', 'Script was saved.');
                         },
                         failure: function() {
-                            Ext.Msg.alert('Failure', 'Error saving configuration.');
+                            Ext.Msg.alert('Failure', 'Error saving script.');
                         }
                     });
                 }
@@ -131,9 +123,15 @@ Ext.define('BagDatabase.views.ConfigWindow', {
     }],
     initComponent: function() {
         this.callParent(arguments);
-        var configForm = this.down('#configForm');
-        configForm.getForm().baseParams = this.params;
-
-        this.down('#configForm').load();
+        var scriptForm = this.down('#scriptForm');
+            if (this.scriptId) {
+            this.down('#scriptForm').form.doAction('load', {
+                url: 'scripts/get',
+                method: 'GET',
+                params: {
+                    scriptId: this.scriptId
+                }
+            });
+        }
     }
 });

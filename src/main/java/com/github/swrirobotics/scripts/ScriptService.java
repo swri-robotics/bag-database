@@ -73,6 +73,11 @@ public class ScriptService extends StatusProvider {
         return script.getId();
     }
 
+    @Transactional(readOnly = true)
+    public Script getScript(Long scriptId) {
+        return scriptRepository.findById(scriptId).orElse(null);
+    }
+
     @Transactional
     public void updateScript(Script script) {
         script.setUpdatedOn(new Timestamp(System.currentTimeMillis()));

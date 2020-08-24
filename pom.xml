@@ -463,6 +463,7 @@
                                 <include>stores/BagTreeStore-min.js</include>
                                 <include>stores/ErrorStore-min.js</include>
                                 <include>stores/ScriptStore-min.js</include>
+                                <include>views/ScriptWindow-min.js</include>
                                 <include>views/ScriptGrid-min.js</include>
                                 <include>views/AboutWindow-min.js</include>
                                 <include>views/BagPropertyGrid-min.js</include>

@@ -30,13 +30,20 @@
 
 package com.github.swrirobotics.scripts;
 
+import com.github.swrirobotics.bags.persistence.Script;
 import com.github.swrirobotics.support.web.ScriptList;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("scripts")
@@ -51,5 +58,61 @@ public class ScriptController {
     public ScriptList getScripts() {
         myLogger.debug("getScripts()");
         return myScriptService.getScripts();
+    }
+
+    @RequestMapping("/get")
+    @ResponseBody
+    public Map<String, Object> getScript(Long scriptId) {
+        myLogger.info("getScript");
+
+        Map<String, Object> response = Maps.newHashMap();
+        response.put("success", true);
+        response.put("data", myScriptService.getScript(scriptId));
+
+        return response;
+    }
+
+    @RequestMapping(value = "/save", method = RequestMethod.POST)
+    @ResponseBody
+    public Map<String, Object> saveScript(@RequestParam Optional<Long> id,
+                                          @RequestParam String name,
+                                          @RequestParam Boolean allowNetworkAccess,
+                                          @RequestParam Optional<String> description,
+                                          @RequestParam Optional<Long> memoryLimitBytes,
+                                          @RequestParam String dockerImage,
+                                          @RequestParam Boolean runAutomatically,
+                                          @RequestParam Optional<Double> timeoutSecs,
+                                          @RequestParam("script") String scriptText) {
+        myLogger.info("saveScript");
+
+        Script script;
+        if (id.isPresent()) {
+            script = myScriptService.getScript(id.get());
+        }
+        else {
+            script = new Script();
+        }
+        script.setId(id.orElse(null));
+        script.setName(name);
+        script.setAllowNetworkAccess(allowNetworkAccess);
+        script.setDescription(description.orElse(null));
+        script.setMemoryLimitBytes(memoryLimitBytes.orElse(null));
+        script.setDockerImage(dockerImage);
+        script.setRunAutomatically(runAutomatically);
+        script.setTimeoutSecs(timeoutSecs.orElse(null));
+        script.setScript(scriptText);
+
+        if (id.isPresent()) {
+            myScriptService.updateScript(script);
+        }
+        else {
+            myScriptService.addScript(script);
+        }
+
+        Map<String, Object> response = Maps.newHashMap();
+        response.put("success", true);
+        response.put("data", script);
+
+        return response;
     }
 }
