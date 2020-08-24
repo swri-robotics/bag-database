@@ -162,8 +162,9 @@ Ext.define('BagDatabase.views.AdminWindow', {
                             previouslyValid: false,
                             validStateChanged: false,
                             validator: function(val) {
-                                var confirmField = this.up('form').down('#confirmField')
-                                var retval = true;
+                                var confirmField, retval;
+                                confirmField = this.up('form').down('#confirmField')
+                                retval = true;
                                 if (val != confirmField.getValue()) {
                                     retval = 'Passwords do not match.';
                                 }
@@ -184,8 +185,9 @@ Ext.define('BagDatabase.views.AdminWindow', {
                             previouslyValid: false,
                             validStateChanged: false,
                             validator: function(val) {
-                                var passwordField = this.up('form').down('#passwordField')
-                                var retval = true;
+                                var passwordField, retval;
+                                passwordField = this.up('form').down('#passwordField')
+                                retval = true;
                                 if (val != passwordField.getValue()) {
                                     retval = 'Passwords do not match.';
                                 }

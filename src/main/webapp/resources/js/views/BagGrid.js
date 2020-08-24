@@ -43,18 +43,19 @@ Ext.define('BagDatabase.views.BagGrid', {
                'BagDatabase.views.ErrorButton'],
     listeners: {
         edit: function(editor, context, event) {
-            var origVal;
+            var origVal, newVal, valueChanged;
+            origVal;
             if (context.record.modified && context.record.modified[context.field]){
                 origVal = context.record.modified[context.field];
             }
             else {
                 origVal = context.originalValue;
             }
-            var newVal = context.value;
+            newVal = context.value;
             if (!newVal) {
                 newVal = null;
             }
-            var valueChanged = false;
+            valueChanged = false;
 
             if (typeof(newVal) == 'number' && typeof(origVal) == 'number') {
                 if (Math.abs(Math.abs(newVal) - Math.abs(origVal)) > 0.0000000001) {
@@ -75,8 +76,9 @@ Ext.define('BagDatabase.views.BagGrid', {
             }
         },
         rowcontextmenu: function(grid, record, tr, rowIndex, event) {
-            var records = grid.getSelection();
-            var items;
+            var records, items;
+            records = grid.getSelection();
+            items;
             if (records.length == 1) {
                 items = [{
                     text: 'View Bag Information',
@@ -235,8 +237,9 @@ Ext.define('BagDatabase.views.BagGrid', {
         renderer: function(value, metadata, record) {
             var strTags = [];
             record.tags().each(function(tag) {
-                var key = Ext.String.htmlEncode(tag.get('tag'));
-                var value = tag.get('value');
+                var key, value;
+                key = Ext.String.htmlEncode(tag.get('tag'));
+                value = tag.get('value');
                 if (value) {
                     value = Ext.String.htmlEncode(value);
                 }
@@ -282,12 +285,13 @@ Ext.define('BagDatabase.views.BagGrid', {
     },
 
     addTag: function(bagRecords) {
-        var bagIds = [];
+        var bagIds, win;
+        bagIds = [];
         bagRecords.forEach(function(record) {
             bagIds.push(record.get('id'));
         });
 
-        var win = Ext.create('BagDatabase.views.SetTagWindow', {
+        win = Ext.create('BagDatabase.views.SetTagWindow', {
             bagIds: bagIds,
             targetStores: [this.getStore(),
                 this.up('viewport').down('bagTreePanel').getStore()]
@@ -299,13 +303,14 @@ Ext.define('BagDatabase.views.BagGrid', {
         this.showBagDetails(bagId);
     },
     displayBagsOnMap: function(bagRecords) {
-        var bagIds = [];
-        var bagFilenames = [];
+        var bagIds, bagFilenames, win, loadMask, params;
+        bagIds = [];
+        bagFilenames = [];
         bagRecords.forEach(function(record) {
             bagIds.push(record.get('id'));
             bagFilenames.push(record.get('filename'));
         });
-        var win = Ext.create({
+        win = Ext.create({
             xtype: 'mapWindow',
             title: 'Path for ' + bagFilenames[0],
             width: 600,
@@ -313,13 +318,13 @@ Ext.define('BagDatabase.views.BagGrid', {
         });
         win.show();
 
-        var loadMask = new Ext.LoadMask({
+        loadMask = new Ext.LoadMask({
             target: win,
             msg: 'Loading coordinates...'
         });
         loadMask.show();
 
-        var params = {
+        params = {
             bagIds: bagIds
         };
         params[csrfName] = csrfToken;
@@ -387,7 +392,8 @@ Ext.define('BagDatabase.views.BagGrid', {
         win.show();
     },
     copyTextToClipboard: function(text) {
-      var textArea = document.createElement("textarea");
+      var successful, msg, textArea;
+      textArea = document.createElement("textarea");
 
       //
       // *** This styling is an extra step which is likely not required. ***
@@ -433,8 +439,8 @@ Ext.define('BagDatabase.views.BagGrid', {
       textArea.select();
 
       try {
-        var successful = document.execCommand('copy');
-        var msg = successful ? 'successful' : 'unsuccessful';
+        successful = document.execCommand('copy');
+        msg = successful ? 'successful' : 'unsuccessful';
         console.log('Copying text command was ' + msg);
       } catch (err) {
         console.log('Oops, unable to copy');

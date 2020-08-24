@@ -34,6 +34,7 @@ import com.google.common.collect.Sets;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.Set;
 
 @Entity
@@ -48,7 +49,7 @@ public class Script implements Serializable {
     private String description;
     @Column(length = 128)
     private String dockerImage;
-    private Double memoryLimitBytes;
+    private Long memoryLimitBytes;
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
@@ -56,8 +57,10 @@ public class Script implements Serializable {
     @Column(nullable = false)
     private String script;
     private Double timeoutSecs;
+    private Timestamp createdOn;
+    private Timestamp updatedOn;
 
-    @OneToMany(mappedBy = "bag",
+    @OneToMany(mappedBy = "script",
             cascade={CascadeType.REFRESH, CascadeType.MERGE},
             fetch = FetchType.EAGER)
     private Set<ScriptCriteria> criteria = Sets.newHashSet();
@@ -94,11 +97,11 @@ public class Script implements Serializable {
         this.dockerImage = dockerImage;
     }
 
-    public Double getMemoryLimitBytes() {
+    public Long getMemoryLimitBytes() {
         return memoryLimitBytes;
     }
 
-    public void setMemoryLimitBytes(Double memoryLimitBytes) {
+    public void setMemoryLimitBytes(Long memoryLimitBytes) {
         this.memoryLimitBytes = memoryLimitBytes;
     }
 
@@ -140,5 +143,21 @@ public class Script implements Serializable {
 
     private void setCriteria(Set<ScriptCriteria> criteria) {
         this.criteria = criteria;
+    }
+
+    public Timestamp getCreatedOn() {
+        return createdOn;
+    }
+
+    public void setCreatedOn(Timestamp createdOn) {
+        this.createdOn = createdOn;
+    }
+
+    public Timestamp getUpdatedOn() {
+        return updatedOn;
+    }
+
+    public void setUpdatedOn(Timestamp updatedOn) {
+        this.updatedOn = updatedOn;
     }
 }

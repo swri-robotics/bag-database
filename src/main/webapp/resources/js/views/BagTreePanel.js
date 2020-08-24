@@ -60,9 +60,10 @@ Ext.define('BagDatabase.views.BagTreePanel', {
         dataIndex: 'filename',
         flex: 2,
         renderer: function(value, metadata, record) {
-            var count = record.get('bagCount');
+            var count, filteredCount;
+            count = record.get('bagCount');
             if (count >= 0) {
-                var filteredCount = record.get('filteredBagCount');
+                filteredCount = record.get('filteredBagCount');
                 return value + ' <b>(' +
                     (filteredCount >= 0 ? filteredCount + '/' : '') +
                     count + ')</b>';
@@ -154,15 +155,17 @@ Ext.define('BagDatabase.views.BagTreePanel', {
     }, {
         text: 'Tags', dataIndex: 'tags', flex: 1.5, sortable: false,
         renderer: function(value, metadata, record) {
-            var bag = record.get('bag');
+            var bag, strTags;
+            bag = record.get('bag');
             if (!bag || !bag.tags) {
                 return '';
             }
 
-            var strTags = [];
+            strTags = [];
             bag.tags.forEach(function(tag) {
-                var key = Ext.String.htmlEncode(tag['tag']);
-                var value = tag['value'];
+                var key, value;
+                key = Ext.String.htmlEncode(tag['tag']);
+                value = tag['value'];
                 if (value) {
                     value = Ext.String.htmlEncode(value);
                 }
@@ -256,13 +259,14 @@ Ext.define('BagDatabase.views.BagTreePanel', {
     },
     listeners: {
         rowcontextmenu: function(grid, record, tr, rowIndex, event) {
-            var records = grid.getSelection();
-            var items;
-            var bags = grid.ownerCt.getBagRecords(records);
+            var records, items, bags, bagGrid;
+            records = grid.getSelection();
+            items;
+            bags = grid.ownerCt.getBagRecords(records);
             if (!bags || bags.length == 0) {
                 return;
             }
-            var bagGrid = grid.up('viewport').down('bagGrid');
+            bagGrid = grid.up('viewport').down('bagGrid');
             if (records.length == 1) {
                 items = [{
                     text: 'View Bag Information',

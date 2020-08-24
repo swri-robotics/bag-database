@@ -62,8 +62,9 @@ Ext.define('BagDatabase.views.TopicGrid', {
                        mt !== 'sensor_msgs/CompressedImage';
             },
             getTip: function(value, metadata, record) {
-                var mt = record.get('messageType');
-                var isImage = (mt === 'sensor_msgs/Image' ||
+                var mt, isImage;
+                mt = record.get('messageType');
+                isImage = (mt === 'sensor_msgs/Image' ||
                                mt === 'sensor_msgs/CompressedImage');
                 return isImage ? 'Display First Image' : 'Not an image topic';
             },
@@ -84,8 +85,9 @@ Ext.define('BagDatabase.views.TopicGrid', {
                        mt !== 'stereo_msgs/DisparityImage';
             },
             getTip: function(value, metadata, record) {
-                var mt = record.get('messageType');
-                var isImage = (mt === 'sensor_msgs/Image' ||
+                var mt, isImage;
+                mt = record.get('messageType');
+                isImage = (mt === 'sensor_msgs/Image' ||
                                mt === 'sensor_msgs/CompressedImage' ||
                                mt === 'stereo_msgs/DisparityImage');
                 return isImage ? 'Display Video' : 'Not an image topic';
@@ -107,8 +109,9 @@ Ext.define('BagDatabase.views.TopicGrid', {
                        mt !== 'stereo_msgs/DisparityImage';
             },
             getTip: function(value, metadata, record) {
-                var mt = record.get('messageType');
-                var isImage = (mt === 'sensor_msgs/Image' ||
+                var mt, isImage;
+                mt = record.get('messageType');
+                isImage = (mt === 'sensor_msgs/Image' ||
                                mt === 'sensor_msgs/CompressedImage' ||
                                mt === 'stereo_msgs/DisparityImage');
                 return isImage ? 'Display Video w/ Frame Skip' : 'Not an image topic';
@@ -155,9 +158,10 @@ Ext.define('BagDatabase.views.TopicGrid', {
         win.show();
     },
     showVideo: function(topic, frameSkip) {
-        var vidWidth = 720;
-        var vidHeight = 480;
-        var win = Ext.create('Ext.window.Window', {
+        var vidWidth, vidHeight, win;
+        vidWidth = 720;
+        vidHeight = 480;
+        win = Ext.create('Ext.window.Window', {
             title: topic,
             width: vidWidth + 10,
             height: vidHeight + 41,

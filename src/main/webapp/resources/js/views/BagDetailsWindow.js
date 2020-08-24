@@ -57,8 +57,9 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
         }
     },
     reloadTags: function() {
-        var me = this;
-        var tagGrid = me.down('#tags');
+        var me, tagGrid;
+        me = this;
+        tagGrid = me.down('#tags');
         if (!me.tagloadmask) {
             me.tagloadmask = new Ext.LoadMask({
                 msg: 'Reloading tags...',
@@ -80,9 +81,10 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
         });
     },
     initComponent: function() {
-        var me = this;
+        var me, params;
+        me = this;
 
-        var params = {
+        params = {
             bagId: this.bagId
         };
         params[csrfName] = csrfToken;
@@ -140,7 +142,8 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                     return;
                 }
 
-                var bag = Ext.util.JSON.decode(response.responseText);
+                var bag, mts;
+                bag = Ext.util.JSON.decode(response.responseText);
                 me.setTitle('Bag Details (' + bag.filename + ')');
                 bag.createdOn = new Date(bag.createdOn);
                 bag.endTime = new Date(bag.endTime);
@@ -151,7 +154,7 @@ Ext.define('BagDatabase.views.BagDetailsWindow', {
                 delete bag.parentId;
                 me.down('bagPropertyGrid').setSource(bag);
 
-                var mts = {};
+                mts = {};
                 bag.messageTypes.forEach(function(mt) {
                     mts[mt.md5sum] = mt;
                 })

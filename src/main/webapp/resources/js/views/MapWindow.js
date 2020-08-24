@@ -102,11 +102,12 @@ Ext.define('BagDatabase.views.MapWindow', {
         if (points.length == 0) {
             return;
         }
-        var tmpPoints = [];
+        var tmpPoints, routeFeature, startFeature, endFeature, source, layer;
+        tmpPoints = [];
         points.forEach(function(point) {
             tmpPoints.push(ol.proj.fromLonLat(point));
         });
-        var routeFeature = new ol.Feature({
+        routeFeature = new ol.Feature({
             geometry: new ol.geom.LineString(tmpPoints),
             name: 'Bag Route'
         });
@@ -116,14 +117,14 @@ Ext.define('BagDatabase.views.MapWindow', {
                 width: 2
             })
         }));
-        var startFeature = this.createCircleFeature(
+        startFeature = this.createCircleFeature(
             tmpPoints[0], 'Start Point', 'rgb(0,255,0)');
-        var endFeature = this.createCircleFeature(
+        endFeature = this.createCircleFeature(
             tmpPoints[tmpPoints.length-1], 'End Point', 'rgb(255,0,0)');
-        var source = new ol.source.Vector({
+        source = new ol.source.Vector({
             features: [routeFeature, startFeature, endFeature]
         });
-        var layer = new ol.layer.Vector({
+        layer = new ol.layer.Vector({
             source: source
         });
         this.map.addLayer(layer);

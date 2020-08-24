@@ -55,12 +55,13 @@ Ext.define('BagDatabase.views.TagGrid', {
         iconCls: 'tag-add-icon',
         disabled: false,
         handler: function(button) {
-            var tagGrid = button.up('tagGrid');
-            var bagId = tagGrid.bagId;
+            var tagGrid, bagId, win;
+            tagGrid = button.up('tagGrid');
+            bagId = tagGrid.bagId;
             // Weird note: 'tagName' must be some kind of reserved word
             // somewhere in ExtJs, because trying to pass in a parameter
             // name that causes all kinds of weird issues.
-            var win = Ext.create('BagDatabase.views.SetTagWindow', {
+            win = Ext.create('BagDatabase.views.SetTagWindow', {
                 bagIds: [bagId],
                 tagGrid: tagGrid
             });
@@ -72,9 +73,10 @@ Ext.define('BagDatabase.views.TagGrid', {
         iconCls: 'tag-delete-icon',
         disabled: false,
         handler: function(button) {
-            var tagGrid = button.up('tagGrid');
-            var records = tagGrid.getSelection();
-            var bagId = tagGrid.bagId;
+            var tagGrid, records, bagId;
+            tagGrid = button.up('tagGrid');
+            records = tagGrid.getSelection();
+            bagId = tagGrid.bagId;
 
             if (records.length > 0) {
                 Ext.Msg.confirm('Delete Confirmation',

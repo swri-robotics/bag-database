@@ -30,7 +30,7 @@ databaseChangeLog:
                   type: VARCHAR(128)
               - column:
                   name: memoryLimitBytes
-                  type: FLOAT
+                  type: BIGINT
               - column:
                   name: name
                   type: VARCHAR(255)
@@ -50,6 +50,12 @@ databaseChangeLog:
               - column:
                   name: timeoutSecs
                   type: FLOAT
+              - column:
+                  name: createdOn
+                  type: datetime
+              - column:
+                  name: updatedOn
+                  type: datetime
         - createTable:
             tableName: 'script_criteria'
             columns:
@@ -61,7 +67,7 @@ databaseChangeLog:
                     primaryKey: true
                     primaryKeyName: script_criteria_pkey
               - column:
-                  name: bagId
+                  name: scriptId
                   type: BIGINT
                   constraints:
                     nullable: false
@@ -82,7 +88,7 @@ databaseChangeLog:
       author: preed
       changes:
         - addForeignKeyConstraint:
-            baseColumnNames: bagId
+            baseColumnNames: scriptId
             baseTableName: script_criteria
             constraintName: fk_script_criteria_scripts
             deferrable: false

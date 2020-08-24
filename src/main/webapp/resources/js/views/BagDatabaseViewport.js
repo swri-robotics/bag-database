@@ -135,8 +135,9 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 bagGrid.down('#statusText').connectWebSocket(bagGrid.down('#errorButton'));
             },
             tabchange: function() {
-                var tabPanel = Ext.getCmp('tabPanel');
-                var index = tabPanel.items.indexOf(tabPanel.getActiveTab());
+                var tabPanel, index;
+                tabPanel = Ext.getCmp('tabPanel');
+                index = tabPanel.items.indexOf(tabPanel.getActiveTab());
                 Ext.state.Manager.set('active_tab', index);
             }
         }

@@ -46,6 +46,7 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.sql.Timestamp;
 import java.util.List;
 
 @Service
@@ -61,14 +62,17 @@ public class ScriptService extends StatusProvider {
     }
 
     @Transactional
-    public void addScript(Script script) {
+    public Long addScript(Script script) {
+        script.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+        script.setUpdatedOn(script.getCreatedOn());
         scriptRepository.save(script);
+        return script.getId();
     }
 
     @Transactional
-    public Long updateScript(Script script) {
+    public void updateScript(Script script) {
+        script.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
         scriptRepository.save(script);
-        return script.getId();
     }
 
     @Transactional

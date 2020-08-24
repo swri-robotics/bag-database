@@ -45,7 +45,7 @@ public class ScriptCriteria implements Serializable {
     private Long id;
 
     @Column(nullable = false)
-    private Long bagId;
+    private Long scriptId;
     @Column(length = 1024)
     private String directory;
     @Column(length = 1024)
@@ -55,11 +55,11 @@ public class ScriptCriteria implements Serializable {
     @ElementCollection
     private List<String> topicNames = Lists.newArrayList();
 
-    @MapsId("bagId")
-    @JoinColumn(name = "bagId")
+    @MapsId("scriptId")
+    @JoinColumn(name = "scriptId")
     @ManyToOne(optional = false)
     @JsonIgnore
-    private Bag bag;
+    private Script script;
 
     public Long getId() {
         return id;
@@ -69,12 +69,12 @@ public class ScriptCriteria implements Serializable {
         this.id = id;
     }
 
-    public Long getBagId() {
-        return bagId;
+    public Long getScriptId() {
+        return scriptId;
     }
 
-    public void setBagId(Long bagId) {
-        this.bagId = bagId;
+    public void setScriptId(Long scriptId) {
+        this.scriptId = scriptId;
     }
 
     public String getDirectory() {
@@ -109,11 +109,11 @@ public class ScriptCriteria implements Serializable {
         this.topicNames = topicNames;
     }
 
-    public Bag getBag() {
-        return bag;
+    public Script getScript() {
+        return script;
     }
 
-    public void setBag(Bag bag) {
-        this.bag = bag;
+    public void setScript(Script script) {
+        this.script = script;
     }
 }
