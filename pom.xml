@@ -449,6 +449,7 @@
                                 If you add any new Javascript files, make sure
                                 they're in the right order here.
                                 -->
+                                <include>bagGridDateRenderer-min.js</include>
                                 <include>models/Base-min.js</include>
                                 <include>models/ScriptCriteria-min.js</include>
                                 <include>models/Script-min.js</include>
@@ -462,6 +463,7 @@
                                 <include>stores/BagTreeStore-min.js</include>
                                 <include>stores/ErrorStore-min.js</include>
                                 <include>stores/ScriptStore-min.js</include>
+                                <include>views/ScriptGrid-min.js</include>
                                 <include>views/AboutWindow-min.js</include>
                                 <include>views/BagPropertyGrid-min.js</include>
                                 <include>views/ConfigWindow-min.js</include>

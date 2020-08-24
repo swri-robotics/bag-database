@@ -37,13 +37,14 @@ import com.github.dockerjava.transport.DockerHttpClient;
 import com.github.swrirobotics.bags.persistence.Script;
 import com.github.swrirobotics.bags.persistence.ScriptRepository;
 import com.github.swrirobotics.status.StatusProvider;
+import com.github.swrirobotics.support.web.ScriptList;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.Transactional;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
@@ -56,9 +57,12 @@ public class ScriptService extends StatusProvider {
 
     private static final Logger myLogger = LoggerFactory.getLogger(ScriptService.class);
 
-    @Transactional
-    public List<Script> getScripts() {
-        return scriptRepository.findAll();
+    @Transactional(readOnly = true)
+    public ScriptList getScripts() {
+        ScriptList list = new ScriptList();
+        list.setScripts(scriptRepository.findAll());
+        list.setTotalCount(list.getScripts().size());
+        return list;
     }
 
     @Transactional
@@ -102,7 +106,7 @@ public class ScriptService extends StatusProvider {
         // TODO pjr Start a job to run a script on a bag file
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public void getScriptResults(Long scriptResultId) {
         // TODO pjr Get results for a script run; need to think about what this will look like
     }

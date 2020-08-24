@@ -17,7 +17,7 @@ databaseChangeLog:
                     primaryKey: true
                     primaryKeyName: scripts_pkey
               - column:
-                  name: allowNetworkAccess
+                  name: allownetworkaccess
                   type: BOOLEAN
                   defaultValue: false
                   constraints:
@@ -26,10 +26,10 @@ databaseChangeLog:
                   name: description
                   type: TEXT
               - column:
-                  name: dockerImage
+                  name: dockerimage
                   type: VARCHAR(128)
               - column:
-                  name: memoryLimitBytes
+                  name: memorylimitbytes
                   type: BIGINT
               - column:
                   name: name
@@ -37,7 +37,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: runAutomatically
+                  name: runautomatically
                   type: BOOLEAN
                   defaultValue: false
                   constraints:
@@ -48,13 +48,13 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: timeoutSecs
+                  name: timeoutsecs
                   type: FLOAT
               - column:
-                  name: createdOn
+                  name: createdon
                   type: datetime
               - column:
-                  name: updatedOn
+                  name: updatedon
                   type: datetime
         - createTable:
             tableName: 'script_criteria'
@@ -67,7 +67,7 @@ databaseChangeLog:
                     primaryKey: true
                     primaryKeyName: script_criteria_pkey
               - column:
-                  name: scriptId
+                  name: scriptid
                   type: BIGINT
                   constraints:
                     nullable: false
@@ -78,17 +78,17 @@ databaseChangeLog:
                   name: filename
                   type: VARCHAR(1024)
               - column:
-                  name: messageTypes
+                  name: messagetypes
                   type: TEXT
               - column:
-                  name: topicNames
+                  name: topicbames
                   type: TEXT
   - changeSet:
       id: add-script-foreign-key
       author: preed
       changes:
         - addForeignKeyConstraint:
-            baseColumnNames: scriptId
+            baseColumnNames: scriptid
             baseTableName: script_criteria
             constraintName: fk_script_criteria_scripts
             deferrable: false

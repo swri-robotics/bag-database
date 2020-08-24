@@ -39,7 +39,9 @@ function startApplication() {
     });
 }
 
-bagGridDateRenderer = Ext.util.Format.dateRenderer('n/j/Y H:i:s');
+if (!bagGridDateRenderer) {
+    bagGridDateRenderer = Ext.util.Format.dateRenderer('n/j/Y H:i:s');
+}
 
 Ext.onReady(function() {
     // Set up our state provider before we start the app so we can reliably

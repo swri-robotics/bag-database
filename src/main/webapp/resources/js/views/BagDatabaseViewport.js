@@ -40,7 +40,8 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 'BagDatabase.views.NavigationButton',
                 'BagDatabase.views.MapWindow',
                 'BagDatabase.views.SearchPanel',
-                'BagDatabase.views.BagTreeFilterPanel' ],
+                'BagDatabase.views.BagTreeFilterPanel',
+                'BagDatabase.views.ScriptGrid'],
     items: [{
         xtype: 'tabpanel',
         region: 'center',
@@ -86,6 +87,19 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 itemId: 'bagTreePanel',
                 stateful: true,
                 stateId: 'bagTreePanel',
+                region: 'center'
+            }]
+        }, {
+            xtype: 'panel',
+            layout: 'border',
+            title: 'Scripts',
+            stateId: 'scriptTab',
+            items: [{
+                xtype: 'scriptGrid',
+                itemId: 'scriptGrid',
+                stateful: true,
+                stateId: 'scriptGrid',
+                title: 'Scripts',
                 region: 'center'
             }]
         }],
