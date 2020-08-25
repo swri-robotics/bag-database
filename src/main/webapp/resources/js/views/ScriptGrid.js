@@ -31,57 +31,112 @@
 Ext.define('BagDatabase.views.ScriptGrid', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.scriptGrid',
-    title: 'Scripts',
     requires: ['BagDatabase.models.Script',
                'BagDatabase.stores.ScriptStore',
                'BagDatabase.views.ScriptWindow'],
-    store: Ext.create('BagDatabase.stores.ScriptStore'),
     columns: [{
-        text: 'Name', dataIndex: 'name'
+        text: 'Name', dataIndex: 'name', flex: 1
     }, {
-        text: 'Network Access?', dataIndex: 'allowNetworkAccess'
+        text: 'Description', dataIndex: 'description', flex: 2
     }, {
-        text: 'Docker Image', dataIndex: 'dockerImage'
+        text: 'Docker Image', dataIndex: 'dockerImage', flex: 1
     }, {
-        text: 'Memory Limit (B)', dataIndex: 'memoryLimitBytes'
+        text: 'Network Access?', dataIndex: 'allowNetworkAccess', flex: 1
     }, {
-        text: 'Run Automatically?', dataIndex: 'runAutomatically'
+        text: 'Memory Limit (B)', dataIndex: 'memoryLimitBytes', flex: 1
     }, {
-        text: 'Script', dataIndex: 'script'
+        text: 'Run Automatically?', dataIndex: 'runAutomatically', flex: 1
     }, {
-        text: 'Timeout (s)', dataIndex: 'timeoutSecs'
+        text: 'Timeout (s)', dataIndex: 'timeoutSecs', flex: 1
     }, {
-        text: 'Created On', dataIndex: 'createdOn', renderer: bagGridDateRenderer
+        text: 'Created On', dataIndex: 'createdOn', renderer: bagGridDateRenderer, flex: 1
     }, {
-        text: 'Updated On', dataIndex: 'updatedOn', renderer: bagGridDateRenderer
-    }, {
-        text: 'Description', dataIndex: 'description'
+        text: 'Updated On', dataIndex: 'updatedOn', renderer: bagGridDateRenderer, flex: 1
     }],
     listeners: {
         rowdblclick: function(grid, record) {
             var scriptId = record.get('id');
-            grid.ownerCt.showScriptDetails(scriptId);
+            grid.ownerCt.showScriptDetails(scriptId, grid.store);
         }
     },
-    buttons: [{
+    tbar: [{
+        xtype: 'button',
         text: 'Create',
+        iconCls: 'script-add-icon',
         itemId: 'createButton',
-        handler: function() {
-            var win = Ext.create('BagDatabase.views.ScriptWindow');
+        handler: function(button) {
+            var win, store;
+            win = Ext.create('BagDatabase.views.ScriptWindow', {
+                store: button.up('grid').store
+            });
             win.show();
         }
     }, {
+        xtype: 'button',
         text: 'Run',
+        iconCls: 'script-go-icon',
         itemId: 'runButton'
     }, {
+        xtype: 'button',
         text: 'Delete',
-        itemId: 'deleteButton'
+        iconCls: 'script-delete-icon',
+        itemId: 'deleteButton',
+        handler: function(button) {
+            var selection, item, store;
+            selection = button.up('grid').getSelection();
+            if (selection && selection.length > 0) {
+                item = selection[0];
+                store = button.up('grid').store;
+                Ext.Msg.confirm('Delete Script?',
+                                'Are you sure you want to delete the script "' + item.get('name') + '"?',
+                                function(buttonId) {
+                                    if (buttonId == 'yes') {
+                                        params = {
+                                            scriptId: selection[0].get('id')
+                                        };
+                                        params[csrfName] = csrfToken;
+                                        Ext.Ajax.request({
+                                            url: 'scripts/delete',
+                                            params: params,
+                                            success: function() {
+                                                store.reload();
+                                            }
+                                        });
+                                    }
+                                });
+            }
+        }
+    }, {
+        xtype: 'button',
+        text: 'Refresh',
+        iconCls: 'refresh-icon',
+        itemId: 'refreshButton',
+        handler: function(button) {
+            button.up('grid').store.reload();
+        }
     }],
-    showScriptDetails: function(scriptId) {
-        var win = Ext.create({
-            xtype: 'scriptWindow',
-            scriptId: scriptId
+    showScriptDetails: function(scriptId, store) {
+        var win = Ext.create('BagDatabase.views.ScriptWindow', {
+            scriptId: scriptId,
+            store: store
         });
         win.show();
+    },
+    initComponent: function() {
+        var me = this;
+        Ext.apply(this, {
+            store: Ext.create('BagDatabase.stores.ScriptStore', {
+                listeners: {
+                    beforeload: function(store) {
+                        me.setLoading(true);
+                    },
+                    load: function(store) {
+                        me.setLoading(false);
+                    }
+                }
+            })
+        });
+
+        this.callParent(arguments);
     }
 });

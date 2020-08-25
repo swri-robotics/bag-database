@@ -89,11 +89,31 @@ div.ol-viewport {
 }
 
 .refresh-icon {
-    background-image: url('../images/arrow_rotate_anticlockwise.png');
+    background-image: url('../images/arrow_refresh.png');
 }
 
 .save-icon {
     background-image: url('../images/save.png');
+}
+
+.script-icon {
+    background-image: url('../images/script.png');
+}
+
+.script-go-icon {
+    background-image: url('../images/script_go.png');
+}
+
+.script-add-icon {
+    background-image: url('../images/script_add.png');
+}
+
+.script-delete-icon {
+    background-image: url('../images/script_delete.png');
+}
+
+.script-save-icon {
+    background-image: url('../images/script_save.png');
 }
 
 .table-icon {

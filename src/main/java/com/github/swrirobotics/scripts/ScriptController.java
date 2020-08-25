@@ -36,12 +36,8 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,6 +50,12 @@ public class ScriptController {
 
     private final Logger myLogger = LoggerFactory.getLogger(ScriptController.class);
 
+    @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    public void deleteScript(Long scriptId) {
+        myLogger.info("deleteScript: " + scriptId);
+        myScriptService.removeScript(scriptId);
+    }
+
     @RequestMapping("/list")
     public ScriptList getScripts() {
         myLogger.debug("getScripts()");
@@ -63,7 +65,7 @@ public class ScriptController {
     @RequestMapping("/get")
     @ResponseBody
     public Map<String, Object> getScript(Long scriptId) {
-        myLogger.info("getScript");
+        myLogger.info("getScript: " + scriptId);
 
         Map<String, Object> response = Maps.newHashMap();
         response.put("success", true);
@@ -74,7 +76,7 @@ public class ScriptController {
 
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     @ResponseBody
-    public Map<String, Object> saveScript(@RequestParam Optional<Long> id,
+    public Map<String, Object> saveScript(@RequestParam Long id,
                                           @RequestParam String name,
                                           @RequestParam Boolean allowNetworkAccess,
                                           @RequestParam Optional<String> description,
@@ -86,13 +88,13 @@ public class ScriptController {
         myLogger.info("saveScript");
 
         Script script;
-        if (id.isPresent()) {
-            script = myScriptService.getScript(id.get());
+        if (id > 0) {
+            script = myScriptService.getScript(id);
         }
         else {
             script = new Script();
         }
-        script.setId(id.orElse(null));
+        script.setId(id > 0 ? id : null);
         script.setName(name);
         script.setAllowNetworkAccess(allowNetworkAccess);
         script.setDescription(description.orElse(null));
@@ -102,7 +104,7 @@ public class ScriptController {
         script.setTimeoutSecs(timeoutSecs.orElse(null));
         script.setScript(scriptText);
 
-        if (id.isPresent()) {
+        if (id > 0) {
             myScriptService.updateScript(script);
         }
         else {

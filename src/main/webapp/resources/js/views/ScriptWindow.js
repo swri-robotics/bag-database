@@ -33,7 +33,8 @@ Ext.define('BagDatabase.views.ScriptWindow', {
     alias: 'widget.scriptWindow',
     layout: 'fit',
     title: 'Script Properties',
-    width: 500,
+    width: 700,
+    height: 550,
     constrainHeader: true,
     items: [{
         xtype: 'form',
@@ -41,6 +42,10 @@ Ext.define('BagDatabase.views.ScriptWindow', {
         itemId: 'scriptForm',
         url: 'scripts/save',
         defaultType: 'textfield',
+        layout: {
+            type: 'vbox',
+            align: 'stretch'
+        },
         defaults: {
             labelWidth: 140,
             width: '100%'
@@ -48,6 +53,16 @@ Ext.define('BagDatabase.views.ScriptWindow', {
         items: [{
             fieldLabel: 'Id',
             name: 'id',
+            xtype: 'hidden',
+            value: 0
+        }, {
+            fieldLabel: 'Created On',
+            name: 'createdOn',
+            xtype: 'hidden',
+            value: 0
+        }, {
+            fieldLabel: 'Updated On',
+            name: 'updatedOn',
             xtype: 'hidden',
             value: 0
         }, {
@@ -86,25 +101,19 @@ Ext.define('BagDatabase.views.ScriptWindow', {
             fieldLabel: 'Script',
             name: 'script',
             xtype: 'textareafield',
-            allowBlank: false
-        }, {
-            fieldLabel: 'Created On',
-            name: 'createdOn',
-            xtype: 'hidden',
-            value: 0
-        }, {
-            fieldLabel: 'Updated On',
-            name: 'updatedOn',
-            xtype: 'hidden',
-            value: 0
+            allowBlank: false,
+            flex: 1
         }],
         buttons: [{
             text: 'Save',
+            iconCls: 'script-save-icon',
             formBind: true,
             disabled: true,
             handler: function() {
-                var form, params;
+                var form, params, store, win;
                 form = this.up('form').getForm();
+                win = this.up('window');
+                store = win.store;
                 if (form.isValid()) {
                     params = {};
                     params[csrfName] = csrfToken;
@@ -112,6 +121,10 @@ Ext.define('BagDatabase.views.ScriptWindow', {
                         params: params,
                         success: function() {
                             Ext.Msg.alert('Success', 'Script was saved.');
+                            if (store) {
+                                store.reload();
+                            }
+                            win.close();
                         },
                         failure: function() {
                             Ext.Msg.alert('Failure', 'Error saving script.');

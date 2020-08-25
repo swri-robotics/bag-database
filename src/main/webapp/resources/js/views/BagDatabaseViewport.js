@@ -93,13 +93,13 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
             xtype: 'panel',
             layout: 'border',
             title: 'Scripts',
+            iconCls: 'script-icon',
             stateId: 'scriptTab',
             items: [{
                 xtype: 'scriptGrid',
                 itemId: 'scriptGrid',
                 stateful: true,
                 stateId: 'scriptGrid',
-                title: 'Scripts',
                 region: 'center'
             }]
         }],
