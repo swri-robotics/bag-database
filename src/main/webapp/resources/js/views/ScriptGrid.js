@@ -34,6 +34,7 @@ Ext.define('BagDatabase.views.ScriptGrid', {
     requires: ['BagDatabase.models.Script',
                'BagDatabase.stores.ScriptStore',
                'BagDatabase.views.ScriptWindow'],
+    title: 'Scripts',
     columns: [{
         text: 'Name', dataIndex: 'name', flex: 1
     }, {
@@ -59,62 +60,65 @@ Ext.define('BagDatabase.views.ScriptGrid', {
             grid.ownerCt.showScriptDetails(scriptId, grid.store);
         }
     },
-    tbar: [{
-        xtype: 'button',
-        text: 'Create',
-        iconCls: 'script-add-icon',
-        itemId: 'createButton',
-        handler: function(button) {
-            var win, store;
-            win = Ext.create('BagDatabase.views.ScriptWindow', {
-                store: button.up('grid').store
-            });
-            win.show();
-        }
-    }, {
-        xtype: 'button',
-        text: 'Run',
-        iconCls: 'script-go-icon',
-        itemId: 'runButton'
-    }, {
-        xtype: 'button',
-        text: 'Delete',
-        iconCls: 'script-delete-icon',
-        itemId: 'deleteButton',
-        handler: function(button) {
-            var selection, item, store;
-            selection = button.up('grid').getSelection();
-            if (selection && selection.length > 0) {
-                item = selection[0];
-                store = button.up('grid').store;
-                Ext.Msg.confirm('Delete Script?',
-                                'Are you sure you want to delete the script "' + item.get('name') + '"?',
-                                function(buttonId) {
-                                    if (buttonId == 'yes') {
-                                        params = {
-                                            scriptId: selection[0].get('id')
-                                        };
-                                        params[csrfName] = csrfToken;
-                                        Ext.Ajax.request({
-                                            url: 'scripts/delete',
-                                            params: params,
-                                            success: function() {
-                                                store.reload();
-                                            }
-                                        });
-                                    }
-                                });
+    header: {
+        padding: 6,
+        items: [{
+            xtype: 'button',
+            text: 'Create',
+            iconCls: 'script-add-icon',
+            itemId: 'createButton',
+            handler: function(button) {
+                var win, store;
+                win = Ext.create('BagDatabase.views.ScriptWindow', {
+                    store: button.up('grid').store
+                });
+                win.show();
             }
-        }
-    }, {
-        xtype: 'button',
-        text: 'Refresh',
-        iconCls: 'refresh-icon',
-        itemId: 'refreshButton',
-        handler: function(button) {
-            button.up('grid').store.reload();
-        }
-    }],
+        }, {
+            xtype: 'button',
+            text: 'Run',
+            iconCls: 'script-go-icon',
+            itemId: 'runButton'
+        }, {
+            xtype: 'button',
+            text: 'Delete',
+            iconCls: 'script-delete-icon',
+            itemId: 'deleteButton',
+            handler: function(button) {
+                var selection, item, store;
+                selection = button.up('grid').getSelection();
+                if (selection && selection.length > 0) {
+                    item = selection[0];
+                    store = button.up('grid').store;
+                    Ext.Msg.confirm('Delete Script?',
+                                    'Are you sure you want to delete the script "' + item.get('name') + '"?',
+                                    function(buttonId) {
+                                        if (buttonId == 'yes') {
+                                            params = {
+                                                scriptId: selection[0].get('id')
+                                            };
+                                            params[csrfName] = csrfToken;
+                                            Ext.Ajax.request({
+                                                url: 'scripts/delete',
+                                                params: params,
+                                                success: function() {
+                                                    store.reload();
+                                                }
+                                            });
+                                        }
+                                    });
+                }
+            }
+       }, {
+           xtype: 'button',
+           text: 'Refresh',
+           iconCls: 'refresh-icon',
+           itemId: 'refreshButton',
+           handler: function(button) {
+               button.up('grid').store.reload();
+           }
+       }]
+    },
     showScriptDetails: function(scriptId, store) {
         var win = Ext.create('BagDatabase.views.ScriptWindow', {
             scriptId: scriptId,
