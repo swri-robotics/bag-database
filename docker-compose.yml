@@ -1,5 +1,15 @@
-version: '2'
+version: '3.6'
 services:
+    docker:
+        image: docker:dind
+        privileged: yes
+        networks:
+            - bagdb
+        volumes:
+            - bags:/bags:ro # Needs to match the path in the bagdb container
+            - certs:/certs/client
+            - scripts:/scripts
+            - docker_cache:/var/lib/docker
     bagdb:
         build: .
         networks:
@@ -10,14 +20,17 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - /home/preed/public_html/bags:/bags:ro # Replace this with the path to your bag files
+            - bags:/bags:ro # Replace this with the path to your bag files
             - indexes:/root/.ros-bag-database/indexes
+            - certs:/certs/client:ro
+            - scripts:/scripts
         environment:
             ADMIN_PASSWORD: "letmein"
             DB_DRIVER: org.postgresql.Driver
             DB_PASS: letmein
             DB_URL: "jdbc:postgresql://postgres/bag_database"
             DB_USER: bag_database
+            DOCKER_HOST: "tcp://docker:2376"
             USE_BING: "false"
             USE_TILE_MAP: "true"
             METADATA_TOPICS: "/metadata"
@@ -57,7 +70,19 @@ services:
 networks:
     bagdb: {}
 volumes:
+    bags:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: '/home/preed/public_html/bags'
+    certs:
+    docker_cache:
     postgres:
     ldap:
     slapd:
     indexes:
+    scripts:
+        driver_opts:
+            type: 'tmpfs'
+            device: 'tmpfs'

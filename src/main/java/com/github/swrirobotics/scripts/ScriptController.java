@@ -32,6 +32,8 @@ package com.github.swrirobotics.scripts;
 
 import com.github.swrirobotics.bags.persistence.Script;
 import com.github.swrirobotics.support.web.ScriptList;
+import com.github.swrirobotics.support.web.ScriptRunResult;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +74,21 @@ public class ScriptController {
         response.put("data", myScriptService.getScript(scriptId));
 
         return response;
+    }
+
+    @RequestMapping("/run")
+    public ScriptRunResult runScript(@RequestParam Long scriptId,
+                                     @RequestParam Long[] bagIds) {
+        myLogger.info("runScript: " + scriptId);
+        ScriptRunResult result = new ScriptRunResult();
+        try {
+            myScriptService.runScript(scriptId, Lists.newArrayList(bagIds));
+            result.success = true;
+        }
+        catch (ScriptRunException e) {
+            result.message = e.getLocalizedMessage();
+        }
+        return result;
     }
 
     @RequestMapping(value = "/save", method = RequestMethod.POST)
