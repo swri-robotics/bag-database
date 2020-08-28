@@ -65,6 +65,11 @@ public class Script implements Serializable {
             fetch = FetchType.EAGER)
     private Set<ScriptCriteria> criteria = Sets.newHashSet();
 
+    @OneToMany(mappedBy = "script",
+            cascade={CascadeType.REFRESH, CascadeType.MERGE},
+            fetch = FetchType.LAZY)
+    private Set<ScriptResult> results = Sets.newHashSet();
+
     public Long getId() {
         return id;
     }
@@ -159,5 +164,13 @@ public class Script implements Serializable {
 
     public void setUpdatedOn(Timestamp updatedOn) {
         this.updatedOn = updatedOn;
+    }
+
+    public Set<ScriptResult> getResults() {
+        return results;
+    }
+
+    private void setResults(Set<ScriptResult> results) {
+        this.results = results;
     }
 }

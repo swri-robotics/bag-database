@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,27 +28,12 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.account;
+package com.github.swrirobotics.bags.persistence;
 
-import com.github.swrirobotics.config.WebSecurityConfigurationAware;
-import org.junit.Test;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-public class UserAuthenticationIntegrationTest extends WebSecurityConfigurationAware {
-    @Test
-    public void requiresAuthentication() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(redirectedUrl("http://localhost/ldap_login"));
-    }
-
-    @Test
-    public void authenticatedAsUser() throws Exception {
-        mockMvc.perform(get("/")
-                    .with(user("user")))
-                .andExpect(status().isOk());
-    }
+@Repository
+public interface ScriptResultRepository extends JpaRepository<ScriptResult, Long>, JpaSpecificationExecutor<ScriptResult> {
 }

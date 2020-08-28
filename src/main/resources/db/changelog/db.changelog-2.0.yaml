@@ -52,17 +52,17 @@ databaseChangeLog:
                   type: FLOAT
               - column:
                   name: createdon
-                  type: datetime
+                  type: DATETIME
               - column:
                   name: updatedon
-                  type: datetime
+                  type: DATETIME
         - createTable:
             tableName: 'script_criteria'
             columns:
               - column:
                   autoIncrement: true
                   name: id
-                  type: bigint
+                  type: BIGINT
                   constraints:
                     primaryKey: true
                     primaryKeyName: script_criteria_pkey
@@ -81,7 +81,7 @@ databaseChangeLog:
                   name: messagetypes
                   type: TEXT
               - column:
-                  name: topicbames
+                  name: topicnames
                   type: TEXT
   - changeSet:
       id: add-script-foreign-key
@@ -91,6 +91,61 @@ databaseChangeLog:
             baseColumnNames: scriptid
             baseTableName: script_criteria
             constraintName: fk_script_criteria_scripts
+            deferrable: false
+            initiallyDeferred: false
+            onDelete: CASCADE
+            onUpdate: NO ACTION
+            referencedColumnNames: id
+            referencedTableName: scripts
+  - changeSet:
+      id: add-script-results-table
+      author: preed
+      changes:
+        - createTable:
+            tableName: 'script_results'
+            columns:
+              - column:
+                  autoIncrement: true
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: script_results_pkey
+              - column:
+                  name: durationsecs
+                  type: FLOAT
+              - column:
+                  name: errormessage
+                  type: TEXT
+              - column:
+                  name: scriptid
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: starttime
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stderr
+                  type: TEXT
+              - column:
+                  name: stdout
+                  type: TEXT
+              - column:
+                  name: success
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: add-script-results-foreign-key
+      author: preed
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: scriptid
+            baseTableName: script_results
+            constraintName: fk_script_results_scripts
             deferrable: false
             initiallyDeferred: false
             onDelete: CASCADE
