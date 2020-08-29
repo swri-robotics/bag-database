@@ -48,7 +48,6 @@ import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -77,6 +76,7 @@ public class ScriptService extends StatusProvider {
     private static final String CLIENT_CERT_PATH = "/certs/client";
     private static final String SCRIPTS_PATH = "/scripts";
     private static final String SCRIPT_TMP_NAME = "/script.py";
+    private static final int MINIMUM_THREAD_POOL_SIZE = 4;
 
     private static final Logger myLogger = LoggerFactory.getLogger(ScriptService.class);
 
@@ -277,8 +277,8 @@ public class ScriptService extends StatusProvider {
     @PostConstruct
     public void initializeTaskExecutor() {
         taskExecutor = new ThreadPoolTaskExecutor();
-        taskExecutor.setCorePoolSize(4);
-        taskExecutor.setMaxPoolSize(Runtime.getRuntime().availableProcessors());
+        taskExecutor.setCorePoolSize(MINIMUM_THREAD_POOL_SIZE);
+        taskExecutor.setMaxPoolSize(Math.max(Runtime.getRuntime().availableProcessors(), MINIMUM_THREAD_POOL_SIZE));
         taskExecutor.initialize();
     }
 
