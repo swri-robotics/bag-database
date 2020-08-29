@@ -45,7 +45,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("scripts")
-@ControllerAdvice
 public class ScriptController {
     @Autowired
     private ScriptService myScriptService;
@@ -61,7 +60,9 @@ public class ScriptController {
     @RequestMapping("/list")
     public ScriptList getScripts() {
         myLogger.debug("getScripts()");
-        return myScriptService.getScripts();
+        ScriptList list = myScriptService.getScripts();
+        myLogger.debug("returning scripts");
+        return list;
     }
 
     @RequestMapping("/get")

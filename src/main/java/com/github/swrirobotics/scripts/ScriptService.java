@@ -44,18 +44,17 @@ import com.github.dockerjava.transport.DockerHttpClient;
 import com.github.swrirobotics.bags.persistence.*;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.ScriptList;
-import com.google.common.base.Joiner;
 import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -72,6 +71,8 @@ public class ScriptService extends StatusProvider {
     private ScriptResultRepository resultRepository;
     @Autowired
     private BagRepository bagRepository;
+
+    private ThreadPoolTaskExecutor taskExecutor;
 
     private static final String CLIENT_CERT_PATH = "/certs/client";
     private static final String SCRIPTS_PATH = "/scripts";
@@ -109,111 +110,120 @@ public class ScriptService extends StatusProvider {
 
         @Override
         public void run() {
-            myLogger.info("Starting RunnableScript task for [" + script.getName() + "]");
-            String containerName = null;
-
-            ScriptResult result = new ScriptResult();
-            result.setStartTime(new Timestamp(startTime));
-            result.setScriptId(script.getId());
-            result.setSuccess(false);
-
             try {
-                File scriptDir = new File(SCRIPTS_PATH);
-                File scriptFile = File.createTempFile("bagdb", "py", scriptDir);
-                scriptFile.setExecutable(true);
-                FileWriter writer = new FileWriter(scriptFile);
-                writer.write(script.getScript());
-                writer.close();
+                myLogger.info("Starting RunnableScript task for [" + script.getName() + "]");
+                String containerName = null;
 
-                List<Bind> volumes = Lists.newArrayList();
-                volumes.add(new Bind(scriptFile.getAbsolutePath(), new Volume(SCRIPT_TMP_NAME)));
-                for (Bag bag : bags) {
-                    volumes.add(new Bind(bag.getPath() + "/" + bag.getFilename(),
-                            new Volume("/" + bag.getFilename()),
-                            AccessMode.ro));
-                }
-                List<String> command = Lists.newArrayList();
-                for (Bind vol : volumes) {
-                    command.add(vol.getVolume().toString());
-                }
+                ScriptResult result = new ScriptResult();
+                result.setStartTime(new Timestamp(startTime));
+                result.setScriptId(script.getId());
+                result.setSuccess(false);
 
-                myLogger.info("Pulling Docker image: " + script.getDockerImage());
-                client.pullImageCmd(script.getDockerImage()).start().awaitCompletion();
+                try {
+                    File scriptDir = new File(SCRIPTS_PATH);
+                    File scriptFile = File.createTempFile("bagdb", "py", scriptDir);
+                    scriptFile.setExecutable(true);
+                    FileWriter writer = new FileWriter(scriptFile);
+                    writer.write(script.getScript());
+                    writer.close();
 
-                var createCmd = client.createContainerCmd(script.getDockerImage())
-                        .withNetworkDisabled(!script.getAllowNetworkAccess())
-                        .withAttachStdout(true)
-                        .withAttachStderr(true)
-                        .withBinds(volumes)
-                        .withCmd(command);
-                if (script.getMemoryLimitBytes() != null && script.getMemoryLimitBytes() > 0) {
-                    createCmd.withMemory(script.getMemoryLimitBytes());
-                }
-                var createResponse = createCmd.exec();
-                containerName = createResponse.getId();
-                myLogger.info("Created container: " + containerName);
-
-                var logContainerCmd= client.logContainerCmd(containerName)
-                        .withStdOut(true)
-                        .withStdErr(true)
-                        .withFollowStream(true)
-                        .withTailAll();
-
-                myLogger.info("Started container");
-                StringBuffer stdoutBuffer = new StringBuffer();
-                StringBuffer stderrBuffer = new StringBuffer();
-
-                var logCallback = new ResultCallback.Adapter<Frame>(){
-                    @Override
-                    public void onNext(Frame item) {
-                        switch (item.getStreamType())
-                        {
-                            case STDOUT:
-                                stdoutBuffer.append(new String(item.getPayload(), StandardCharsets.UTF_8));
-                                break;
-                            case STDERR:
-                                stderrBuffer.append(new String(item.getPayload(), StandardCharsets.UTF_8));
-                                break;
-                            case STDIN:
-                            case RAW:
-                                break;
-                        }
+                    List<Bind> volumes = Lists.newArrayList();
+                    volumes.add(new Bind(scriptFile.getAbsolutePath(), new Volume(SCRIPT_TMP_NAME)));
+                    for (Bag bag : bags) {
+                        volumes.add(new Bind(bag.getPath() + "/" + bag.getFilename(),
+                                new Volume("/" + bag.getFilename()),
+                                AccessMode.ro));
                     }
-                };
+                    List<String> command = Lists.newArrayList();
+                    for (Bind vol : volumes) {
+                        command.add(vol.getVolume().toString());
+                    }
 
-                // We can't run the log command until after the start command, but we want it to happen
-                // as soon as possible afterward to ensure that we don't miss any of the output.
-                client.startContainerCmd(containerName).exec();
-                logContainerCmd.exec(logCallback).awaitCompletion();
+                    myLogger.info("Pulling Docker image: " + script.getDockerImage());
+                    client.pullImageCmd(script.getDockerImage()).start().awaitCompletion();
 
-                String stdout = stdoutBuffer.toString().trim();
-                myLogger.info("Output:\n" + stdout);
-                String stderr = stderrBuffer.toString().trim();
-                if (!stderr.isEmpty()) {
-                    result.setStderr(stderr);
-                    myLogger.info("Stderr:\n" + stderr);
+                    var createCmd = client.createContainerCmd(script.getDockerImage())
+                            .withNetworkDisabled(!script.getAllowNetworkAccess())
+                            .withAttachStdout(true)
+                            .withAttachStderr(true)
+                            .withBinds(volumes)
+                            .withCmd(command);
+                    if (script.getMemoryLimitBytes() != null && script.getMemoryLimitBytes() > 0) {
+                        createCmd.withMemory(script.getMemoryLimitBytes());
+                    }
+                    var createResponse = createCmd.exec();
+                    containerName = createResponse.getId();
+                    myLogger.info("Created container: " + containerName);
+
+                    var logContainerCmd = client.logContainerCmd(containerName)
+                            .withStdOut(true)
+                            .withStdErr(true)
+                            .withFollowStream(true)
+                            .withTailAll();
+
+                    myLogger.info("Started container");
+                    StringBuffer stdoutBuffer = new StringBuffer();
+                    StringBuffer stderrBuffer = new StringBuffer();
+
+                    var logCallback = new ResultCallback.Adapter<Frame>() {
+                        @Override
+                        public void onNext(Frame item) {
+                            switch (item.getStreamType()) {
+                                case STDOUT:
+                                    stdoutBuffer.append(new String(item.getPayload(), StandardCharsets.UTF_8));
+                                    break;
+                                case STDERR:
+                                    stderrBuffer.append(new String(item.getPayload(), StandardCharsets.UTF_8));
+                                    break;
+                                case STDIN:
+                                case RAW:
+                                    break;
+                            }
+                        }
+                    };
+
+                    // We can't run the log command until after the start command, but we want it to happen
+                    // as soon as possible afterward to ensure that we don't miss any of the output.
+                    client.startContainerCmd(containerName).exec();
+                    logContainerCmd.exec(logCallback).awaitCompletion();
+
+                    String stdout = stdoutBuffer.toString().trim();
+                    myLogger.debug("Output:\n" + stdout);
+                    String stderr = stderrBuffer.toString().trim();
+                    if (!stderr.isEmpty()) {
+                        result.setStderr(stderr);
+                        myLogger.warn("Stderr:\n" + stderr);
+                    }
+                    else {
+                        result.setSuccess(true);
+                    }
+
+                    result.setStdout(stdout);
                 }
-                else {
-                    result.setSuccess(true);
+                catch (InterruptedException e) {
+                    myLogger.warn("Script was interrupted.");
+                    result.setErrorMessage("Script was interrupted.");
+                }
+                catch (IOException e) {
+                    myLogger.info("IO Exception: " + e.getLocalizedMessage());
+                    result.setErrorMessage(e.getLocalizedMessage());
+                }
+                finally {
+                    if (containerName != null) {
+                        myLogger.info("Removing container: " + containerName);
+                        client.removeContainerCmd(containerName).withForce(true).exec();
+                    }
                 }
 
-                result.setStdout(stdout);
-            }
-            catch (InterruptedException | IOException e) {
-                myLogger.info(e.getLocalizedMessage());
-                result.setErrorMessage(e.getLocalizedMessage());
-            }
-            finally {
-                if (containerName != null) {
-                    myLogger.info("Removing container: " + containerName);
-                    client.removeContainerCmd(containerName).exec();
-                }
-            }
+                long stopTime = System.currentTimeMillis();
+                result.setDurationSecs((stopTime - startTime) / 1000.0);
 
-            long stopTime = System.currentTimeMillis();
-            result.setDurationSecs((stopTime - startTime) / 1000.0);
-
-            saveResult(result);
+                saveResult(result);
+                myLogger.info("Script finished.");
+            }
+            catch (Exception e) {
+                myLogger.error("Unexpected exception", e);
+            }
         }
 
         @Transactional
@@ -222,21 +232,18 @@ public class ScriptService extends StatusProvider {
         }
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 500)
     public void checkRunningScripts() {
-        myLogger.info("Checking running scripts.");
         synchronized (runningScripts) {
+            if (!runningScripts.isEmpty()) {
+                myLogger.info(runningScripts.size() + " scripts currently running.");
+            }
             long now = System.currentTimeMillis();
             List<RunnableScript> finishedScripts = Lists.newArrayList();
-            List<RunnableScript> canceledScripts = Lists.newArrayList();
             for (RunnableScript script : runningScripts) {
                 Future<?> future = script.getFuture();
-                if (future.isDone()) {
+                if (future.isCancelled() || future.isDone()) {
                     finishedScripts.add(script);
-                    continue;
-                }
-                if (future.isCancelled()) {
-                    canceledScripts.add(script);
                     continue;
                 }
 
@@ -244,29 +251,19 @@ public class ScriptService extends StatusProvider {
                 if (timeout != null && timeout > 0.0) {
                     double elapsed = (now - script.startTime) / 1000.0;
                     if (elapsed > timeout) {
+                        myLogger.warn("Cancelling run for script ["
+                                + script.getScript().getName() + "] due to timeout.");
                         future.cancel(true);
                     }
                 }
             }
 
             runningScripts.removeAll(finishedScripts);
-            runningScripts.removeAll(canceledScripts);
-
-            for (RunnableScript script : canceledScripts) {
-                insertCancellation(script);
+            if (taskExecutor.getActiveCount() != runningScripts.size()) {
+                myLogger.warn("Number of running scripts doesn't match active task threads!  ("
+                        + runningScripts.size() + " vs . " + taskExecutor.getActiveCount() + ")");
             }
         }
-    }
-
-    @Transactional
-    private void insertCancellation(RunnableScript script) {
-        ScriptResult result = new ScriptResult();
-        result.setScriptId(script.script.getId());
-        result.setSuccess(false);
-        result.setStartTime(new Timestamp(script.startTime));
-        result.setDurationSecs((System.currentTimeMillis() - script.startTime) / 1000.0);
-        result.setErrorMessage("Script timed out.");
-        resultRepository.save(result);
     }
 
     @Transactional(readOnly = true)
@@ -277,13 +274,12 @@ public class ScriptService extends StatusProvider {
         return list;
     }
 
-    @Bean
-    public ThreadPoolTaskExecutor taskExecutor() {
-        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+    @PostConstruct
+    public void initializeTaskExecutor() {
+        taskExecutor = new ThreadPoolTaskExecutor();
         taskExecutor.setCorePoolSize(4);
         taskExecutor.setMaxPoolSize(Runtime.getRuntime().availableProcessors());
         taskExecutor.initialize();
-        return taskExecutor;
     }
 
     @Transactional
@@ -335,7 +331,7 @@ public class ScriptService extends StatusProvider {
 
         myLogger.info("Dispatching script to executor.");
         RunnableScript runScript = new RunnableScript(script, bags, client);
-        runScript.setFuture(taskExecutor().submit(runScript));
+        runScript.setFuture(taskExecutor.submit(runScript));
         runningScripts.add(runScript);
     }
 

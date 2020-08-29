@@ -30,6 +30,7 @@
 
 package com.github.swrirobotics.bags.persistence;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Sets;
 
 import javax.persistence.*;
@@ -68,6 +69,7 @@ public class Script implements Serializable {
     @OneToMany(mappedBy = "script",
             cascade={CascadeType.REFRESH, CascadeType.MERGE},
             fetch = FetchType.LAZY)
+    @JsonIgnore
     private Set<ScriptResult> results = Sets.newHashSet();
 
     public Long getId() {

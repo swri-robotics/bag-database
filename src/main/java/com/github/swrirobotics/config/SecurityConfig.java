@@ -31,6 +31,7 @@
 package com.github.swrirobotics.config;
 
 import com.github.swrirobotics.account.UserService;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,6 +120,7 @@ class SecurityConfig extends WebSecurityConfigurerAdapter{
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         Set<String> profileSet = Sets.newHashSet(myEnvironment.getActiveProfiles());
+        myLogger.error("Active profiles: " + Joiner.on(',').join(profileSet));
         if (profileSet.contains("test")) {
             // CSRF protection is a pain to work around if we're doing unit tests;
             // disable it.
@@ -135,7 +137,7 @@ class SecurityConfig extends WebSecurityConfigurerAdapter{
                             "/generalError",
                             "/resources/**").permitAll(); // List resources that any users can access no matter what
 
-        if (profileSet.contains("test") || ldapServer != null && !ldapServer.isEmpty()) {
+        if (profileSet.contains("test_ldap") || ldapServer != null && !ldapServer.isEmpty()) {
             // If we're running with an LDAP server, redirect to the LDAP login page for anything else
             http
                     .authorizeRequests()
@@ -157,6 +159,7 @@ class SecurityConfig extends WebSecurityConfigurerAdapter{
                     .authorizeRequests()
                         .antMatchers("/",
                                      "/bags/**",
+                                     "/scripts/**",
                                      "/register/**",
                                      "/status/**").permitAll()
                         .anyRequest().authenticated()

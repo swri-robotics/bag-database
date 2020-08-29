@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,29 +28,19 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.account;
+package com.github.swrirobotics.scripts;
 
 import com.github.swrirobotics.config.WebSecurityConfigurationAware;
 import org.junit.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("test_ldap")
-public class UserAuthenticationIntegrationTest extends WebSecurityConfigurationAware {
-    @Test
-    public void requiresAuthentication() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(redirectedUrl("http://localhost/ldap_login"));
-    }
+public class ScriptControllerTest extends WebSecurityConfigurationAware {
 
     @Test
-    public void authenticatedAsUser() throws Exception {
-        mockMvc.perform(get("/")
-                    .with(user("user")))
+    public void testListScripts() throws Exception {
+        mockMvc.perform(get("/scripts/list"))
                 .andExpect(status().isOk());
     }
 }
