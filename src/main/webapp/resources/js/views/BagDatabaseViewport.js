@@ -37,6 +37,7 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
     layout: 'fit',
     requires: [ 'BagDatabase.views.BagGrid',
                 'BagDatabase.views.BagTreePanel',
+                'BagDatabase.views.BagUploadWindow',
                 'BagDatabase.views.NavigationButton',
                 'BagDatabase.views.MapWindow',
                 'BagDatabase.views.SearchPanel',
@@ -109,6 +110,15 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 iconCls: 'chart-organisation-icon',
                 isAdmin: isAdmin,
                 margin: 5
+            }, {
+                xtype: 'button',
+                text: 'Upload Bags',
+                iconCls: 'bag-add-icon',
+                margin: 5,
+                handler: function() {
+                    var win = Ext.create('BagDatabase.views.BagUploadWindow');
+                    win.show();
+                }
             }]
         },
         fbar: [{

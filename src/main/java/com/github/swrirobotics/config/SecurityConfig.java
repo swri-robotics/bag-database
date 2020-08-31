@@ -133,6 +133,9 @@ class SecurityConfig extends WebSecurityConfigurerAdapter{
                 .and()
                     .exceptionHandling().accessDeniedHandler(accessDeniedHandler())
                 .and()
+                    // Need to allow same-origin iframes in order for file uploading to work
+                    .headers().frameOptions().sameOrigin()
+                .and()
                     .authorizeRequests()
                         .antMatchers(
                                 "/favicon.ico",

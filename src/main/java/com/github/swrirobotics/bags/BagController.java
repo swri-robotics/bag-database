@@ -46,16 +46,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("bags")
@@ -180,6 +178,19 @@ public class BagController {
         }
 
         return status;
+    }
+
+    @RequestMapping(value = "/upload",
+            method = RequestMethod.POST,
+            produces = "application/json; charset=utf-8")
+    @ResponseBody
+    public Map<String, Object> uploadBag(@RequestParam("file") MultipartFile file,
+                                         @RequestParam String targetDirectory) {
+        myLogger.info("upload");
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "");
+        return response;
     }
 
     @RequestMapping("/treenode")

@@ -542,6 +542,7 @@
                                 <include>views/ErrorButton-min.js</include>
                                 <include>views/StatusText-min.js</include>
                                 <include>views/AdminWindow-min.js</include>
+                                <include>views/BagUploadWindow-min.js</include>
                                 <include>views/BagGrid-min.js</include>
                                 <include>views/BagTreePanel-min.js</include>
                                 <include>views/BagTreeFilterPanel-min.js</include>

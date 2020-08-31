@@ -30,13 +30,19 @@
 
 package com.github.swrirobotics.config;
 
+import org.springframework.boot.web.servlet.MultipartConfigFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.filter.CharacterEncodingFilter;
+import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 
 import javax.servlet.Filter;
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletRegistration;
 
 public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
+    public static Long maxUploadSizeBytes = 1024L * 1024L * 1024L * 4L; // 4 GB
+
     @Override
     protected String[] getServletMappings() {
         return new String[]{"/"};
@@ -70,5 +76,19 @@ public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServlet
     protected void customizeRegistration(ServletRegistration.Dynamic registration) {
         registration.setInitParameter("defaultHtmlEscape", "true");
         registration.setInitParameter("spring.profiles.active", "default");
+        registration.setMultipartConfig(multipartConfigElement());
+    }
+
+    @Bean
+    public MultipartConfigElement multipartConfigElement() {
+        MultipartConfigFactory factory = new MultipartConfigFactory();
+        factory.setMaxFileSize(maxUploadSizeBytes);
+        factory.setMaxRequestSize(maxUploadSizeBytes);
+        return factory.createMultipartConfig();
+    }
+
+    @Bean
+    public StandardServletMultipartResolver multipartResolver() {
+        return new StandardServletMultipartResolver();
     }
 }

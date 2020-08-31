@@ -28,26 +28,59 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.config;
-
-import com.github.swrirobotics.BagApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.stereotype.Controller;
-
-import static org.springframework.context.annotation.ComponentScan.Filter;
-
-@Configuration
-@ComponentScan(basePackageClasses = BagApplication.class,
-        excludeFilters = @Filter({Controller.class, Configuration.class}))
-public class ApplicationConfig {
-    public static final String SETTINGS_PATH = "file://${HOME}/.ros-bag-database/";
-    public static final String SETTINGS_LOCATION = SETTINGS_PATH + "settings.yml";
-
-    @Bean
-    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
-        return new PropertySourcesPlaceholderConfigurer();
-    }
-}
+Ext.define('BagDatabase.views.BagUploadWindow', {
+    extend: 'Ext.window.Window',
+    alias: 'widget.bagUploadWindow',
+    layout: 'fit',
+    title: 'Upload Bags',
+    iconCls: 'bag-add-icon',
+    width: 400,
+    height: 400,
+    constraintHeader: true,
+    items: [{
+        xtype: 'form',
+        bodyPadding: 5,
+        itemId: 'scriptForm',
+        url: 'bags/upload',
+        layout: {
+            type: 'vbox',
+            align: 'stretch'
+        },
+        defaults: {
+            labelWidth: 140,
+            width: '100%'
+        },
+        items: [{
+            xtype: 'textfield',
+            name: 'targetDirectory',
+            fieldLabel: 'Target Directory',
+            allowBlank: false
+        }, {
+            xtype: 'filefield',
+            name: 'file',
+            fieldLabel: 'Bag File',
+            allowBlank: false,
+            buttonText: 'Select Bag...'
+        }],
+        buttons: [{
+            text: 'Upload',
+            handler: function() {
+                var form, params;
+                form = this.up('form').getForm();
+                form.baseParams = {};
+                form.baseParams[csrfName] = csrfToken;
+                if (form.isValid()) {
+                    form.submit({
+                        waitMsg: 'Uploading bag file...',
+                        success: function(fp, o) {
+                            Ext.Msg.alert('Success', 'Your bag was uploaded.');
+                        },
+                        failure: function(fp, o) {
+                            Ext.Msg.alert('Failure', 'Failed to upload bag.');
+                        }
+                    });
+                }
+            }
+        }]
+    }]
+});
