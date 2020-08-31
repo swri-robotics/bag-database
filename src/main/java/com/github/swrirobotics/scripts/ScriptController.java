@@ -77,7 +77,7 @@ public class ScriptController {
         return response;
     }
 
-    @RequestMapping("/run")
+    @RequestMapping(value = "/run", method = RequestMethod.POST)
     public ScriptRunResult runScript(@RequestParam Long scriptId,
                                      @RequestParam Long[] bagIds) {
         myLogger.info("runScript: " + scriptId);

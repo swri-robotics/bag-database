@@ -129,13 +129,15 @@ class SecurityConfig extends WebSecurityConfigurerAdapter{
         String ldapServer = myConfigService.getConfiguration().getLdapServer();
 
         http
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.ALWAYS).and()
-                .exceptionHandling().accessDeniedHandler(accessDeniedHandler()).and()
-                .authorizeRequests()
-                    .antMatchers(
-                            "/favicon.ico",
-                            "/generalError",
-                            "/resources/**").permitAll(); // List resources that any users can access no matter what
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                .and()
+                    .exceptionHandling().accessDeniedHandler(accessDeniedHandler())
+                .and()
+                    .authorizeRequests()
+                        .antMatchers(
+                                "/favicon.ico",
+                                "/generalError",
+                                "/resources/**").permitAll(); // List resources that any users can access no matter what
 
         if (profileSet.contains("test_ldap") || ldapServer != null && !ldapServer.isEmpty()) {
             // If we're running with an LDAP server, redirect to the LDAP login page for anything else

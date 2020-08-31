@@ -33,6 +33,7 @@ Ext.define('BagDatabase.stores.ScriptStore', {
     model: 'BagDatabase.models.Script',
     requires: ['BagDatabase.models.Script',
                'BagDatabase.models.ScriptCriteria'],
+    storeId: 'scriptStore',
     proxy: {
         type: 'ajax',
         url: 'scripts/list',
@@ -46,5 +47,43 @@ Ext.define('BagDatabase.stores.ScriptStore', {
     autoLoad: true,
     initComponent: function() {
         this.callParent(arguments);
+    },
+    runScript: function(scriptId, bagIds) {
+        var params = {
+            scriptId: scriptId,
+            bagIds: bagIds
+        };
+        params[csrfName] = csrfToken;
+        Ext.Ajax.request({
+            url: 'scripts/run',
+            params: params,
+            success: function(response, opts) {
+                var responseObj = JSON.parse(response.responseText);
+                if (responseObj && responseObj.success) {
+                    Ext.Msg.show({
+                        title: 'Run Success',
+                        message: 'Script was succesfully started.',
+                        buttons: Ext.Msg.OK,
+                        icon: Ext.Msg.INFO
+                    });
+                }
+                else {
+                    Ext.Msg.show({
+                        title: 'Run Failiure',
+                        message: 'Failed to run script: ' + responseObj.message,
+                        buttons: Ext.Msg.OK,
+                        icon: Ext.Msg.ERROR
+                    })
+                }
+            },
+            failure: function(response, opts) {
+                Ext.Msg.show({
+                    title: 'Run Failure',
+                    message: 'Failed to run script; error code: ' + response.status,
+                    buttons: Ext.Msg.OK,
+                    icon: Ext.Msg.ERROR
+                });
+            }
+        })
     }
 });

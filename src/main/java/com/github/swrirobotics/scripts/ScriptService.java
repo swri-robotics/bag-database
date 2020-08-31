@@ -42,6 +42,7 @@ import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.ScriptList;
 import org.apache.commons.compress.utils.Lists;
@@ -219,7 +220,9 @@ public class ScriptService extends StatusProvider {
                 result.setDurationSecs((stopTime - startTime) / 1000.0);
 
                 saveResult(result);
-                myLogger.info("Script finished.");
+                String info = "Script [" + script.getName() + "] finished.";
+                myLogger.info(info);
+                reportStatus(Status.State.IDLE, info);
             }
             catch (Exception e) {
                 myLogger.error("Unexpected exception", e);
@@ -236,8 +239,11 @@ public class ScriptService extends StatusProvider {
     public void checkRunningScripts() {
         synchronized (runningScripts) {
             if (!runningScripts.isEmpty()) {
-                myLogger.info(runningScripts.size() + " scripts currently running.");
+                String info = runningScripts.size() + " scripts currently running.";
+                myLogger.info(info);
+                reportStatus(Status.State.WORKING, info);
             }
+
             long now = System.currentTimeMillis();
             List<RunnableScript> finishedScripts = Lists.newArrayList();
             for (RunnableScript script : runningScripts) {

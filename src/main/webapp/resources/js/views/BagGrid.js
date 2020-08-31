@@ -76,78 +76,78 @@ Ext.define('BagDatabase.views.BagGrid', {
             }
         },
         rowcontextmenu: function(grid, record, tr, rowIndex, event) {
-            var records, items;
+            var bagIds, records, items, pluralSuffix, scriptStore, scriptItems;
             records = grid.getSelection();
-            items;
+            pluralSuffix = records.length == 1 ? '' : 's';
+            scriptStore = Ext.getStore('scriptStore');
+            bagIds = [];
+            items = [];
+            scriptItems = [];
+
             if (records.length == 1) {
-                items = [{
+                // Only allow viewing details for one bag at a time, all other actions can
+                // be applied to multiple bags.
+                items.push({
                     text: 'View Bag Information',
                     iconCls: 'information-icon',
                     handler: function() {
                         grid.ownerCt.showBagDetails(record.get('id'));
                     }
-                }, {
-                    text: 'Add Tag',
-                    iconCls: 'tag-add-icon',
-                    handler: function() {
-                        grid.ownerCt.addTag([record]);
-                    }
-                }, {
-                    text: 'Display Bag on Map',
-                    iconCls: 'map-icon',
-                    handler: function() {
-                        grid.ownerCt.displayBagsOnMap([record]);
-                    }
-                }, {
-                    text: 'Download Bag',
-                    iconCls: 'save-icon',
-                    handler: function() {
-                        grid.ownerCt.downloadBags([record]);
-                    }
-                }, {
-                    text: 'Copy Link',
-                    iconCls: 'link-icon',
-                    handler: function() {
-                        grid.ownerCt.copyTextToClipboard(
-                            document.location.href +
-                            'bags/download?bagId=' +
-                             record.get('id'));
-                    }
-                }];
+                });
             }
-            else {
-                items = [{
+
+            records.forEach(function(record) {
+                bagIds.push(record.get('id'));
+            });
+
+            scriptStore.each(function(record, idx) {
+                scriptItems.push({
+                    text: record.get('name'),
+                    iconCls: 'script-icon',
+                    handler: Ext.Function.pass(scriptStore.runScript, [record.get('id'), bagIds])
+                });
+            });
+
+            items = items.concat(
+                [{
                     text: 'Add Tag',
                     iconCls: 'tag-add-icon',
                     handler: function() {
                         grid.ownerCt.addTag(records);
                     }
                 }, {
-                    text: 'Display Bags on Map',
+                    text: 'Copy Link' + pluralSuffix,
+                    iconCls: 'link-icon',
+                    handler: function() {
+                        var links = [];
+                        bagIds.forEach(function(bagId) {
+                            links.push(document.location.href +
+                                'bags/download?bagId=' + bagId);
+                        });
+                        grid.ownerCt.copyTextToClipboard(links.join('\n'));
+                    }
+                }, {
+                    text: 'Display Bag' + pluralSuffix + ' on Map',
                     iconCls: 'map-icon',
                     handler: function() {
                         grid.ownerCt.displayBagsOnMap(records);
                     }
                 }, {
-                    text: 'Download Bags',
+                    text: 'Download Bag' + pluralSuffix,
                     iconCls: 'save-icon',
                     handler: function() {
                         grid.ownerCt.downloadBags(records);
                     }
                 }, {
-                    text: 'Copy Links',
-                    iconCls: 'link-icon',
-                    handler: function() {
-                        var links = [];
-                        records.forEach(function(record) {
-                            links.push(document.location.href +
-                                'bags/download?bagId=' +
-                                 record.get('id'));
-                        });
-                        grid.ownerCt.copyTextToClipboard(links.join('\n'));
+                    text: 'Process Bag' + pluralSuffix + ' with Script',
+                    iconCls: 'script-go-icon',
+                    disabled: scriptItems.length == 0,
+                    menu: {
+                        items: scriptItems
                     }
-                }];
-            }
+                }]
+            );
+
             Ext.create('Ext.menu.Menu', {
                 items: items
             }).showAt(event.getXY());
