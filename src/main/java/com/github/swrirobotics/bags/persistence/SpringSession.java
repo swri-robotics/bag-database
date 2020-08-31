@@ -30,11 +30,11 @@
 
 package com.github.swrirobotics.bags.persistence;
 
-import com.google.common.collect.Lists;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -58,5 +58,5 @@ public class SpringSession {
     public String principal_name;
     @OneToMany(mappedBy = "session")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    public List<SpringSessionAttribute> springSessionAttributes = Lists.newArrayList();
+    public List<SpringSessionAttribute> springSessionAttributes = new ArrayList<>();
 }

@@ -45,7 +45,6 @@ import javax.persistence.PersistenceException;
 
 @Repository
 @Transactional
-@EnableTransactionManagement
 public class AccountRepository {
     @PersistenceContext
     private EntityManager myEM;

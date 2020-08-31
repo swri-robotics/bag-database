@@ -138,6 +138,23 @@ databaseChangeLog:
                   type: BOOLEAN
                   constraints:
                     nullable: false
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                  name: script_result_id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: bag_id
+                  type: BIGINT
+            tableName: script_results_bags
+        - addPrimaryKey:
+            columnNames: script_result_id, bag_id
+            constraintName: script_results_bags_pkey
+            tableName: script_results_bags
   - changeSet:
       id: add-script-results-foreign-key
       author: preed

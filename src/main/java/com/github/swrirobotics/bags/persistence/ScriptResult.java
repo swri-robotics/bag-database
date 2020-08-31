@@ -35,6 +35,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "script_results")
@@ -53,6 +55,15 @@ public class ScriptResult implements Serializable {
     private String stdout;
     @Column(nullable = false)
     private Boolean success;
+
+    @ManyToMany(cascade = {CascadeType.ALL})
+    @JoinTable(
+            name = "script_results_bags",
+            joinColumns = {@JoinColumn(name = "script_result_id", referencedColumnName = "id")},
+            inverseJoinColumns = {@JoinColumn(name = "bag_id", referencedColumnName = "id")}
+    )
+    @JsonIgnore
+    List<Bag> bags = new ArrayList<>();
 
     @MapsId("scriptId")
     @JoinColumn(name = "scriptId")
@@ -130,5 +141,13 @@ public class ScriptResult implements Serializable {
 
     public void setScript(Script script) {
         this.script = script;
+    }
+
+    public List<Bag> getBags() {
+        return bags;
+    }
+
+    private void setBags(List<Bag> bags) {
+        this.bags = bags;
     }
 }

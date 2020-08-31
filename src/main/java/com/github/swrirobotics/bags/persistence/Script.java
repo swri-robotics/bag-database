@@ -31,11 +31,11 @@
 package com.github.swrirobotics.bags.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.collect.Sets;
 
 import javax.persistence.*;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -64,13 +64,13 @@ public class Script implements Serializable {
     @OneToMany(mappedBy = "script",
             cascade={CascadeType.REFRESH, CascadeType.MERGE},
             fetch = FetchType.EAGER)
-    private Set<ScriptCriteria> criteria = Sets.newHashSet();
+    private Set<ScriptCriteria> criteria = new HashSet<>();
 
     @OneToMany(mappedBy = "script",
             cascade={CascadeType.REFRESH, CascadeType.MERGE},
             fetch = FetchType.LAZY)
     @JsonIgnore
-    private Set<ScriptResult> results = Sets.newHashSet();
+    private Set<ScriptResult> results = new HashSet<>();
 
     public Long getId() {
         return id;

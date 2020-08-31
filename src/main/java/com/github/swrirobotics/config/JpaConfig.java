@@ -51,12 +51,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.TransactionManagementConfigurer;
 
+import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Properties;
 
 @Configuration
-@EnableTransactionManagement(mode= AdviceMode.ASPECTJ)
+@EnableTransactionManagement(mode = AdviceMode.PROXY, proxyTargetClass = true)
 @EnableJpaRepositories(basePackageClasses = BagApplication.class,
         transactionManagerRef = "annotationDrivenTransactionManager")
 @EnableJdbcHttpSession
@@ -123,8 +124,12 @@ public class JpaConfig implements TransactionManagementConfigurer {
         return entityManagerFactoryBean;
     }
 
+    @Override
     @Bean
     public PlatformTransactionManager annotationDrivenTransactionManager() {
-        return new JpaTransactionManager();
+        var txManager = new JpaTransactionManager();
+        //txManager.setEntityManagerFactory(entityManagerFactory().getNativeEntityManagerFactory());
+        //txManager.setDataSource(dataSource());
+        return txManager;
     }
 }
