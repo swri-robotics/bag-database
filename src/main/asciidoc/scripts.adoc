@@ -1,0 +1,8 @@
+[[list_scripts]]
+=== List Scripts
+
+==== Example Request
+include::{snippets}/list-scripts/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/list-scripts/http-response.adoc[]

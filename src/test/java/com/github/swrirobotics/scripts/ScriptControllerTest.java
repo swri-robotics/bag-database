@@ -30,16 +30,27 @@
 
 package com.github.swrirobotics.scripts;
 
-import com.github.swrirobotics.config.WebSecurityConfigurationAware;
+import com.github.swrirobotics.bags.persistence.Script;
+import com.github.swrirobotics.config.WebAppConfigurationAware;
+import com.github.swrirobotics.support.web.ScriptList;
 import org.junit.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ScriptControllerTest extends WebSecurityConfigurationAware {
+public class ScriptControllerTest extends WebAppConfigurationAware {
+    @MockBean
+    ScriptService scriptService;
 
     @Test
-    public void testListScripts() throws Exception {
+    public void listScripts() throws Exception {
+        ScriptList list = new ScriptList();
+        list.getScripts().add(new Script());
+        list.getScripts().get(0).setName("Test Script");
+        list.setTotalCount(1);
+        when(scriptService.getScripts()).thenReturn(list);
         mockMvc.perform(get("/scripts/list"))
                 .andExpect(status().isOk());
     }

@@ -28,38 +28,33 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.support.web;
+package com.github.swrirobotics.bags;
 
-import com.github.swrirobotics.bags.persistence.Script;
+import com.github.swrirobotics.bags.persistence.Bag;
+import com.github.swrirobotics.config.WebAppConfigurationAware;
+import org.junit.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
-import java.util.ArrayList;
-import java.util.List;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ScriptList {
-    private List<Script> scripts = new ArrayList<>();
-    private long totalCount = 0;
+public class BagControllerTest extends WebAppConfigurationAware {
+    @MockBean
+    private BagService bagService;
 
-    public ScriptList() {
+    @Test
+    public void getBag() throws Exception {
+        when(bagService.getBag(1L)).thenReturn(new Bag());
+        mockMvc.perform(get("/bags/get").param("bagId", "1")).andExpect(status().isOk());
     }
 
-    public ScriptList(final List<Script> scripts, long totalCount) {
-        this.scripts = scripts;
-        this.totalCount = totalCount;
-    }
-
-    public List<Script> getScripts() {
-        return scripts;
-    }
-
-    public void setScripts(List<Script> scripts) {
-        this.scripts = scripts;
-    }
-
-    public long getTotalCount() {
-        return totalCount;
-    }
-
-    public void setTotalCount(long totalCount) {
-        this.totalCount = totalCount;
+    @Test
+    public void getBagImage() throws Exception {
+        when(bagService.getImage(1L, "/topic", 1)).thenReturn(new byte[]{});
+        mockMvc.perform(get("/bags/image")
+                .param("bagId", "1")
+                .param("topic", "/topic")
+                .param("index", "1")).andExpect(status().isOk());
     }
 }

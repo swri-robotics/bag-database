@@ -42,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test_ldap")
 public class UserAuthenticationIntegrationTest extends WebSecurityConfigurationAware {
     @Test
-    public void requiresAuthentication() throws Exception {
+    public void authenticationRequired() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(redirectedUrl("http://localhost/ldap_login"));
     }

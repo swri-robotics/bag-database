@@ -140,20 +140,10 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     public Bag getBag(Long bagId) throws NonexistentBagException {
-        try {
-            Bag response = bagRepository.findById(bagId).orElseThrow();
-            myLogger.debug("Successfully got bag: " + response.getFilename());
-            return response;
-        }
-        catch (NullPointerException e) {
-            myLogger.error("Bag not found:", e);
-            throw new NonexistentBagException(e);
-        }
-        catch (RuntimeException e) {
-            myLogger.error("Unable to get bag:", e);
-            throw e;
-        }
-
+        Bag response = bagRepository.findById(bagId).orElseThrow(() ->
+                new NonexistentBagException("Bag not found: " + bagId));
+        myLogger.debug("Successfully got bag: " + response.getFilename());
+        return response;
     }
 
     @Transactional(readOnly = true)

@@ -1,0 +1,17 @@
+[[bags_get]]
+=== Get a Bag
+
+==== Example Request
+include::{snippets}/get-bag/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/get-bag/http-response.adoc[]
+
+[[bags_get_image]]
+=== Get an Image from a Bag
+
+==== Example Request
+include::{snippets}/get-bag-image/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/get-bag-image/http-response.adoc[]

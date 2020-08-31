@@ -1,0 +1,14 @@
+:sectnums:
+:sectnumlevels: 5
+:toc: left
+:toclevels: 3
+:page-layout: docs
+
+= User API
+
+[[examples]]
+== Bag Examples
+include::bags.adoc[]
+
+== Script Examples
+include::scripts.adoc[]
