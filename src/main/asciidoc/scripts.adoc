@@ -24,6 +24,14 @@ include::{snippets}/run-script/http-request.adoc[]
 ==== Example Response
 include::{snippets}/run-script/http-response.adoc[]
 
+=== List Script Run Results
+
+==== Example Request
+include::{snippets}/list-script-results/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/list-script-results/http-response.adoc[]
+
 === Get the Results of a Script Run
 
 ==== Example Request

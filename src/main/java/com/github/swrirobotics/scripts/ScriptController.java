@@ -33,6 +33,7 @@ package com.github.swrirobotics.scripts;
 import com.github.swrirobotics.bags.persistence.Script;
 import com.github.swrirobotics.bags.persistence.ScriptResult;
 import com.github.swrirobotics.support.web.ScriptList;
+import com.github.swrirobotics.support.web.ScriptResultList;
 import com.github.swrirobotics.support.web.ScriptRunResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -62,10 +63,16 @@ public class ScriptController {
 
     @RequestMapping("/list")
     public ScriptList getScripts() {
-        myLogger.debug("getScripts()");
+        myLogger.debug("getScripts");
         ScriptList list = myScriptService.getScripts();
         myLogger.debug("returning scripts");
         return list;
+    }
+
+    @RequestMapping("/list_results")
+    public ScriptResultList getScriptResults() {
+        myLogger.debug("getScriptResults");
+        return myScriptService.getScriptResults();
     }
 
     @RequestMapping("/get")

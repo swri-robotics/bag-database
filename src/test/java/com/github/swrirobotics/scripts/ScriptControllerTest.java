@@ -34,6 +34,7 @@ import com.github.swrirobotics.bags.persistence.Script;
 import com.github.swrirobotics.bags.persistence.ScriptResult;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
 import com.github.swrirobotics.support.web.ScriptList;
+import com.github.swrirobotics.support.web.ScriptResultList;
 import org.junit.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -52,8 +53,21 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
     @MockBean
     ScriptService scriptService;
 
-    @Test
-    public void getScriptResult() throws Exception {
+    public Script makeScript() {
+        Script script = new Script();
+        script.setId(0L);
+        script.setName("Test Script");
+        script.setAllowNetworkAccess(false);
+        script.setDescription("Optional Description");
+        script.setMemoryLimitBytes(4000000000L);
+        script.setDockerImage("ros:melodic");
+        script.setRunAutomatically(false);
+        script.setTimeoutSecs(300.0);
+        script.setScript("#!/usr/bin/env python\nimport time\ntime.sleep(5)\nprint(\"Hello, world!\");\n");
+        return script;
+    }
+
+    public ScriptResult makeResult() {
         UUID uuid = UUID.randomUUID();
         ScriptResult result = new ScriptResult();
         result.setRunUuid(uuid);
@@ -63,6 +77,13 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
         result.setStdout("{example_stat: 1, other_example: 2}");
         result.setStartTime(new Timestamp(System.currentTimeMillis()));
         result.setDurationSecs(5.0);
+        return result;
+    }
+
+    @Test
+    public void getScriptResult() throws Exception {
+        ScriptResult result = makeResult();
+        UUID uuid = result.getRunUuid();
         when(scriptService.getScriptResultByUuid(uuid)).thenReturn(result);
 
         mockMvc.perform(get("/scripts/get_result_by_uuid")
@@ -100,16 +121,7 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
 
     @Test
     public void saveScript() throws Exception {
-        Script script = new Script();
-        script.setId(0L);
-        script.setName("Test Script");
-        script.setAllowNetworkAccess(false);
-        script.setDescription("Optional Description");
-        script.setMemoryLimitBytes(4000000000L);
-        script.setDockerImage("ros:melodic");
-        script.setRunAutomatically(false);
-        script.setTimeoutSecs(300.0);
-        script.setScript("#!/usr/bin/env python\nimport time\ntime.sleep(5)\nprint(\"Hello, world!\");\n");
+        Script script = makeScript();
         when(scriptService.addScript(script)).thenReturn(1L);
 
         mockMvc.perform(post("/scripts/save")
@@ -121,12 +133,19 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
                 .param("dockerImage", script.getDockerImage())
                 .param("runAutomatically", script.getRunAutomatically().toString())
                 .param("timeoutSecs", script.getTimeoutSecs().toString())
-                .param("scriptText", script.getScript()))
-                .andExpect(status().isOk());
+                .param("script", script.getScript()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+                .andExpect(jsonPath("$.success").value("true"));
     }
 
     @Test
     public void listScriptResults() throws Exception {
+        ScriptResultList results = new ScriptResultList();
+        results.setTotalCount(1);
+        results.getResults().add(makeResult());
+
+        when(scriptService.getScriptResults()).thenReturn(results);
         mockMvc.perform(get("/scripts/list_results"))
                 .andExpect(status().isOk());
     }

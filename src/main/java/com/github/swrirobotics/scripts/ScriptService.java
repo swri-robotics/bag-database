@@ -40,6 +40,7 @@ import com.github.swrirobotics.bags.persistence.*;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.ScriptList;
+import com.github.swrirobotics.support.web.ScriptResultList;
 import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,6 +134,14 @@ public class ScriptService extends StatusProvider {
         ScriptList list = new ScriptList();
         list.setScripts(scriptRepository.findAll());
         list.setTotalCount(list.getScripts().size());
+        return list;
+    }
+
+    @Transactional(readOnly = true)
+    public ScriptResultList getScriptResults() {
+        ScriptResultList list = new ScriptResultList();
+        list.setResults(resultRepository.findAll());
+        list.setTotalCount(list.getResults().size());
         return list;
     }
 
