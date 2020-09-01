@@ -128,8 +128,6 @@ public class JpaConfig implements TransactionManagementConfigurer {
     @Bean
     public PlatformTransactionManager annotationDrivenTransactionManager() {
         var txManager = new JpaTransactionManager();
-        //txManager.setEntityManagerFactory(entityManagerFactory().getNativeEntityManagerFactory());
-        //txManager.setDataSource(dataSource());
         return txManager;
     }
 }

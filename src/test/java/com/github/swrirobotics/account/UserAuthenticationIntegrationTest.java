@@ -32,25 +32,40 @@ package com.github.swrirobotics.account;
 
 import com.github.swrirobotics.config.WebSecurityConfigurationAware;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.junit.Assert.assertNotNull;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test_ldap")
 public class UserAuthenticationIntegrationTest extends WebSecurityConfigurationAware {
-    @Test
-    public void authenticationRequired() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(redirectedUrl("http://localhost/ldap_login"));
-    }
+    @Autowired
+    private UserService userService;
 
     @Test
-    public void authenticatedAsUser() throws Exception {
-        mockMvc.perform(get("/")
-                    .with(user("user")))
-                .andExpect(status().isOk());
+    public void login() throws Exception {
+        // Add a test user
+        userService.insertTestUser();
+        // Verify that requesting a page redirects us to the login page
+        String url = mockMvc.perform(get("/"))
+                .andExpect(redirectedUrl("http://localhost:8080/ldap_login"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        assertNotNull(url);
+        // Verify that we can log in
+        mockMvc.perform(post(url)
+                .param("username", "user")
+                .param("password", "demo")
+                .with(csrf()))
+                .andExpect(authenticated().withUsername("user"))
+                .andExpect(redirectedUrl("/")).andReturn();
     }
 }

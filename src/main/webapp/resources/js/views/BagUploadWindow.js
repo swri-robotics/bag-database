@@ -58,6 +58,7 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
             dataIndex: 'status',
             flex: 1,
             renderer: function(value, metaData, record, rowIndex, colIndex, store) {
+                // TODO pjr Would be cool if there was a progress bar for uploads here
                 var color = "grey";
                 if (value === "Ready") {
                     color = "blue";

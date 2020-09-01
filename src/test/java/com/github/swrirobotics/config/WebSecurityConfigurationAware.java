@@ -31,10 +31,13 @@
 package com.github.swrirobotics.config;
 
 import org.junit.Before;
+import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation;
 import org.springframework.security.web.FilterChainProxy;
 
 import javax.inject.Inject;
 
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 public abstract class WebSecurityConfigurationAware extends WebAppConfigurationAware {
@@ -43,8 +46,13 @@ public abstract class WebSecurityConfigurationAware extends WebAppConfigurationA
     private FilterChainProxy springSecurityFilterChain;
 
     @Before
+    @Override
     public void before() {
         this.mockMvc = webAppContextSetup(this.wac)
+                .apply(MockMvcRestDocumentation.documentationConfiguration(this.restDocumentation))
+                .alwaysDo(MockMvcRestDocumentation.document("{method-name}",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint())))
                 .addFilters(this.springSecurityFilterChain).build();
     }
 }
