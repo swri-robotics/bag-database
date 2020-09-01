@@ -468,7 +468,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/static/docs</outputDirectory>
+                            <outputDirectory>${project.build.directory}/${project.build.finalName}/resources/docs</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>

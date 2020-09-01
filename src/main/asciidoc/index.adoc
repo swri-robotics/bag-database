@@ -6,6 +6,39 @@
 
 = User API
 
+== Logging In
+
+In order to submit a POST request, you must include a CSRF token; in addition, if authentication is enabled, you must log in.
+
+=== Requesting a CSRF Token
+This example makes a GET request, initializes a cookie jar with our session variables, and retrieves the CSRF token from the output.
+----
+$ CSRF=`curl -s -X GET -c cookies.txt -L \
+    http://localhost:8080/ | grep csrf | \
+    sed -r 's/^.*value="([-a-z0-9]*)".*$/\1/'`
+----
+
+=== Logging In
+Using the initialized cookie jar and CSRF token, this authenticates our session.  This is unnecessary if authentication is disabled.
+----
+$ curl -s -c cookies.txt -b cookies.txt -F "username=admin" \
+    -F "password=letmein" -F "_csrf=${CSRF}" -L \
+    http://localhost:8080/ldap_login 2>&1 > /dev/null
+----
+
+=== Performing an Authenticated Request
+Now we can make requests.
+----
+$ curl -s -c cookies.txt -b cookies.txt -X GET \
+    "http://localhost:8080/bags/search?text=&page=1&start=0&limit=100&sort=filename&dir=ASC"
+----
+
+Here's an example that uses a CSRF token to make a POST request.
+----
+$ curl -s -c cookies.txt -b cookies.txt -X POST \
+    -d 'scriptId=1&bagIds=1%2C2%2C3&_csrf=${CSRF}'
+    'http://localhost:8080/scripts/run'
+----
 [[examples]]
 == Bag Examples
 include::bags.adoc[]

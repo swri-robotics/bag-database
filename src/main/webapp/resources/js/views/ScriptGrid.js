@@ -76,11 +76,6 @@ Ext.define('BagDatabase.views.ScriptGrid', {
             }
         }, {
             xtype: 'button',
-            text: 'Run',
-            iconCls: 'script-go-icon',
-            itemId: 'runButton'
-        }, {
-            xtype: 'button',
             text: 'Delete',
             iconCls: 'script-delete-icon',
             itemId: 'deleteButton',

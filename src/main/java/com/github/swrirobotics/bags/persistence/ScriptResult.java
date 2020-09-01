@@ -37,6 +37,7 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "script_results")
@@ -47,6 +48,8 @@ public class ScriptResult implements Serializable {
 
     private double durationSecs;
     private String errorMessage;
+    @Column(nullable = false)
+    private UUID runUuid;
     @Column(nullable = false)
     private Long scriptId;
     @Column(nullable = false)
@@ -93,6 +96,14 @@ public class ScriptResult implements Serializable {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public UUID getRunUuid() {
+        return runUuid;
+    }
+
+    public void setRunUuid(UUID runUuid) {
+        this.runUuid = runUuid;
     }
 
     public Long getScriptId() {

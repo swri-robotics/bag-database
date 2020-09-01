@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Future;
 
 @Component
@@ -65,6 +66,7 @@ public class RunnableScript implements Runnable {
     @Autowired
     private ScriptService scriptService;
 
+    private UUID runUuid;
     private Script script;
     private List<Bag> bags;
     private DockerClient client;
@@ -77,6 +79,7 @@ public class RunnableScript implements Runnable {
     private static final String SCRIPT_TMP_NAME = "/script.py";
 
     public RunnableScript() {
+        this.runUuid = UUID.randomUUID();
     }
 
     public void initialize(Script script, List<Bag> bags, DockerClient client) {
@@ -98,6 +101,10 @@ public class RunnableScript implements Runnable {
         this.future = future;
     }
 
+    public UUID getRunUuid() {
+        return runUuid;
+    }
+
     public Script getScript() {
         return script;
     }
@@ -117,6 +124,7 @@ public class RunnableScript implements Runnable {
             result.setStartTime(new Timestamp(startTime));
             result.setScriptId(script.getId());
             result.setSuccess(false);
+            result.setRunUuid(runUuid);
 
             List<Long> bagIds = Lists.newArrayList();
             for (Bag bag : bags) {

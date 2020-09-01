@@ -45,6 +45,10 @@ Ext.define('BagDatabase.views.NavigationButton', {
             var win = Ext.create('BagDatabase.views.AboutWindow');
             win.show();
         }
+    }, {
+        text: 'API Documentation', iconCls: 'book-icon', handler: function() {
+            window.open("resources/docs/index.html", "_blank");
+        }
     }],
     initComponent: function() {
         var params = {};

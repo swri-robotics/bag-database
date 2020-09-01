@@ -1,4 +1,13 @@
 [[list_scripts]]
+
+=== Add a New Script
+
+==== Example Request
+include::{snippets}/save-script/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/save-script/http-response.adoc[]
+
 === List Scripts
 
 ==== Example Request
@@ -6,3 +15,19 @@ include::{snippets}/list-scripts/http-request.adoc[]
 
 ==== Example Response
 include::{snippets}/list-scripts/http-response.adoc[]
+
+=== Run a Script on a Set of Bag Files
+
+==== Example Request
+include::{snippets}/run-script/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/run-script/http-response.adoc[]
+
+=== Get the Results of a Script Run
+
+==== Example Request
+include::{snippets}/get-script-result/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/get-script-result/http-response.adoc[]

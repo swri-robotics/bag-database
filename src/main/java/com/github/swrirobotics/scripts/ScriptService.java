@@ -53,6 +53,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Future;
 
 @Service
@@ -168,7 +169,7 @@ public class ScriptService extends StatusProvider {
     }
 
     @Transactional
-    public void runScript(Long scriptId, List<Long> bagIds) throws ScriptRunException {
+    public UUID runScript(Long scriptId, List<Long> bagIds) throws ScriptRunException {
         DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(System.getenv("DOCKER_HOST"))
                 .withDockerCertPath(CLIENT_CERT_PATH)
@@ -195,11 +196,13 @@ public class ScriptService extends StatusProvider {
         runScript.initialize(script, bags, client);
         runScript.setFuture(taskExecutor.submit(runScript));
         runningScripts.add(runScript);
+
+        return runScript.getRunUuid();
     }
 
     @Transactional(readOnly = true)
-    public void getScriptResults(Long scriptResultId) {
-        // TODO pjr Get results for a script run; need to think about what this will look like
+    public ScriptResult getScriptResultByUuid(UUID runUuid) {
+        return resultRepository.findByRunUuid(runUuid);
     }
 
     public void getRunningScripts() {

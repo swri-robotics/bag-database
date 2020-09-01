@@ -33,4 +33,5 @@ package com.github.swrirobotics.support.web;
 public class ScriptRunResult {
     public boolean success;
     public String message;
+    public String uuid;
 }

@@ -32,6 +32,10 @@ div.ol-viewport {
     background-image: url('../images/basket_add.png');
 }
 
+.book-icon {
+    background-image: url('../images/book.png');
+}
+
 .chart-organisation-icon {
     background-image: url('../images/chart_organisation.png');
 }

@@ -118,6 +118,11 @@ databaseChangeLog:
                   name: errormessage
                   type: TEXT
               - column:
+                  name: runuuid
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
                   name: scriptid
                   type: BIGINT
                   constraints:
@@ -155,6 +160,16 @@ databaseChangeLog:
             columnNames: script_result_id, bag_id
             constraintName: script_results_bags_pkey
             tableName: script_results_bags
+  - changeSet:
+      id: create-script-result-uuid-index
+      author: preed
+      changes:
+        - createIndex:
+            columns:
+            - column:
+                name: runuuid
+            indexName: script_results_runuuid_idx
+            tableName: script_results
   - changeSet:
       id: add-script-results-foreign-key
       author: preed
