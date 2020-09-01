@@ -53,6 +53,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -71,6 +72,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
@@ -85,6 +87,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -887,6 +890,36 @@ public class BagService extends StatusProvider {
         bagRepository.save(dbBag);
     }
 
+    public void uploadBag(MultipartFile file, String targetDirectory) throws IOException {
+        java.nio.file.Path inputPath = Paths.get(targetDirectory).normalize();
+
+        File path = new File(myConfigService.getConfiguration().getBagPath() + "/" + inputPath.toString());
+        myLogger.debug("Checking path: " + path.getAbsolutePath());
+
+        if (path.exists()) {
+            if (path.isDirectory()) {
+                if (!path.canWrite()) {
+                    throw new IOException("Target path is not writable.");
+                }
+            }
+            else {
+                throw new IOException("Target is a file, not a directory.");
+            }
+        }
+        else if (!path.mkdirs()) {
+            throw new IOException("Failed to create target directory.  Is the destination writable?");
+        }
+
+        File targetFile = new File(path.getAbsolutePath() + "/" + file.getOriginalFilename());
+
+        if (targetFile.exists()) {
+            throw new IOException("Not overwriting existing file.");
+        }
+
+        myLogger.debug("Writing file to: " + targetFile.getAbsolutePath());
+        FileUtils.copyInputStreamToFile(file.getInputStream(), targetFile);
+    }
+
     private Pageable createPageRequest(int page, int size, String dir, String sort) {
         // ExtJS starts counting pages at 1, but Spring Data JPA starts counting at 0.
         return PageRequest.of(page-1,
@@ -1159,6 +1192,20 @@ public class BagService extends StatusProvider {
                     "Unable to get metadata from bag file " + bagFile.getPath() + ": " + e.getLocalizedMessage());
         }
         return tags;
+    }
+
+    /**
+     * Gets all of the known paths in which bags are stored.  The paths here are
+     * relative to the configured base directory.
+     * @return All known bag paths.
+     */
+    public List<String> getPaths() {
+        List<String> tmpPaths = bagRepository.getDisinctPaths();
+        List<String> filteredPaths = new ArrayList<>();
+        for (String path : tmpPaths) {
+            filteredPaths.add(path.replaceFirst(myConfigService.getConfiguration().getBagPath(), ""));
+        }
+        return filteredPaths;
     }
 
     /**

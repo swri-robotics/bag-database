@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
@@ -182,15 +183,40 @@ public class BagController {
 
     @RequestMapping(value = "/upload",
             method = RequestMethod.POST,
-            produces = "application/json; charset=utf-8")
+            produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public Map<String, Object> uploadBag(@RequestParam("file") MultipartFile file,
                                          @RequestParam String targetDirectory) {
-        myLogger.info("upload");
+        myLogger.info("uploadBag: " + file.getName());
         Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
+        response.put("success", false);
         response.put("message", "");
+        try {
+            myBagService.uploadBag(file, targetDirectory);
+            response.put("success", true);
+        }
+        catch (Exception e) {
+            myLogger.error("Error uploading bag", e);
+            response.put("message", e.getLocalizedMessage());
+        }
+        myLogger.info("uploadBag finished.");
         return response;
+    }
+
+    @RequestMapping("/paths")
+    @ResponseBody
+    public Map<String, Object> getPaths() {
+        Map<String, Object> result = new HashMap<>();
+        List<String> paths = myBagService.getPaths();
+        result.put("totalCount", paths.size());
+        List<Map<String, String>> pathList = new ArrayList<>();
+        result.put("paths", pathList);
+        for (String path : paths) {
+            Map<String, String> pathEntry = new HashMap<>();
+            pathEntry.put("path", path);
+            pathList.add(pathEntry);
+        }
+        return result;
     }
 
     @RequestMapping("/treenode")

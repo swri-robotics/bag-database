@@ -32,6 +32,7 @@ package com.github.swrirobotics.bags.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -43,4 +44,6 @@ public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificatio
     List<Bag> findByPath(String path);
     List<Bag> findByMissing(boolean isMissing);
     Bag findByMd5sum(String md5sum);
+    @Query("select distinct b.path from Bag b")
+    List<String> getDisinctPaths();
 }
