@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,10 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
             }]
         }, {
             xtype: 'panel',
-            layout: 'border',
+            layout: {
+                type: 'vbox',
+                align: 'stretch'
+            },
             title: 'Scripts',
             iconCls: 'script-icon',
             stateId: 'scriptTab',
@@ -101,7 +104,13 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 itemId: 'scriptGrid',
                 stateful: true,
                 stateId: 'scriptGrid',
-                region: 'center'
+                flex: 1
+            }, { xtype: 'splitter' }, {
+                xtype: 'scriptResultGrid',
+                itemId: 'scriptResultGrid',
+                stateful: true,
+                stateId: 'scriptResultGrid',
+                flex: 2
             }]
         }],
         tabBar: {

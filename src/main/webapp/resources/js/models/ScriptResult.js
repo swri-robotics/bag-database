@@ -28,18 +28,27 @@
 //
 // *****************************************************************************
 
-Ext.define('BagDatabase.views.AboutWindow', {
-    extend: 'Ext.window.Window',
-    alias: 'widgets.aboutWindow',
-    title: 'About',
-    layout: 'fit',
-    bodyPadding: 5,
-    constrainHeader: true,
-    html: "<h2>Bag Database 2.7.3</h2>" +
-        "<p><a href='https://github.com/swri-robotics/bag-database'>https://github.com/swri-robotics/bag-database</a></p>" +
-        "<p>Copyright 2015-2020 Southwest Research Institute</p>" +
-        "<br>" +
-        "<p>Icons provided by <a href='http://www.famfamfam.com/lab/icons/silk/'>http://www.famfamfam.com/lab/icons/silk/</a></p>" +
-        "<p>A number of open source libraries were used in the creation of this software;<br>" +
-        "consult the documentation in the source repository for a full list of attributions.</p>"
+Ext.define('BagDatabase.models.ScriptResult', {
+    extend: 'BagDatabase.models.Base',
+    requires: ['BagDatabase.models.Base'],
+    idProperty: 'id',
+    fields: [{
+        name: 'id', type: 'int'
+    }, {
+        name: 'durationSecs', type: 'float'
+    }, {
+        name: 'errorMessage', sortType: function(value) { return value ? value : ''; }
+    },  {
+        name: 'runUuid', sortType: function(value) { return value ? value : ''; }
+    }, {
+        name: 'scriptId', type: 'int'
+    }, {
+        name: 'startTime', type: 'date', dateFormat: 'time'
+    }, {
+        name: 'stderr', sortType: function(value) { return value ? value : ''; }
+    }, {
+        name: 'stdout', sortType: function(value) { return value ? value : ''; }
+    }, {
+        name: 'success', type: 'boolean'
+    }]
 });

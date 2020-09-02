@@ -104,6 +104,14 @@ div.ol-viewport {
     background-image: url('../images/save.png');
 }
 
+.script-code-icon {
+    background-image: url('../images/script_code.png');
+}
+
+.script-code-red-icon  {
+    background-image: url('../images/script_code_red.png');
+}
+
 .script-icon {
     background-image: url('../images/script.png');
 }

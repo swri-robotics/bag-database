@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@ Ext.define('BagDatabase.views.ScriptWindow', {
     alias: 'widget.scriptWindow',
     layout: 'fit',
     title: 'Script Properties',
-    width: 700,
-    height: 550,
+    width: 1100,
+    height: 700,
     constrainHeader: true,
     items: [{
         xtype: 'form',
@@ -102,6 +102,7 @@ Ext.define('BagDatabase.views.ScriptWindow', {
             name: 'script',
             xtype: 'textareafield',
             allowBlank: false,
+            fieldStyle: 'font-family: monospace;',
             flex: 1
         }],
         buttons: [{
