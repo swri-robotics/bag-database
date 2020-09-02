@@ -68,7 +68,7 @@ Ext.define('BagDatabase.views.ScriptGrid', {
             iconCls: 'script-add-icon',
             itemId: 'createButton',
             handler: function(button) {
-                var win, store;
+                var win;
                 win = Ext.create('BagDatabase.views.ScriptWindow', {
                     store: button.up('grid').store
                 });

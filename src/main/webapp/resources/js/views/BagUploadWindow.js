@@ -194,9 +194,10 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
                 }
             },
             handler: function() {
-                var store = this.up('grid').store;
-                for (var i = 0; i < store.data.items.length; i++) {
-                    var record = store.getData().getAt(i);
+                var store, record, i;
+                store = this.up('grid').store;
+                for (i = 0; i < store.data.items.length; i++) {
+                    record = store.getData().getAt(i);
                     if ((record.get('status') === "Uploaded")) {
                         store.remove(record);
                         i--;
@@ -257,7 +258,7 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
             value: '/'
         }],
         postDocument: function(url, item, path) {
-            var xhr, df;
+            var xhr, fd;
             xhr = new XMLHttpRequest();
             fd = new FormData();
             fd.append("serverTimeDiff", 0);

@@ -136,8 +136,7 @@ Ext.define('BagDatabase.views.ScriptWindow', {
     }],
     initComponent: function() {
         this.callParent(arguments);
-        var scriptForm = this.down('#scriptForm');
-            if (this.scriptId) {
+        if (this.scriptId) {
             this.down('#scriptForm').form.doAction('load', {
                 url: 'scripts/get',
                 method: 'GET',
