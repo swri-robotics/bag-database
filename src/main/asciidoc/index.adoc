@@ -8,32 +8,39 @@
 
 == Logging In
 
-In order to submit a POST request, you must include a CSRF token; in addition, if authentication is enabled, you must log in.
+The Bag Database's API should be straightforward to use, with two caveats:
+
+1. If you submit any POST requests, you must have an active session and include a CSRF token.
+2. If authentication is enabled, you must log in before making any other requests.
+
 
 === Requesting a CSRF Token
-This example makes a GET request, initializes a cookie jar with our session variables, and retrieves the CSRF token from the output.
+This GET request will:
+
+1. Start a session and save the session variable in cookie jar
+2. Parse the CSRF token from the output
+3. Place it in a shell variable named `CSRF`
 ----
-$ CSRF=`curl -s -X GET -c cookies.txt -L \
-    http://localhost:8080/ | grep csrf | \
-    sed -r 's/^.*value="([-a-z0-9]*)".*$/\1/'`
+$ CSRF=`curl -s -X GET -c cookies.txt -L http://localhost:8080/ | grep csrf | sed -r 's/^.*value="([-a-z0-9]*)".*$/\1/'`
 ----
 
+
+
 === Logging In
-Using the initialized cookie jar and CSRF token, this authenticates our session.  This is unnecessary if authentication is disabled.
+If authentication is required, this will use the session we just established and log in.
 ----
-$ curl -s -c cookies.txt -b cookies.txt -F "username=admin" \
-    -F "password=letmein" -F "_csrf=${CSRF}" -L \
-    http://localhost:8080/ldap_login 2>&1 > /dev/null
+$ curl -s -c cookies.txt -b cookies.txt -F "username=admin" -F "password=letmein" -F "_csrf=${CSRF}" -L  http://localhost:8080/ldap_login 2>&1 > /dev/null
 ----
 
 === Performing an Authenticated Request
-Now we can make requests.
+After you have an authenticated session, you can use that cookie jar to make requests.
 ----
 $ curl -s -c cookies.txt -b cookies.txt -X GET \
     "http://localhost:8080/bags/search?text=&page=1&start=0&limit=100&sort=filename&dir=ASC"
 ----
 
-Here's an example that uses a CSRF token to make a POST request.
+Note that if you are making a POST request, you must include a parameter named `_csrf` that
+is set to the token we obtained in the first step.
 ----
 $ curl -s -c cookies.txt -b cookies.txt -X POST \
     -d 'scriptId=1&bagIds=1%2C2%2C3&_csrf=${CSRF}'
