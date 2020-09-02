@@ -7,9 +7,9 @@ services:
             - bagdb
         volumes:
             - bags:/bags:ro # Needs to match the path in the bagdb container
-            - certs:/certs/client
             - scripts:/scripts
             - docker_cache:/var/lib/docker
+        command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
     bagdb:
         build: .
         networks:
@@ -20,9 +20,8 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - bags:/bags:ro # Replace this with the path to your bag files
+            - bags:/bags # Replace this with the path to your bag files
             - indexes:/root/.ros-bag-database/indexes
-            - certs:/certs/client:ro
             - scripts:/scripts
         environment:
             ADMIN_PASSWORD: "letmein"
@@ -30,7 +29,7 @@ services:
             DB_PASS: letmein
             DB_URL: "jdbc:postgresql://postgres/bag_database"
             DB_USER: bag_database
-            DOCKER_HOST: "tcp://docker:2376"
+            DOCKER_HOST: "http://docker:2375"
             USE_BING: "false"
             USE_TILE_MAP: "true"
             METADATA_TOPICS: "/metadata"
@@ -76,7 +75,6 @@ volumes:
             type: 'none'
             o: 'bind'
             device: '/home/preed/public_html/bags'
-    certs:
     docker_cache:
     postgres:
     ldap:

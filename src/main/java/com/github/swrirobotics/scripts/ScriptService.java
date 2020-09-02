@@ -30,12 +30,8 @@
 
 package com.github.swrirobotics.scripts;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
-import com.github.dockerjava.transport.DockerHttpClient;
+import com.amihaiemil.docker.Docker;
+import com.amihaiemil.docker.TcpDocker;
 import com.github.swrirobotics.bags.persistence.*;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
@@ -52,6 +48,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
@@ -70,7 +67,6 @@ public class ScriptService extends StatusProvider {
 
     private ThreadPoolTaskExecutor taskExecutor;
 
-    private static final String CLIENT_CERT_PATH = "/certs/client";
     private static final int MINIMUM_THREAD_POOL_SIZE = 4;
 
     private static final Logger myLogger = LoggerFactory.getLogger(ScriptService.class);
@@ -179,15 +175,7 @@ public class ScriptService extends StatusProvider {
 
     @Transactional
     public UUID runScript(Long scriptId, List<Long> bagIds) throws ScriptRunException {
-        DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost(System.getenv("DOCKER_HOST"))
-                .withDockerCertPath(CLIENT_CERT_PATH)
-                .withDockerTlsVerify(true)
-                .build();
-        DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
-                .dockerHost(config.getDockerHost())
-                .sslConfig(config.getSSLConfig())
-                .build();
+        Docker docker = new TcpDocker(URI.create(System.getenv("DOCKER_HOST")));
 
         Script script = scriptRepository.findById(scriptId).orElseThrow(
                 () -> new ScriptRunException("Script " + scriptId + " doesn't exist"));
@@ -197,12 +185,9 @@ public class ScriptService extends StatusProvider {
             throw new ScriptRunException("No bag files found.");
         }
 
-        DockerClient client = DockerClientImpl.getInstance(config, httpClient);
-        client.pingCmd().exec();
-
         myLogger.info("Dispatching script to executor.");
         var runScript = myAC.getBean(RunnableScript.class);
-        runScript.initialize(script, bags, client);
+        runScript.initialize(script, bags, docker);
         runScript.setFuture(taskExecutor.submit(runScript));
         runningScripts.add(runScript);
 
