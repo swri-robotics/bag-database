@@ -36,6 +36,7 @@ public class Configuration implements Serializable {
     private static final long serialVersionUID = 7088819138941988062L;
 
     private String bagPath = "/bags";
+    private String dockerHost = "";
     private String driver = "org.h2.Driver";
     private String jdbcUsername = "sa";
     private String jdbcUrl = "jdbc:h2:mem:testdb";
@@ -70,6 +71,14 @@ public class Configuration implements Serializable {
 
     public void setBagPath(String bagPath) {
         this.bagPath = bagPath;
+    }
+
+    public String getDockerHost() {
+        return dockerHost;
+    }
+
+    public void setDockerHost(String dockerHost) {
+        this.dockerHost = dockerHost;
     }
 
     public String getDriver() {

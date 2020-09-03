@@ -62,19 +62,48 @@ Ext.define('BagDatabase.stores.ScriptStore', {
             url: 'scripts/run',
             params: params,
             success: function(response, opts) {
-                var responseObj = JSON.parse(response.responseText);
+                var responseObj = JSON.parse(response.responseText), win;
                 if (responseObj && responseObj.success) {
-                    Ext.Msg.show({
+                    win = Ext.create('Ext.window.Window', {
                         title: 'Run Success',
-                        message: 'Script was succesfully started.',
-                        buttons: Ext.Msg.OK,
-                        icon: Ext.Msg.INFO
-                    });
+                        width: 360,
+                        layout: 'fit',
+                        items: {
+                            xtype: 'form',
+                            bodyPadding: 5,
+                            layout: {
+                                type: 'vbox',
+                                align: 'stretch'
+                            },
+                            defaults: {
+                                labelWidth: 70,
+                                width: '100%'
+                            },
+                            items: [{
+                                xtype: 'displayfield',
+                                hideLabel: true,
+                                labelWidth: 0,
+                                value: 'Script was successfully started.'
+                            }, {
+                                xtype: 'textfield',
+                                fieldLabel: 'Run UUID',
+                                value: responseObj.uuid,
+                                editable: false
+                            }]
+                        },
+                        buttons: [{
+                            text: 'OK',
+                            handler: function(button) {
+                                button.up('window').close();
+                            }
+                        }]
+                    })
+                    win.show();
                 }
                 else {
                     Ext.Msg.show({
                         title: 'Run Failiure',
-                        message: 'Failed to run script: ' + responseObj.message,
+                        message: 'Failed to run script:<br>' + responseObj.message,
                         buttons: Ext.Msg.OK,
                         icon: Ext.Msg.ERROR
                     })

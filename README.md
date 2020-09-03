@@ -173,6 +173,10 @@ The JDBC URL for connecting to the database.
 
 The username to use when connecting to the database.
 
+##### DOCKER_HOST
+
+The URL to use to connect to a Docker service.
+
 ##### GOOGLE_API_KEY
 
 A Google API key that has permission to use the Google Maps GeoCoding API; this is necessary in order to resolve place names for GPS coordinates.
@@ -264,6 +268,7 @@ This has been tested with Java 11 and Tomcat 9.
     ```yml
     !com.github.swrirobotics.support.web.Configuration
     bingKey: PKnOQDvUxRJ0bEZdBH7m
+    dockerHost: http://localhost:2375
     driver: org.postgresql.Driver
     googleApiKey: PKnOQDvUxRJ0bEZdBH7m
     gpsTopics: 

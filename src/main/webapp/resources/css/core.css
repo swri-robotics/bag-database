@@ -112,6 +112,10 @@ div.ol-viewport {
     background-image: url('../images/script_code_red.png');
 }
 
+.script-edit-icon {
+    background-image: url('../images/script_edit.png');
+}
+
 .script-icon {
     background-image: url('../images/script.png');
 }

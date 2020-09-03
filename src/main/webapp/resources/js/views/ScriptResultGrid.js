@@ -52,6 +52,14 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
         text: 'Success', dataIndex: 'success', flex: 1
     }],
     listeners: {
+        selectionchange: function(rowmodel, records) {
+            var grid, isDisabled;
+            grid = rowmodel.view.up('grid');
+            isDisabled = !(records && records.length > 0);
+            grid.down('#viewStdOutButton').setDisabled(isDisabled);
+            grid.down('#viewStdErrButton').setDisabled(isDisabled);
+            grid.down('#viewErrorMessageButton').setDisabled(isDisabled);
+        },
         rowcontextmenu: function(tableview, record, tr, rowIndex, event) {
             var showTextInWindowFn = tableview.up('grid').showTextInWindow;
             Ext.create('Ext.menu.Menu', {
@@ -67,6 +75,12 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
                     handler: function() {
                         showTextInWindowFn('Error for ' + record.get('runUuid'), record.get('stderr'));
                     }
+                }, {
+                    text: 'View Error Message',
+                    iconCls: 'script-code-red-icon',
+                    handler: function() {
+                        showTextInWindowFn('Error for ' + record.get('runUuid'), record.get('errorMessage'));
+                    }
                 }]
             }).showAt(event.getXY());
             event.preventDefault();
@@ -78,13 +92,53 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
     header: {
         padding: 6,
         items: [{
-           xtype: 'button',
-           text: 'Refresh',
-           iconCls: 'refresh-icon',
-           itemId: 'refreshButton',
-           handler: function(button) {
-               button.up('grid').store.reload();
-           }
+            xtype: 'button',
+            text: 'View Std Output',
+            iconCls: 'script-code-icon',
+            itemId: 'viewStdOutButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            handler: function(button) {
+                var grid, record;
+                grid = button.up('grid');
+                record = grid.getSelection()[0];
+                grid.showTextInWindow('Output for ' + record.get('runUuid'), record.get('stdout'));
+            }
+        }, {
+            xtype: 'button',
+            text: 'View Std Error',
+            iconCls: 'script-code-red-icon',
+            itemId: 'viewStdErrButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            handler: function(button) {
+                var grid, record;
+                grid = button.up('grid');
+                record = grid.getSelection()[0];
+                grid.showTextInWindow('Output for ' + record.get('runUuid'), record.get('stderr'));
+            }
+        }, {
+            xtype: 'button',
+            text: 'View Error Message',
+            iconCls: 'script-code-red-icon',
+            itemId: 'viewErrorMessageButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            handler: function(button) {
+                var grid, record;
+                grid = button.up('grid');
+                record = grid.getSelection()[0];
+                grid.showTextInWindow('Output for ' + record.get('runUuid'), record.get('errorMessage'));
+            }
+        }, {
+            xtype: 'button',
+            text: 'Refresh',
+            iconCls: 'refresh-icon',
+            itemId: 'refreshButton',
+            margin: '0 0 0 5',
+            handler: function(button) {
+                button.up('grid').store.reload();
+            }
         }]
     },
      initComponent: function() {

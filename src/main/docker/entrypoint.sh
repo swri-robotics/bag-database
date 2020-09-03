@@ -6,6 +6,7 @@ DB_DRIVER=${DB_DRIVER:-org.hsqldb.jdbcDriver}
 DB_PASS=${DB_PASS:-}
 DB_URL=${DB_URL:-jdbc:hsqldb:mem:testdb}
 DB_USER=${DB_USER:-sa}
+DOCKER_HOST=${DOCKER_HOST:-}
 GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
 USE_BING=${USE_BING:-false}
 USE_MAPQUEST=${USE_MAPQUEST:-true}
@@ -30,6 +31,7 @@ then
     echo "!com.github.swrirobotics.support.web.Configuration
 adminPassword: ${ADMIN_PASSWORD}
 bingKey: ${BING_KEY}
+dockerHost: ${DOCKER_HOST}
 driver: ${DB_DRIVER}
 googleApiKey: ${GOOGLE_API_KEY}
 jdbcPassword: ${DB_PASS}

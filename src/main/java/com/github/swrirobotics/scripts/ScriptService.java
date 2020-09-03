@@ -33,6 +33,7 @@ package com.github.swrirobotics.scripts;
 import com.amihaiemil.docker.Docker;
 import com.amihaiemil.docker.TcpDocker;
 import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.ScriptList;
@@ -56,6 +57,8 @@ import java.util.concurrent.Future;
 
 @Service
 public class ScriptService extends StatusProvider {
+    @Autowired
+    private ConfigService configService;
     @Autowired
     private ScriptRepository scriptRepository;
     @Autowired
@@ -175,7 +178,7 @@ public class ScriptService extends StatusProvider {
 
     @Transactional
     public UUID runScript(Long scriptId, List<Long> bagIds) throws ScriptRunException {
-        Docker docker = new TcpDocker(URI.create(System.getenv("DOCKER_HOST")));
+        Docker docker = new TcpDocker(URI.create(configService.getConfiguration().getDockerHost()));
 
         Script script = scriptRepository.findById(scriptId).orElseThrow(
                 () -> new ScriptRunException("Script " + scriptId + " doesn't exist"));

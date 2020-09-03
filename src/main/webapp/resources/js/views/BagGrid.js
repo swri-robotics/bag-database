@@ -41,6 +41,122 @@ Ext.define('BagDatabase.views.BagGrid', {
                'BagDatabase.views.ErrorWindow',
                'BagDatabase.views.StatusText',
                'BagDatabase.views.ErrorButton'],
+    header: {
+        padding: 6,
+        items: [{
+            xtype: 'button',
+            text: 'Info',
+            itemId: 'infoButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'information-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.showBagDetails(records[0].get('id'));
+            }
+        }, {
+            xtype: 'button',
+            text: 'Add Tag',
+            itemId: 'addTagButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'tag-add-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.addTag(records);
+            }
+        }, {
+            xtype: 'button',
+            text: 'Copy Link',
+            itemId: 'copyLinkButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'link-icon',
+            handler: function(button) {
+                var grid, records, links;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                links = [];
+                records.forEach(function(record) {
+                    links.push(document.location.href +
+                        'bags/download?bagId=' + record.get('id'));
+                });
+                grid.copyTextToClipboard(links.join('\n'));
+            }
+        }, {
+            xtype: 'button',
+            text: 'Map Bag',
+            itemId: 'mapBagButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'map-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.displayBagsOnMap(records);
+            }
+        }, {
+            xtype: 'button',
+            text: 'Download Bag',
+            itemId: 'downloadButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'save-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.downloadBags(records);
+            }
+        }, {
+            xtype: 'splitbutton',
+            text: 'Run Script',
+            itemId: 'runScriptButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'script-go-icon',
+            listeners: {
+                click: function(button, event) {
+                    button.showMenu(event);
+                },
+                menushow: function(button, menu) {
+                    var scriptStore, grid, records, bagIds;
+                    bagIds = [];
+                    grid = button.up('grid');
+                    records = grid.getSelection();
+                    scriptStore = Ext.getStore('scriptStore');
+                    scriptStore.reload();
+
+                    records.forEach(function(record) {
+                        bagIds.push(record.get('id'));
+                    });
+                    menu.removeAll();
+                    scriptStore.each(function(record, idx) {
+                        menu.add({
+                            text: record.get('name'),
+                            iconCls: 'script-icon',
+                            handler: Ext.Function.pass(scriptStore.runScript, [record.get('id'), bagIds])
+                        })
+                    });
+                }
+            },
+            menu: [{
+                text: 'About', iconCls: 'information-icon', handler: function() {
+                    var win = Ext.create('BagDatabase.views.AboutWindow');
+                    win.show();
+                }
+            }, {
+                text: 'API Documentation', iconCls: 'book-icon', handler: function() {
+                    window.open("resources/docs/index.html", "_blank");
+                }
+            }]
+        }]
+    },
     listeners: {
         edit: function(editor, context, event) {
             var origVal, newVal, valueChanged;
@@ -156,6 +272,33 @@ Ext.define('BagDatabase.views.BagGrid', {
         rowdblclick: function(grid, record) {
             var bagId = record.get('id');
             grid.ownerCt.showBagDetails(bagId);
+        },
+        selectionchange: function(rowmodel, records, index) {
+            var grid, isDisabled, copyLinkButton, mapBagButton, downloadBagButton;
+            grid = rowmodel.view.up('grid');
+            isDisabled = !(records && records.length > 0);
+            copyLinkButton = grid.down('#copyLinkButton');
+            mapBagButton = grid.down('#mapBagButton');
+            downloadBagButton = grid.down('#downloadButton');
+
+            // Only allow "View Info" for one bag at a time
+            grid.down('#infoButton').setDisabled(isDisabled || records.length > 1);
+            grid.down('#addTagButton').setDisabled(isDisabled);
+            copyLinkButton.setDisabled(isDisabled);
+            mapBagButton.setDisabled(isDisabled);
+            downloadBagButton.setDisabled(isDisabled);
+            grid.down('#runScriptButton').setDisabled(isDisabled);
+
+            if (records.length > 1) {
+                copyLinkButton.setText("Copy Links");
+                mapBagButton.setText("Map Bags");
+                downloadBagButton.setText("Download Bags");
+            }
+            else {
+                copyLinkButton.setText("Copy Link");
+                mapBagButton.setText("Map Bag");
+                downloadBagButton.setText("Download Bag");
+            }
         }
     },
     selModel: {
@@ -252,14 +395,8 @@ Ext.define('BagDatabase.views.BagGrid', {
         }
     }, {
         xtype: 'actioncolumn',
-        width: 75,
+        width: 25,
         items: [{
-            tooltip: 'Bag Information',
-            iconCls: 'bag-action-icon information-icon',
-            handler: function(grid, rowIndex, colIndex) {
-                grid.ownerCt.showBagDetails(grid.getStore().getAt(rowIndex).get('id'));
-            }
-        }, {
             iconCls: 'bag-action-icon map-icon',
             isDisabled: function(view, rowIndex, colIndex, item, record) {
                 return record.get('hasPath') !== true;
@@ -269,12 +406,6 @@ Ext.define('BagDatabase.views.BagGrid', {
             },
             handler: function(grid, rowIndex, colIndex) {
                 grid.ownerCt.displayBagsOnMap([grid.getStore().getAt(rowIndex)]);
-            }
-        }, {
-            iconCls: 'save-icon',
-            tooltip: 'Download',
-            handler: function(grid, rowIndex, colIndex) {
-                grid.ownerCt.downloadBags([grid.getStore().getAt(rowIndex)]);
             }
         }]
     }],

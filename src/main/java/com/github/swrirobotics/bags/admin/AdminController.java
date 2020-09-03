@@ -87,31 +87,33 @@ public class AdminController {
             protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
                 Account account = myAccountRepository.findByEmail("admin");
                 Configuration config = myConfigService.getConfiguration();
-                String password = config.getAdminPassword();
-                if (account == null || (password != null && !password.isEmpty())) {
-                    if (password != null && !password.isEmpty()) {
-                        myLogger.info("Setting admin password from config file.");
-                        config.setAdminPassword("");
-                        try {
-                            myConfigService.setConfiguration(config);
+                if (config != null ) {
+                    String password = config.getAdminPassword();
+                    if (account == null || (password != null && !password.isEmpty())) {
+                        if (password != null && !password.isEmpty()) {
+                            myLogger.info("Setting admin password from config file.");
+                            config.setAdminPassword("");
+                            try {
+                                myConfigService.setConfiguration(config);
+                            }
+                            catch (IOException e) {
+                                myLogger.error("Error setting configuration", e);
+                            }
                         }
-                        catch (IOException e) {
-                            myLogger.error("Error setting configuration", e);
+                        else {
+                            password = RandomStringUtils.randomAlphanumeric(20);
                         }
-                    }
-                    else {
-                        password = RandomStringUtils.randomAlphanumeric(20);
-                    }
 
-                    if (account == null) {
-                        myLogger.info("No admin account found; creating a default one.");
-                        account = new Account("admin", password, "ROLE_ADMIN");
-                        myLogger.info("*** The default admin password is " + password + " ***");
+                        if (account == null) {
+                            myLogger.info("No admin account found; creating a default one.");
+                            account = new Account("admin", password, "ROLE_ADMIN");
+                            myLogger.info("*** The default admin password is " + password + " ***");
+                        }
+                        else {
+                            account.setPassword(password);
+                        }
+                        myAccountRepository.save(account);
                     }
-                    else {
-                        account.setPassword(password);
-                    }
-                    myAccountRepository.save(account);
                 }
             }
         });

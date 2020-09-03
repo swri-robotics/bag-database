@@ -58,6 +58,13 @@ Ext.define('BagDatabase.views.ScriptGrid', {
         rowdblclick: function(grid, record) {
             var scriptId = record.get('id');
             grid.ownerCt.showScriptDetails(scriptId, grid.store);
+        },
+        selectionchange: function(rowmodel, records) {
+            var grid, isDisabled;
+            grid = rowmodel.view.up('grid');
+            isDisabled = !(records && records.length > 0);
+            grid.down('#editButton').setDisabled(isDisabled);
+            grid.down('#deleteButton').setDisabled(isDisabled);
         }
     },
     header: {
@@ -67,6 +74,7 @@ Ext.define('BagDatabase.views.ScriptGrid', {
             text: 'Create',
             iconCls: 'script-add-icon',
             itemId: 'createButton',
+            margin: '0 0 0 5',
             handler: function(button) {
                 var win;
                 win = Ext.create('BagDatabase.views.ScriptWindow', {
@@ -76,9 +84,24 @@ Ext.define('BagDatabase.views.ScriptGrid', {
             }
         }, {
             xtype: 'button',
+            text: 'Edit',
+            iconCls: 'script-edit-icon',
+            itemId: 'editButton',
+            disabled: true,
+            margin: '0 0 0 5',
+            handler: function(button) {
+                var grid, record;
+                grid = button.up('grid');
+                record = grid.getSelection()[0];
+                grid.showScriptDetails(record.get('id'), grid.store);
+            }
+        }, {
+            xtype: 'button',
             text: 'Delete',
             iconCls: 'script-delete-icon',
             itemId: 'deleteButton',
+            margin: '0 0 0 5',
+            disabled: true,
             handler: function(button) {
                 var selection, item, store;
                 selection = button.up('grid').getSelection();
@@ -105,13 +128,14 @@ Ext.define('BagDatabase.views.ScriptGrid', {
                 }
             }
        }, {
-           xtype: 'button',
-           text: 'Refresh',
-           iconCls: 'refresh-icon',
-           itemId: 'refreshButton',
-           handler: function(button) {
-               button.up('grid').store.reload();
-           }
+            xtype: 'button',
+            text: 'Refresh',
+            iconCls: 'refresh-icon',
+            itemId: 'refreshButton',
+            margin: '0 0 0 5',
+            handler: function(button) {
+                button.up('grid').store.reload();
+            }
        }]
     },
     showScriptDetails: function(scriptId, store) {

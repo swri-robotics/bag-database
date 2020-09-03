@@ -30,9 +30,11 @@
 
 package com.github.swrirobotics.config;
 
+import com.github.swrirobotics.support.web.Configuration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.runner.RunWith;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.restdocs.JUnitRestDocumentation;
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation;
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentationConfigurer;
@@ -45,6 +47,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.inject.Inject;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 

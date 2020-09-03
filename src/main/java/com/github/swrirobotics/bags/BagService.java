@@ -124,6 +124,9 @@ public class BagService extends StatusProvider {
         try {
             nu.pattern.OpenCV.loadShared();
         }
+        catch (UnsatisfiedLinkError e) {
+            myLogger.warn("Library was already loaded.", e);
+        }
         catch (Exception e) {
             myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadlable", e);
         }
