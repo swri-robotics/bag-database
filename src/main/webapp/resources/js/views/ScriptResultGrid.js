@@ -37,7 +37,15 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
     columns: [{
         text: 'Run UUID', dataIndex: 'runUuid', flex: 2
     }, {
-        text: 'Script ID', dataIndex: 'scriptId', flex: 1
+        text: 'Script', dataIndex: 'scriptId', flex: 1, renderer: function(value) {
+            var store = Ext.getStore('scriptStore');
+            if (store) {
+                return store.getById(value).get('name');
+            }
+            else {
+                return value;
+            }
+        }
     }, {
         text: 'Start Time', dataIndex: 'startTime', renderer: bagGridDateRenderer, flex: 1
     }, {
