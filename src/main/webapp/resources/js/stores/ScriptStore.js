@@ -49,11 +49,10 @@ Ext.define('BagDatabase.stores.ScriptStore', {
     }],
     remoteSort: false,
     autoLoad: true,
-    initComponent: function() {
-        this.callParent(arguments);
-    },
     runScript: function(scriptId, bagIds) {
-        var params = {
+        var me, params
+        me = this;
+        params = {
             scriptId: scriptId,
             bagIds: bagIds
         };
@@ -62,8 +61,13 @@ Ext.define('BagDatabase.stores.ScriptStore', {
             url: 'scripts/run',
             params: params,
             success: function(response, opts) {
-                var responseObj = JSON.parse(response.responseText), win;
+                var responseObj, resultStore, win;
+                responseObj = JSON.parse(response.responseText);
                 if (responseObj && responseObj.success) {
+                    resultStore = Ext.getStore('scriptResultStore');
+                    if (resultStore) {
+                        resultStore.waitForCompletion(responseObj.uuid);
+                    }
                     win = Ext.create('Ext.window.Window', {
                         title: 'Run Success',
                         width: 360,
@@ -89,6 +93,11 @@ Ext.define('BagDatabase.stores.ScriptStore', {
                                 fieldLabel: 'Run UUID',
                                 value: responseObj.uuid,
                                 editable: false
+                            }, {
+                                xtype: 'displayfield',
+                                hideLabel: true,
+                                labelWidth: 0,
+                                value: 'The Script Results panel will automatically refresh when this script finishes.'
                             }]
                         },
                         buttons: [{
@@ -102,7 +111,7 @@ Ext.define('BagDatabase.stores.ScriptStore', {
                 }
                 else {
                     Ext.Msg.show({
-                        title: 'Run Failiure',
+                        title: 'Run Failure',
                         message: 'Failed to run script:<br>' + responseObj.message,
                         buttons: Ext.Msg.OK,
                         icon: Ext.Msg.ERROR

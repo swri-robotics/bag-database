@@ -268,7 +268,6 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         }
     }
 
-
     private class GpsPathUpdater extends MassBagUpdater {
         @Override
         protected String updateType() {
@@ -409,7 +408,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
     }
 
     private class FullScanner implements Runnable {
-        private boolean forceUpdate;
+        final private boolean forceUpdate;
         private final String myBagDirectory;
 
         private final ExecutorService bagService = Executors.newFixedThreadPool(

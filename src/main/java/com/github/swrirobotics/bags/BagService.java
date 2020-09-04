@@ -42,6 +42,8 @@ import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
+import com.github.swrirobotics.scripts.ScriptRunException;
+import com.github.swrirobotics.scripts.ScriptService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.BagList;
@@ -110,6 +112,8 @@ public class BagService extends StatusProvider {
     public ConfigService myConfigService;
     @Autowired
     private GeocodingService myGeocodingService;
+    @Autowired
+    private ScriptService myScriptService;
     @PersistenceContext
     private EntityManager myEM;
 
@@ -1592,9 +1596,10 @@ public class BagService extends StatusProvider {
         // md5sums -- but we need to synchronize around DB transactions, since
         // different bags could all try to insert the same types of messages at
         // the same time.
+        Bag newBag = null;
         synchronized (myBagDbLock) {
             try {
-                updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions);
+                newBag = updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions);
                 String msg = "Done processing: " + bagFile.getPath().toFile().toString();
                 myLogger.debug(msg);
                 reportStatus(Status.State.IDLE, msg);
@@ -1605,15 +1610,47 @@ public class BagService extends StatusProvider {
                 myLogger.error("Error reading bag file: " + file.getAbsolutePath(), e);
             }
         }
+
+        // If bagId is null but we have a newBag at this point, that means we just inserted
+        // a new bag file.  Check to see if we need to run any scripts on it.
+        if (bagId == null && newBag != null) {
+            runAutomaticScripts(newBag);
+        }
     }
 
+    private void runAutomaticScripts(Bag bag) {
+        List<Script> scripts = myScriptService.getAutomaticScripts();
+
+        myLogger.debug("Running " + scripts.size() + " scripts on the bag file.");
+        for (Script script : scripts) {
+            try {
+                myScriptService.runScript(script.getId(), Collections.singletonList(bag.getId()));
+            }
+            catch (ScriptRunException e) {
+                myLogger.warn("Error automatically running script", e);
+            }
+        }
+    }
+
+    /***
+     * Inserts a new bag or updates an existing bag in the database.
+     * @param bagId The database ID of the bag to update; if null, inserts a new bag.
+     * @param bagFile The bag to insert.
+     * @param md5sum Our calculated MD5 sum of the bag's contents.
+     * @param missingBagMd5sums All of the MD5 sums of any bags that have been marked as missing.
+     * @param locationName The friendly name of the bag's location, if available.
+     * @param gpsPositions GPS coordinates extracted from the bag.
+     * @return The bag that was just inserted.
+     * @throws DuplicateBagException If this bag already exists in the database
+     * @throws BagReaderException If there is an error reading the bag file
+     */
     @Transactional
-    public void updateBagInDatabase(Long bagId,
-                                    final BagFile bagFile,
-                                    final String md5sum,
-                                    final Map<String, Long> missingBagMd5sums,
-                                    final String locationName,
-                                    final List<GpsPosition> gpsPositions)
+    public Bag updateBagInDatabase(Long bagId,
+                                   final BagFile bagFile,
+                                   final String md5sum,
+                                   final Map<String, Long> missingBagMd5sums,
+                                   final String locationName,
+                                   final List<GpsPosition> gpsPositions)
             throws DuplicateBagException, BagReaderException {
         Bag bag;
         File file = bagFile.getPath().toFile();
@@ -1641,6 +1678,8 @@ public class BagService extends StatusProvider {
         String msg = "Committing: " + file.getAbsolutePath();
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);
+
+        return bag;
     }
 
     @Transactional

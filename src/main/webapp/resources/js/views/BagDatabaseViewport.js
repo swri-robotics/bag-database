@@ -174,5 +174,42 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 Ext.state.Manager.set('active_tab', index);
             }
         }
-    }]
+    }],
+    subscribeToTopic: function(topic, callback) {
+        // If we're already connected, we can subscribe now.  Otherwise, pushing them into this list
+        // will make our callback subscribe to them as soon as we connect.
+        this.subscriptions.push([topic, callback]);
+        if (this.isStompConnected) {
+            this.stompClient.subscribe(topic, callback);
+        }
+    },
+    initComponent: function() {
+        var me, isStompConnected;
+        me = this;
+        me.isStompConnected = false;
+        me.subscriptions = [];
+        me.stompClient = Stomp.over(function() {
+            return new SockJS(window.location.pathname + 'register');
+        });
+
+        // For the sake of convenience, the viewport creates a STOMP client.  Any other widgets that
+        // want to use the client for communication can use this client to subscribe.
+        me.stompClient.connect({},
+            function(frame) {
+                me.isStompConnected = true;
+                me.subscriptions.forEach(function(subscription) {
+                    me.stompClient.subscribe(subscription[0], subscription[1]);
+                });
+            },
+            function() {
+                console.log('Disconnected; reconnecting in 2s.');
+                Ext.Function.defer(me.connectWebSocket, 2000, me);
+            });
+        setInterval(function() {
+            if (me.stompClient.connected) {
+                me.stompClient.send('/topic/heartbeat', {priority: 9}, 'heartbeat');
+            }
+        }, 20000);
+        this.callParent(arguments);
+    }
 });

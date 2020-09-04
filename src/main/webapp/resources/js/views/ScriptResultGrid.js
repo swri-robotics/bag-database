@@ -141,52 +141,62 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
             }
         }]
     },
-     initComponent: function() {
-         var me = this;
-         Ext.apply(this, {
-             store: Ext.create('BagDatabase.stores.ScriptResultStore', {
-                 listeners: {
-                     beforeload: function(store) {
-                         me.setLoading(true);
-                     },
-                     load: function(store) {
-                         me.setLoading(false);
-                     }
-                 }
-             })
-         });
+    initComponent: function() {
+        var me, viewport;
+        me = this;
+        viewport = me.up('viewport');
+        Ext.apply(this, {
+            store: Ext.create('BagDatabase.stores.ScriptResultStore', {
+                listeners: {
+                    beforeload: function(store) {
+                        me.setLoading(true);
+                    },
+                    load: function(store) {
+                        me.setLoading(false);
+                    }
+                }
+            })
+        });
 
-         this.callParent(arguments);
-     },
-     showTextInWindow: function(title, text) {
-         var win;
-         try {
-            text = JSON.stringify(JSON.parse(text), null, 2);
-         }
-         catch (err) {
-            // Try to pretty-print the text if we can, no big deal if we can't
-         }
-         win = Ext.create('Ext.window.Window', {
-             title: title,
-             layout: 'fit',
-             height: 500,
-             width: 400,
-             items: [{
-                 xtype: 'form',
-                 bodyPadding: 5,
-                 layout: {
-                     type: 'vbox',
-                     align: 'stretch'
-                 },
-                 items: [{
-                     xtype: 'textarea',
-                     labelWidth: 0,
-                     value: text,
-                     fieldStyle: 'font-family: monospace;',
-                     flex: 1
-                 }]
-             }]
-         });
-         win.show();
-     }
+        if (viewport) {
+            viewport.subscribeToTopic('/topic/script_finished', function(result) {
+                me.store.reloadIfScriptFinished(Ext.JSON.decode(result.body));
+            });
+        }
+        else {
+            console.error("Unable to find viewport; will not be able to listen for script_finished events.");
+        }
+        this.callParent(arguments);
+    },
+    showTextInWindow: function(title, text) {
+        var win;
+        try {
+           text = JSON.stringify(JSON.parse(text), null, 2);
+        }
+        catch (err) {
+           // Try to pretty-print the text if we can, no big deal if we can't
+        }
+        win = Ext.create('Ext.window.Window', {
+            title: title,
+            layout: 'fit',
+            height: 500,
+            width: 400,
+            items: [{
+                xtype: 'form',
+                bodyPadding: 5,
+                layout: {
+                    type: 'vbox',
+                    align: 'stretch'
+                },
+                items: [{
+                    xtype: 'textarea',
+                    labelWidth: 0,
+                    value: text,
+                    fieldStyle: 'font-family: monospace;',
+                    flex: 1
+                }]
+            }]
+        });
+        win.show();
+    }
 });

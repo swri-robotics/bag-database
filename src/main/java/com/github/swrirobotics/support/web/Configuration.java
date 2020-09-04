@@ -42,6 +42,7 @@ public class Configuration implements Serializable {
     private String jdbcUrl = "jdbc:h2:mem:testdb";
     private String jdbcPassword = "";
     private String googleApiKey = "";
+    private String scriptTmpPath = "/scripts";
     private Boolean useBing = false;
     private String bingKey = "";
     private String adminPassword = "";
@@ -119,6 +120,14 @@ public class Configuration implements Serializable {
 
     public void setGoogleApiKey(String googleApiKey) {
         this.googleApiKey = googleApiKey;
+    }
+
+    public String getScriptTmpPath() {
+        return scriptTmpPath;
+    }
+
+    public void setScriptTmpPath(String scriptTmpPath) {
+        this.scriptTmpPath = scriptTmpPath;
     }
 
     public Boolean getUseMapQuest() {

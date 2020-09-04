@@ -32,6 +32,7 @@ Ext.define('BagDatabase.stores.ScriptResultStore', {
     extend: 'Ext.data.Store',
     model: 'BagDatabase.models.ScriptResult',
     requires: ['BagDatabase.models.ScriptResult'],
+    storeId: 'scriptResultStore',
     proxy: {
         type: 'ajax',
         url: 'scripts/list_results',
@@ -41,13 +42,21 @@ Ext.define('BagDatabase.stores.ScriptResultStore', {
             totalProperty: 'totalCount'
         }
     },
-    remoteSort: false,
-    autoLoad: true,
-    initComponent: function() {
-        this.callParent(arguments);
-    },
     sorters: [{
         property: 'startTime',
         direction: 'DESC'
-    }]
+    }],
+    remoteSort: false,
+    autoLoad: true,
+    reloadIfScriptFinished: function(uuid) {
+        var index = this.pendingScripts.indexOf(uuid);
+        if (index >= 0) {
+            this.pendingScripts.splice(index, 1);
+            this.reload();
+        }
+    },
+    waitForCompletion: function(uuid) {
+        this.pendingScripts.push(uuid);
+    },
+    pendingScripts: []
 });

@@ -175,11 +175,15 @@ The username to use when connecting to the database.
 
 ##### DOCKER_HOST
 
-The URL to use to connect to a Docker service.
+The URL to use to connect to a Docker service.  This can be empty if you do not intend to run scripts on bag files.
 
 ##### GOOGLE_API_KEY
 
 A Google API key that has permission to use the Google Maps GeoCoding API; this is necessary in order to resolve place names for GPS coordinates.
+
+##### TMP_SCRIPT_PATH
+
+Path to write temporary script files.  This can be empty if you do not intend to run scripts.  It must be writable by the bag database, and the Docker service that runs the scripts must have it mounted as a volume at the same location.
 
 ##### METADATA_TOPICS
 

@@ -33,6 +33,7 @@ package com.github.swrirobotics.scripts;
 import com.amihaiemil.docker.Container;
 import com.amihaiemil.docker.Docker;
 import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.status.Status;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -65,6 +66,8 @@ public class RunnableScript implements Runnable {
     @Autowired
     private BagRepository bagRepository;
     @Autowired
+    private ConfigService configService;
+    @Autowired
     private ScriptResultRepository resultRepository;
     @Autowired
     private ScriptService scriptService;
@@ -78,7 +81,6 @@ public class RunnableScript implements Runnable {
     private Status endStatus;
 
     private final Logger myLogger = LoggerFactory.getLogger(RunnableScript.class);
-    private static final String SCRIPTS_PATH = "/scripts";
     private static final String SCRIPT_TMP_NAME = "/script.py";
 
     public RunnableScript() {
@@ -136,10 +138,24 @@ public class RunnableScript implements Runnable {
 
             Container container = null;
 
+            File scriptFile = null;
             try {
                 // Write out script out to a temporary file
-                File scriptDir = new File(SCRIPTS_PATH);
-                File scriptFile = File.createTempFile("bagdb", "py", scriptDir);
+                File scriptDir = new File(configService.getConfiguration().getScriptTmpPath());
+                myLogger.debug("Writing script to temporary directory: " + scriptDir.getAbsolutePath());
+                if (!scriptDir.exists()) {
+                    myLogger.debug("Script dir doesn't exist; creating it.");
+                    if (!scriptDir.mkdirs()) {
+                        myLogger.error("Failed to create script directory.");
+                    }
+                }
+                else if (!scriptDir.canWrite()) {
+                    myLogger.error("Script dir exists but is not writable.");
+                }
+                else if (!scriptDir.isDirectory()) {
+                    myLogger.error("Script dir is not actually a directory.");
+                }
+                scriptFile = File.createTempFile("bagdb", "py", scriptDir);
                 try (FileWriter writer = new FileWriter(scriptFile)) {
                     writer.write(script.getScript());
                 }
@@ -172,8 +188,10 @@ public class RunnableScript implements Runnable {
                         .add("NetworkDisable", !script.getAllowNetworkAccess())
                         .add("Image", script.getDockerImage())
                         .add("HostConfig", hostConfig)
-                        .add("StopTimeout", script.getTimeoutSecs().longValue())
                         .add("Cmd", Json.createArrayBuilder(command));
+                if (script.getTimeoutSecs() != null && script.getTimeoutSecs().longValue() > 0) {
+                        builder = builder.add("StopTimeout", script.getTimeoutSecs().longValue());
+                }
                 JsonObject config = builder.build();
                 StringWriter configWriter = new StringWriter();
                 Json.createWriter(configWriter).writeObject(config);
@@ -214,6 +232,9 @@ public class RunnableScript implements Runnable {
                 if (containerName != null) {
                     myLogger.debug("Removing container: " + containerName);
                     container.remove();
+                }
+                if (scriptFile != null && !scriptFile.delete()) {
+                    myLogger.warn("Failed to delete temporary script file: " + scriptFile.getAbsolutePath());
                 }
             }
 

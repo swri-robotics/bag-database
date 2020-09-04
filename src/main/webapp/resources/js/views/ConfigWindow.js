@@ -49,6 +49,9 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             fieldLabel: 'Bag Path',
             name: 'bagPath'
         }, {
+            fieldLabel: 'Docker Host',
+            name: 'dockerHost'
+        }, {
             fieldLabel: 'JDBC Driver',
             name: 'driver',
             allowBlank: false
@@ -66,6 +69,9 @@ Ext.define('BagDatabase.views.ConfigWindow', {
         }, {
             fieldLabel: 'Google API Key',
             name: 'googleApiKey'
+        }, {
+            fieldLabel: 'Temporary Script Path',
+            name: 'scriptTmpPath'
         }, {
             fieldLabel: 'Remove Bags from the Database on Deletion',
             name: 'removeOnDeletion',

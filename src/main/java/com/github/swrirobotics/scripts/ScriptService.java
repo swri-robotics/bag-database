@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -63,6 +64,8 @@ public class ScriptService extends StatusProvider {
     private ScriptRepository scriptRepository;
     @Autowired
     private ScriptResultRepository resultRepository;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private BagRepository bagRepository;
     @Autowired
@@ -95,6 +98,7 @@ public class ScriptService extends StatusProvider {
                         reportStatus(script.getEndStatus());
                     }
                     finishedScripts.add(script);
+                    messagingTemplate.convertAndSend("/topic/script_finished", script.getRunUuid());
                     continue;
                 }
 
@@ -158,6 +162,11 @@ public class ScriptService extends StatusProvider {
         script.setUpdatedOn(script.getCreatedOn());
         scriptRepository.save(script);
         return script.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Script> getAutomaticScripts() {
+        return scriptRepository.findByRunAutomatically(true);
     }
 
     @Transactional(readOnly = true)

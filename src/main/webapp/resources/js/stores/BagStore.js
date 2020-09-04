@@ -94,9 +94,5 @@ Ext.define('BagDatabase.stores.BagStore', {
             Ext.JSON.encodeDate = oldEncodeDateFn;
         }
     },
-    autoLoad: true,
-    initComponent: function() {
-        this.proxy.extraParams[this.csrfName] = this.csrfToken;
-        this.callParent(arguments);
-    }
+    autoLoad: true
 });

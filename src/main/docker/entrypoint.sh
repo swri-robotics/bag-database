@@ -8,6 +8,7 @@ DB_URL=${DB_URL:-jdbc:hsqldb:mem:testdb}
 DB_USER=${DB_USER:-sa}
 DOCKER_HOST=${DOCKER_HOST:-}
 GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+SCRIPT_TMP_PATH=${SCRIPT_TMP_PATH:-/scripts}
 USE_BING=${USE_BING:-false}
 USE_MAPQUEST=${USE_MAPQUEST:-true}
 VEHICLE_NAME_TOPICS='['`echo ${VEHICLE_NAME_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
@@ -34,6 +35,7 @@ bingKey: ${BING_KEY}
 dockerHost: ${DOCKER_HOST}
 driver: ${DB_DRIVER}
 googleApiKey: ${GOOGLE_API_KEY}
+scriptTmpPath: ${SCRIPT_TMP_PATH}
 jdbcPassword: ${DB_PASS}
 jdbcUrl: ${DB_URL}
 jdbcUsername: ${DB_USER}
