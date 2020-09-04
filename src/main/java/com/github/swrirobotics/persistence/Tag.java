@@ -28,57 +28,37 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.Objects;
 
 @Entity
-@Table(name="topics", indexes = {@Index(columnList = "topicName")})
-@IdClass(TopicKey.class)
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "topicName")
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Topic implements Serializable {
+@Table(name="tags", indexes = {@Index(columnList = "tag")})
+@IdClass(TagKey.class)
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "tag")
+public class Tag implements Serializable {
+    private static final long serialVersionUID = -5788649026482712064L;
     @Id
-    @Column(nullable = false, length = 255)
-    private String topicName;
+    @Column(nullable = false)
+    private String tag;
 
     @Id
     private Long bagId;
 
+    @Column(nullable = false)
+    private String value;
+
     @MapsId("bagId")
     @JoinColumn(name = "bagId")
-    @ManyToOne(optional = false)
+    @ManyToOne(optional=false)
+    @JsonIgnore
     private Bag bag;
-
-    @Column(nullable = false)
-    private Long messageCount;
-    @ManyToOne
-    @JoinColumns({@JoinColumn(name="message_type_name", referencedColumnName = "name", nullable = false, updatable = false),
-            @JoinColumn(name="message_type_md5sum", referencedColumnName = "md5sum", nullable = false, updatable = false)})
-    private MessageType type;
-    @Column(nullable = false)
-    private Long connectionCount;
-
-    public Long getBagId() {
-        return bagId;
-    }
-
-    public void setBagId(Long bagId) {
-        this.bagId = bagId;
-    }
-
-    public void setTopicName(String topicName) {
-        this.topicName = topicName;
-    }
-
-    public String getTopicName() {
-        return topicName;
-    }
 
     public Bag getBag() {
         return bag;
@@ -89,27 +69,52 @@ public class Topic implements Serializable {
         this.bag = bag;
     }
 
-    public Long getMessageCount() {
-        return messageCount;
+    public String getTag() {
+        return tag;
     }
 
-    public void setMessageCount(Long messageCount) {
-        this.messageCount = messageCount;
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
-    public MessageType getType() {
-        return type;
+    public Long getBagId() {
+        return bagId;
     }
 
-    public void setType(MessageType type) {
-        this.type = type;
+    public void setBagId(Long bagId) {
+        this.bagId = bagId;
     }
 
-    public Long getConnectionCount() {
-        return connectionCount;
+    public String getValue() { return value; }
+
+    public void setValue(String value) { this.value = value; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Tag tag1 = (Tag) o;
+
+        if (!Objects.equals(tag, tag1.tag)) {
+            return false;
+        }
+        if (!Objects.equals(bagId, tag1.bagId)) {
+            return false;
+        }
+        return Objects.equals(value, tag1.value);
+
     }
 
-    public void setConnectionCount(Long connectionCount) {
-        this.connectionCount = connectionCount;
+    @Override
+    public int hashCode() {
+        int result = tag != null ? tag.hashCode() : 0;
+        result = 31 * result + (bagId != null ? bagId.hashCode() : 0);
+        result = 31 * result + (value != null ? value.hashCode() : 0);
+        return result;
     }
 }

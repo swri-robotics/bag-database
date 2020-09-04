@@ -30,7 +30,7 @@
 
 package com.github.swrirobotics.bags;
 
-import com.github.swrirobotics.bags.persistence.Bag;
+import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
 import org.junit.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;

@@ -31,9 +31,9 @@
 package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.swrirobotics.bags.persistence.Bag;
-import com.github.swrirobotics.bags.persistence.BagCount;
-import com.github.swrirobotics.bags.persistence.Tag;
+import com.github.swrirobotics.persistence.Bag;
+import com.github.swrirobotics.persistence.BagCount;
+import com.github.swrirobotics.persistence.Tag;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;

@@ -28,7 +28,7 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.admin;
+package com.github.swrirobotics.admin;
 
 import com.github.swrirobotics.account.Account;
 import com.github.swrirobotics.account.AccountRepository;

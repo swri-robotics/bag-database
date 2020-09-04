@@ -28,21 +28,13 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
-import java.util.Set;
-
 @Repository
 @Transactional(readOnly = true)
-public interface TagRepository extends JpaRepository<Tag, TagKey> {
-    Tag findByTagAndBagId(String tag, Long bagId);
-    Set<Tag> findByTagAndValue(String tag, String value);
-    Set<Tag> findByTag(String tag);
-    Set<Tag> findByBagId(Long bagId);
-    void deleteByBagIdAndTagIn(Long bagId, Collection<String> tags);
+public interface MessageTypeRepository extends JpaRepository<MessageType, MessageTypeKey> {
 }

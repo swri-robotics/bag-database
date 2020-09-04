@@ -30,8 +30,8 @@
 
 package com.github.swrirobotics.scripts;
 
-import com.github.swrirobotics.bags.persistence.Script;
-import com.github.swrirobotics.bags.persistence.ScriptResult;
+import com.github.swrirobotics.persistence.Script;
+import com.github.swrirobotics.persistence.ScriptResult;
 import com.github.swrirobotics.support.web.ScriptList;
 import com.github.swrirobotics.support.web.ScriptResultList;
 import com.github.swrirobotics.support.web.ScriptRunResult;

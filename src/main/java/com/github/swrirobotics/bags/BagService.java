@@ -30,8 +30,8 @@
 
 package com.github.swrirobotics.bags;
 
-import com.github.swrirobotics.bags.persistence.*;
-import com.github.swrirobotics.bags.persistence.MessageType;
+import com.github.swrirobotics.persistence.*;
+import com.github.swrirobotics.persistence.MessageType;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.MessageHandler;

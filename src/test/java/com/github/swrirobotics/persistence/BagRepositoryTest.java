@@ -28,7 +28,7 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
 import com.github.swrirobotics.config.WebAppConfigurationAware;
 import org.junit.Test;

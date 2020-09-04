@@ -32,7 +32,7 @@ package com.github.swrirobotics.scripts;
 
 import com.amihaiemil.docker.Docker;
 import com.amihaiemil.docker.TcpDocker;
-import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;

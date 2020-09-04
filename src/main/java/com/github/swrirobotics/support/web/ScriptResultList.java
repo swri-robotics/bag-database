@@ -30,7 +30,7 @@
 
 package com.github.swrirobotics.support.web;
 
-import com.github.swrirobotics.bags.persistence.ScriptResult;
+import com.github.swrirobotics.persistence.ScriptResult;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -28,18 +28,35 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.stereotype.Repository;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import java.util.Collection;
+import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
-@Repository
-public interface BagPositionRepository extends JpaRepository<BagPosition, Long>, JpaSpecificationExecutor<BagPosition> {
-    List<BagPosition> findByBagIdOrderByPositionTimeAsc(Long bagId);
-
-    List<BagPosition> findByBagIdInOrderByPositionTimeAsc(Collection<Long> bags);
+/**
+ * This table is designed to model the table used by Spring Session to store user
+ * sessions; see the documentation at
+ * http://docs.spring.io/spring-session/docs/1.2.x/reference/html5/#api-jdbcoperationssessionrepository-storage .
+ */
+@Entity
+@Table(name="SPRING_SESSION", indexes = @Index(columnList = "last_access_time"))
+public class SpringSession {
+    @Column(length=36)
+    @Id
+    public String session_id;
+    @Column(nullable = false)
+    public Long creation_time;
+    @Column(nullable = false)
+    public Long last_access_time;
+    @Column(nullable = false)
+    public Long max_inactive_interval;
+    @Column(length = 100)
+    public String principal_name;
+    @OneToMany(mappedBy = "session")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    public List<SpringSessionAttribute> springSessionAttributes = new ArrayList<>();
 }

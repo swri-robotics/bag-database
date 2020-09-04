@@ -28,22 +28,30 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
+import java.io.Serializable;
 
-import java.util.List;
+public class TopicKey implements Serializable {
+    protected String topicName;
+    protected Long bagId;
 
-@Repository
-public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificationExecutor<Bag> {
-    Long countByPathStartsWith(String path);
-    List<Bag> findByPathAndFilename(String path, String filename);
-    List<Bag> findByPath(String path);
-    List<Bag> findByMissing(boolean isMissing);
-    Bag findByMd5sum(String md5sum);
-    @Query("select distinct b.path from Bag b")
-    List<String> getDisinctPaths();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TopicKey topicKey = (TopicKey) o;
+
+        if (!topicName.equals(topicKey.topicName)) return false;
+        return bagId.equals(topicKey.bagId);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = topicName.hashCode();
+        result = 31 * result + bagId.hashCode();
+        return result;
+    }
 }

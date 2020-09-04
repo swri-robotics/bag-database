@@ -32,7 +32,7 @@ package com.github.swrirobotics.scripts;
 
 import com.amihaiemil.docker.Container;
 import com.amihaiemil.docker.Docker;
-import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.status.Status;
 import com.google.common.base.Joiner;

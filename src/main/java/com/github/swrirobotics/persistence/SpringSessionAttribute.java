@@ -28,35 +28,63 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+package com.github.swrirobotics.persistence;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * This table is designed to model the table used by Spring Session to store user
- * sessions; see the documentation at
+ * session attributess; see the documentation at
  * http://docs.spring.io/spring-session/docs/1.2.x/reference/html5/#api-jdbcoperationssessionrepository-storage .
  */
 @Entity
-@Table(name="SPRING_SESSION", indexes = @Index(columnList = "last_access_time"))
-public class SpringSession {
-    @Column(length=36)
+@Table(name = "SPRING_SESSION_ATTRIBUTES", indexes = @Index(columnList = "session_id"))
+public class SpringSessionAttribute implements Serializable {
+    private static final long serialVersionUID = 8877915121294599668L;
+
+    @ManyToOne
+    @JoinColumn(name="session_id")
     @Id
-    public String session_id;
-    @Column(nullable = false)
-    public Long creation_time;
-    @Column(nullable = false)
-    public Long last_access_time;
-    @Column(nullable = false)
-    public Long max_inactive_interval;
-    @Column(length = 100)
-    public String principal_name;
-    @OneToMany(mappedBy = "session")
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    public List<SpringSessionAttribute> springSessionAttributes = new ArrayList<>();
+    public SpringSession session;
+    @Column(length = 200)
+    @Id
+    public String attribute_name;
+    // Postgres will create this field as a "bytea", which does not take a length,
+    // but hsqldb will create it as a longvarchar, and the default length is not
+    // long enough to store Spring's Security Context info.
+    @Basic
+    @Column(length = 10000)
+    public byte[] attribute_bytes;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        SpringSessionAttribute that = (SpringSessionAttribute) o;
+
+        if (!Objects.equals(session, that.session)) {
+            return false;
+        }
+        if (!Objects.equals(attribute_name, that.attribute_name)) {
+            return false;
+        }
+        return attribute_bytes != null ? Arrays.equals(that.attribute_bytes, attribute_bytes) : that.attribute_bytes == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = session != null ? session.hashCode() : 0;
+        result = 31 * result + (attribute_name != null ? attribute_name.hashCode() : 0);
+        result = 31 * result + (attribute_bytes != null ? Arrays.hashCode(attribute_bytes) : 0);
+        return result;
+    }
 }

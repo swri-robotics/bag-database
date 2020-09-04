@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,22 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface ScriptRepository extends JpaRepository<Script, Long>, JpaSpecificationExecutor<Script> {
-    List<Script> findByRunAutomatically(boolean runAutomatically);
+public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificationExecutor<Bag> {
+    Long countByPathStartsWith(String path);
+    List<Bag> findByPathAndFilename(String path, String filename);
+    List<Bag> findByPath(String path);
+    List<Bag> findByMissing(boolean isMissing);
+    Bag findByMd5sum(String md5sum);
+    @Query("select distinct b.path from Bag b")
+    List<String> getDisinctPaths();
 }

@@ -33,7 +33,7 @@ package com.github.swrirobotics.bags.filesystem;
 
 import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;

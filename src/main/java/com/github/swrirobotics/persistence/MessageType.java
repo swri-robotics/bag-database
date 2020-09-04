@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,66 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.stereotype.Repository;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
-import java.util.UUID;
+import javax.persistence.*;
+import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
-@Repository
-public interface ScriptResultRepository extends JpaRepository<ScriptResult, Long>, JpaSpecificationExecutor<ScriptResult> {
-    ScriptResult findByRunUuid(UUID runUuid);
+@Entity
+@Table(name="message_types", indexes = {@Index(columnList = "name")})
+@IdClass(MessageTypeKey.class)
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "md5sum")
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class MessageType implements Serializable {
+    @Id
+    @Column(nullable = false, length = 255)
+    private String name;
+    @Id
+    @Column(nullable = false, length = 32)
+    private String md5sum;
+    @ManyToMany(mappedBy = "messageTypes")
+    @JsonIgnore
+    private Set<Bag> bags = new HashSet<>();
+    @OneToMany(mappedBy = "type")
+    @JsonIgnore
+    private Set<Topic> topics = new HashSet<>();
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getMd5sum() {
+        return md5sum;
+    }
+
+    public void setMd5sum(String md5sum) {
+        this.md5sum = md5sum;
+    }
+
+    public Set<Bag> getBags() {
+        return bags;
+    }
+
+    private void setBags(Set<Bag> bags) {
+        this.bags = bags;
+    }
+
+    public Set<Topic> getTopics() {
+        return topics;
+    }
+
+    private void setTopics(Set<Topic> topics) {
+        this.topics = topics;
+    }
 }

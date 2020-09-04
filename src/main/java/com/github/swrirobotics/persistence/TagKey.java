@@ -28,16 +28,30 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
+import java.io.Serializable;
 
-import java.util.List;
+public class TagKey implements Serializable {
+    protected Long bagId;
+    protected String tag;
 
-@Repository
-@Transactional(readOnly = true)
-public interface TopicRepository extends JpaRepository<Topic, TopicKey> {
-    List<Topic> findByTopicNameAndBagId(String topicName, Long bagId);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TagKey tagKey = (TagKey) o;
+
+        if (!bagId.equals(tagKey.bagId)) return false;
+        return tag.equals(tagKey.tag);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = bagId.hashCode();
+        result = 31 * result + tag.hashCode();
+        return result;
+    }
 }

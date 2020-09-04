@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,66 +28,92 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.persistence;
+package com.github.swrirobotics.persistence;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.google.common.collect.Lists;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 @Entity
-@Table(name="message_types", indexes = {@Index(columnList = "name")})
-@IdClass(MessageTypeKey.class)
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "md5sum")
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class MessageType implements Serializable {
+@Table(name="script_criteria")
+public class ScriptCriteria implements Serializable {
     @Id
-    @Column(nullable = false, length = 255)
-    private String name;
-    @Id
-    @Column(nullable = false, length = 32)
-    private String md5sum;
-    @ManyToMany(mappedBy = "messageTypes")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Long scriptId;
+    @Column(length = 1024)
+    private String directory;
+    @Column(length = 1024)
+    private String filename;
+    @ElementCollection
+    private List<String> messageTypes = Lists.newArrayList();
+    @ElementCollection
+    private List<String> topicNames = Lists.newArrayList();
+
+    @MapsId("scriptId")
+    @JoinColumn(name = "scriptId")
+    @ManyToOne(optional = false)
     @JsonIgnore
-    private Set<Bag> bags = new HashSet<>();
-    @OneToMany(mappedBy = "type")
-    @JsonIgnore
-    private Set<Topic> topics = new HashSet<>();
+    private Script script;
 
-    public String getName() {
-        return name;
+    public Long getId() {
+        return id;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public String getMd5sum() {
-        return md5sum;
+    public Long getScriptId() {
+        return scriptId;
     }
 
-    public void setMd5sum(String md5sum) {
-        this.md5sum = md5sum;
+    public void setScriptId(Long scriptId) {
+        this.scriptId = scriptId;
     }
 
-    public Set<Bag> getBags() {
-        return bags;
+    public String getDirectory() {
+        return directory;
     }
 
-    private void setBags(Set<Bag> bags) {
-        this.bags = bags;
+    public void setDirectory(String directory) {
+        this.directory = directory;
     }
 
-    public Set<Topic> getTopics() {
-        return topics;
+    public String getFilename() {
+        return filename;
     }
 
-    private void setTopics(Set<Topic> topics) {
-        this.topics = topics;
+    public void setFilename(String filename) {
+        this.filename = filename;
+    }
+
+    public List<String> getMessageTypes() {
+        return messageTypes;
+    }
+
+    private void setMessageTypes(List<String> messageTypes) {
+        this.messageTypes = messageTypes;
+    }
+
+    public List<String> getTopicNames() {
+        return topicNames;
+    }
+
+    private void setTopicNames(List<String> topicNames) {
+        this.topicNames = topicNames;
+    }
+
+    public Script getScript() {
+        return script;
+    }
+
+    public void setScript(Script script) {
+        this.script = script;
     }
 }
