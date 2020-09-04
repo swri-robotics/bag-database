@@ -32,13 +32,17 @@ package com.github.swrirobotics.scripts;
 
 import com.amihaiemil.docker.Docker;
 import com.amihaiemil.docker.TcpDocker;
-import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.ScriptList;
 import com.github.swrirobotics.support.web.ScriptResultList;
+import com.google.common.base.Joiner;
 import org.apache.commons.compress.utils.Lists;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,11 +54,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import javax.json.*;
+import java.io.StringReader;
 import java.net.URI;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 @Service
 public class ScriptService extends StatusProvider {
@@ -69,7 +77,12 @@ public class ScriptService extends StatusProvider {
     @Autowired
     private BagRepository bagRepository;
     @Autowired
+    private TagRepository tagRepository;
+    @Autowired
     private ApplicationContext myAC;
+
+    private final GeometryFactory myGeometryFactory =
+        new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), 4326);
 
     private ThreadPoolTaskExecutor taskExecutor;
 
@@ -107,7 +120,7 @@ public class ScriptService extends StatusProvider {
                     double elapsed = (now - script.getStartTime()) / 1000.0;
                     if (elapsed > timeout) {
                         myLogger.warn("Cancelling run for script ["
-                                + script.getScript().getName() + "] due to timeout.");
+                            + script.getScript().getName() + "] due to timeout.");
                         future.cancel(true);
                     }
                 }
@@ -116,7 +129,7 @@ public class ScriptService extends StatusProvider {
             runningScripts.removeAll(finishedScripts);
             if (taskExecutor.getActiveCount() != runningScripts.size()) {
                 myLogger.warn("Number of running scripts doesn't match active task threads!  ("
-                        + runningScripts.size() + " vs . " + taskExecutor.getActiveCount() + ")");
+                    + runningScripts.size() + " vs . " + taskExecutor.getActiveCount() + ")");
             }
 
             if (runningScripts.isEmpty()) {
@@ -180,6 +193,143 @@ public class ScriptService extends StatusProvider {
         scriptRepository.save(script);
     }
 
+    /**
+     * Processes the output from a script and updates tags for bags in the database if formatted correctly.
+     * If any of the supported attributes are supplied, every indicated bag will be updated in the database.
+     * Correctly-formatted output is a JSON object that contains any of these elements:
+     * addTags, removeTags, setGpsCoordinates, setDescription, setLocation, setVehicle
+     *
+     * Example output:
+     * {
+     *   "addTags" : {
+     *      "message_count" : 602
+     *   },
+     *   "removeTags" : [ "old_tag" ],
+     *   "setDescription" : "Processed",
+     *   "setGpsCoordinates" : {
+     *      "latitude" : 30,
+     *      "longitude" : 60
+     *   },
+     *   "setLocation" : "Here",
+     *   "setVehicle" : "Something"
+     * }
+     * @param stdout JSON output from the script
+     * @param bagIds IDs of bags that should be updated
+     */
+    @Transactional
+    public void processScriptOutput(String stdout, List<Long> bagIds) {
+        myLogger.debug("processScriptOutput: for bags [" + Joiner.on(',').join(bagIds) + "]");
+
+        try (JsonReader reader = Json.createReader(new StringReader(stdout))) {
+            JsonObject object = reader.readObject();
+
+            boolean saveBags = false;
+            List<Bag> bags = bagRepository.findAllById(bagIds);
+
+            // Add new tags
+            JsonObject addTags = object.getJsonObject("addTags");
+            List<Tag> newTags = new ArrayList<>();
+            if (addTags != null)
+            {
+                myLogger.debug("Adding tags");
+                saveBags = true;
+                addTags.forEach((s, jsonValue) -> {
+                    for (Bag bag : bags) {
+                        boolean needsNewTag = true;
+                        // If a tag with a key already exists, update it
+                        for (Tag tag : bag.getTags()) {
+                            if (tag.getTag().equals(s)) {
+                                tag.setValue(jsonValue.toString());
+                                needsNewTag = false;
+                                break;
+                            }
+                        }
+                        if (needsNewTag) {
+                            Tag tag = new Tag();
+                            tag.setTag(s);
+                            tag.setValue(jsonValue.toString());
+                            tag.setBag(bag);
+                            bag.getTags().add(tag);
+                            newTags.add(tag);
+                        }
+                    }
+                });
+            }
+            if (!newTags.isEmpty()) {
+                tagRepository.saveAll(newTags);
+            }
+
+            // Remove old tags
+            JsonArray removeTags = object.getJsonArray("removeTags");
+            if (removeTags != null) {
+                saveBags = true;
+                List<String> tags = removeTags.stream().map(c -> ((JsonString)c).getString()).collect(Collectors.toList());
+                List<Tag> tagsToRemove = new ArrayList<>();
+                for (Bag bag : bags) {
+                    bag.getTags().removeIf(t -> {
+                        if (tags.contains(t.getTag())) {
+                            tagsToRemove.add(t);
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+                tagRepository.deleteAll(tagsToRemove);
+            }
+
+            // Update the GPS coordinates
+            JsonObject coords = object.getJsonObject("setGpsCoordinates");
+            if (coords != null &&
+                (coords.getJsonNumber("latitude") != null && coords.getJsonNumber("longitude") != null)) {
+                double latitude = coords.getJsonNumber("latitude").doubleValue();
+                double longitude = coords.getJsonNumber("longitude").doubleValue();
+                if (latitude > 90.0 || latitude < -90.0 || longitude > 180.0 || longitude < -180.0) {
+                    myLogger.warn("Latitude/longitude were invalid.");
+                }
+                else {
+                    saveBags = true;
+                    for (Bag bag : bags) {
+                        bag.setCoordinate(myGeometryFactory.createPoint(new Coordinate(longitude, latitude)));
+                    }
+                }
+            }
+
+            // Update the description
+            String description = object.getString("setDescription", null);
+            if (description != null) {
+                saveBags = true;
+                for (Bag bag : bags) {
+                    bag.setDescription(description);
+                }
+            }
+
+            // Update the location
+            String location = object.getString("setLocation", null);
+            if (location != null) {
+                saveBags = true;
+                for (Bag bag : bags) {
+                    bag.setLocation(location);
+                }
+            }
+
+            // Update the vehicle name
+            String vehicle = object.getString("setVehicle", null);
+            if (vehicle != null) {
+                saveBags = true;
+                for (Bag bag : bags) {
+                    bag.setVehicle(vehicle);
+                }
+            }
+
+            if (saveBags) {
+                bagRepository.saveAll(bags);
+            }
+        }
+        catch (JsonException | IllegalStateException e) {
+            myLogger.warn("Unable to parse JSON in script output", e);
+        }
+    }
+
     @Transactional
     public void removeScript(Long scriptId) {
         scriptRepository.deleteById(scriptId);
@@ -190,7 +340,7 @@ public class ScriptService extends StatusProvider {
         Docker docker = new TcpDocker(URI.create(configService.getConfiguration().getDockerHost()));
 
         Script script = scriptRepository.findById(scriptId).orElseThrow(
-                () -> new ScriptRunException("Script " + scriptId + " doesn't exist"));
+            () -> new ScriptRunException("Script " + scriptId + " doesn't exist"));
 
         List<Bag> bags = bagRepository.findAllById(bagIds);
         if (bags.isEmpty()) {

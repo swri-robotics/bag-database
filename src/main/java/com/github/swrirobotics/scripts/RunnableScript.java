@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -118,139 +119,155 @@ public class RunnableScript implements Runnable {
         return startTime;
     }
 
-    @Override
     @Transactional
     public void run() {
         try {
             myLogger.info("Starting RunnableScript task for [" + script.getName() + "]");
-            String containerName = null;
-
-            ScriptResult result = new ScriptResult();
-            result.setStartTime(new Timestamp(startTime));
-            result.setScriptId(script.getId());
-            result.setSuccess(false);
-            result.setRunUuid(runUuid);
-
-            List<Long> bagIds = Lists.newArrayList();
-            for (Bag bag : bags) {
-                bagIds.add(bag.getId());
-            }
-
-            Container container = null;
-
-            File scriptFile = null;
-            try {
-                // Write out script out to a temporary file
-                File scriptDir = new File(configService.getConfiguration().getScriptTmpPath());
-                myLogger.debug("Writing script to temporary directory: " + scriptDir.getAbsolutePath());
-                if (!scriptDir.exists()) {
-                    myLogger.debug("Script dir doesn't exist; creating it.");
-                    if (!scriptDir.mkdirs()) {
-                        myLogger.error("Failed to create script directory.");
-                    }
-                }
-                else if (!scriptDir.canWrite()) {
-                    myLogger.error("Script dir exists but is not writable.");
-                }
-                else if (!scriptDir.isDirectory()) {
-                    myLogger.error("Script dir is not actually a directory.");
-                }
-                scriptFile = File.createTempFile("bagdb", "py", scriptDir);
-                try (FileWriter writer = new FileWriter(scriptFile)) {
-                    writer.write(script.getScript());
-                }
-                scriptFile.setExecutable(true);
-
-                // Assemble bind configurations for our script and all of the bags it uses
-                JsonArrayBuilder bindBuilder = Json.createArrayBuilder();
-                bindBuilder.add(Joiner.on(':').join(scriptFile.getAbsolutePath(), SCRIPT_TMP_NAME));
-                List<String> command = new ArrayList<>();
-                command.add(SCRIPT_TMP_NAME);
-                for (Bag bag : bags) {
-                    bindBuilder.add(Joiner.on(':').join(bag.getPath() + "/" + bag.getFilename(),
-                            "/" + bag.getFilename(), ""));
-                    command.add("/" + bag.getFilename());
-                }
-
-                // Pull the Docker image to make sure it's ready
-                myLogger.info("Pulling Docker image: " + script.getDockerImage());
-                var splitImageName = Splitter.on(':').split(script.getDockerImage()).iterator();
-                docker.images().pull(splitImageName.next(), splitImageName.next());
-
-                JsonObjectBuilder hostConfig =  Json.createObjectBuilder().add("Binds", bindBuilder);
-                if (script.getMemoryLimitBytes() != null && script.getMemoryLimitBytes() > 0) {
-                    hostConfig = hostConfig.add("Memory", script.getMemoryLimitBytes());
-                }
-
-                // Assemble the final configuration
-                JsonObjectBuilder builder = Json.createObjectBuilder();
-                builder = builder
-                        .add("NetworkDisable", !script.getAllowNetworkAccess())
-                        .add("Image", script.getDockerImage())
-                        .add("HostConfig", hostConfig)
-                        .add("Cmd", Json.createArrayBuilder(command));
-                if (script.getTimeoutSecs() != null && script.getTimeoutSecs().longValue() > 0) {
-                        builder = builder.add("StopTimeout", script.getTimeoutSecs().longValue());
-                }
-                JsonObject config = builder.build();
-                StringWriter configWriter = new StringWriter();
-                Json.createWriter(configWriter).writeObject(config);
-                myLogger.debug("Container config:\n" + configWriter.getBuffer().toString());
-                container = docker.containers().create(config);
-                containerName = container.containerId();
-
-                myLogger.debug("Created container: " + containerName);
-
-                container.start();
-
-                myLogger.debug("Started container: " + containerName);
-                // Wait until the container stops, then collect its output
-                container.waitOn("not-running");
-
-                String stdout = container.logs().stdout().fetch();
-                myLogger.debug("Output:\n" + stdout);
-                String stderr = container.logs().stderr().fetch();
-                if (!stderr.isEmpty()) {
-                    result.setStderr(stderr);
-                    myLogger.warn("Stderr:\n" + stderr);
-                }
-                else {
-                    result.setSuccess(true);
-                }
-
-                result.setStdout(stdout);
-            }
-            catch (IOException e) {
-                myLogger.error("IO Exception:", e);
-                result.setErrorMessage(e.getLocalizedMessage());
-            }
-            catch (Exception e) {
-                myLogger.error("Unexpected exception:", e);
-                result.setErrorMessage(e.getLocalizedMessage());
-            }
-            finally {
-                if (containerName != null) {
-                    myLogger.debug("Removing container: " + containerName);
-                    container.remove();
-                }
-                if (scriptFile != null && !scriptFile.delete()) {
-                    myLogger.warn("Failed to delete temporary script file: " + scriptFile.getAbsolutePath());
-                }
-            }
-
-            long stopTime = System.currentTimeMillis();
-            result.setDurationSecs((stopTime - startTime) / 1000.0);
-
-            saveResult(result, bagIds);
+            String stdout = runScript();
             String info = "Script [" + script.getName() + "] finished.";
             myLogger.info(info);
             endStatus = new Status(Status.State.IDLE, info);
+
+            List<Long> bagIds = bags.stream().map(Bag::getId).collect(Collectors.toList());
+            if (stdout != null) {
+                scriptService.processScriptOutput(stdout, bagIds);
+            }
         }
         catch (Exception e) {
             myLogger.error("Unexpected exception", e);
             endStatus = new Status(Status.State.ERROR,
                     "Error when processing script: " + e.getLocalizedMessage());
         }
+    }
+
+    /**
+     * Runs this thread's configured script.
+     */
+    @Transactional
+    public String runScript() {
+        String containerName = null;
+        String stdout = null;
+
+        ScriptResult result = new ScriptResult();
+        result.setStartTime(new Timestamp(startTime));
+        result.setScriptId(script.getId());
+        result.setSuccess(false);
+        result.setRunUuid(runUuid);
+
+        List<Long> bagIds = Lists.newArrayList();
+        for (Bag bag : bags) {
+            bagIds.add(bag.getId());
+        }
+
+        Container container = null;
+
+        File scriptFile = null;
+        try {
+            // Write out script out to a temporary file
+            File scriptDir = new File(configService.getConfiguration().getScriptTmpPath());
+            myLogger.debug("Writing script to temporary directory: " + scriptDir.getAbsolutePath());
+            if (!scriptDir.exists()) {
+                myLogger.debug("Script dir doesn't exist; creating it.");
+                if (!scriptDir.mkdirs()) {
+                    myLogger.error("Failed to create script directory.");
+                }
+            }
+            else if (!scriptDir.canWrite()) {
+                myLogger.error("Script dir exists but is not writable.");
+            }
+            else if (!scriptDir.isDirectory()) {
+                myLogger.error("Script dir is not actually a directory.");
+            }
+            scriptFile = File.createTempFile("bagdb", "py", scriptDir);
+            try (FileWriter writer = new FileWriter(scriptFile)) {
+                writer.write(script.getScript());
+            }
+            scriptFile.setExecutable(true);
+
+            // Assemble bind configurations for our script and all of the bags it uses
+            JsonArrayBuilder bindBuilder = Json.createArrayBuilder();
+            bindBuilder.add(Joiner.on(':').join(scriptFile.getAbsolutePath(), SCRIPT_TMP_NAME));
+            List<String> command = new ArrayList<>();
+            command.add(SCRIPT_TMP_NAME);
+            for (Bag bag : bags) {
+                bindBuilder.add(Joiner.on(':').join(bag.getPath() + "/" + bag.getFilename(),
+                    "/" + bag.getFilename(), ""));
+                command.add("/" + bag.getFilename());
+            }
+
+            // Pull the Docker image to make sure it's ready
+            myLogger.info("Pulling Docker image: " + script.getDockerImage());
+            var splitImageName = Splitter.on(':').split(script.getDockerImage()).iterator();
+            docker.images().pull(splitImageName.next(), splitImageName.next());
+
+            JsonObjectBuilder hostConfig =  Json.createObjectBuilder().add("Binds", bindBuilder);
+            if (script.getMemoryLimitBytes() != null && script.getMemoryLimitBytes() > 0) {
+                hostConfig = hostConfig.add("Memory", script.getMemoryLimitBytes());
+            }
+
+            // Assemble the final configuration
+            JsonObjectBuilder builder = Json.createObjectBuilder();
+            builder = builder
+                .add("NetworkDisable", !script.getAllowNetworkAccess())
+                .add("Image", script.getDockerImage())
+                .add("HostConfig", hostConfig)
+                .add("Cmd", Json.createArrayBuilder(command));
+            if (script.getTimeoutSecs() != null && script.getTimeoutSecs().longValue() > 0) {
+                builder = builder.add("StopTimeout", script.getTimeoutSecs().longValue());
+            }
+            JsonObject config = builder.build();
+            StringWriter configWriter = new StringWriter();
+            Json.createWriter(configWriter).writeObject(config);
+            myLogger.debug("Container config:\n" + configWriter.getBuffer().toString());
+            container = docker.containers().create(config);
+            containerName = container.containerId();
+
+            myLogger.debug("Created container: " + containerName);
+
+            container.start();
+
+            myLogger.debug("Started container: " + containerName);
+            // Wait until the container stops, then collect its output
+            container.waitOn("not-running");
+
+            stdout = container.logs().stdout().fetch();
+            myLogger.debug("Output:\n" + stdout);
+            String stderr = container.logs().stderr().fetch();
+            if (!stderr.isEmpty()) {
+                result.setStderr(stderr);
+                myLogger.warn("Stderr:\n" + stderr);
+            }
+            else {
+                result.setSuccess(true);
+            }
+
+            result.setStdout(stdout);
+        }
+        catch (IOException e) {
+            myLogger.error("IO Exception:", e);
+            result.setErrorMessage(e.getLocalizedMessage());
+        }
+        finally {
+            if (containerName != null) {
+                myLogger.debug("Removing container: " + containerName);
+                try {
+                    container.remove();
+                }
+                catch (IOException e) {
+                    myLogger.error("Failed to remove container", e);
+                }
+            }
+            if (scriptFile != null && !scriptFile.delete()) {
+                myLogger.warn("Failed to delete temporary script file: " + scriptFile.getAbsolutePath());
+            }
+        }
+
+        long stopTime = System.currentTimeMillis();
+        result.setDurationSecs((stopTime - startTime) / 1000.0);
+
+        saveResult(result, bagIds);
+
+        return stdout;
     }
 
     @Transactional

@@ -327,7 +327,7 @@ public class Bag implements Serializable {
     }
 
     @OneToMany(mappedBy = "bag",
-               cascade={CascadeType.REFRESH, CascadeType.MERGE},
+               cascade = {CascadeType.REFRESH, CascadeType.MERGE},
                fetch = FetchType.EAGER)
     public Set<Tag> getTags() {
         return tags;
