@@ -3,13 +3,13 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
 layout: default
-title: Scripts
-parent: Interface
-nav_order: 6
-description: "Scripts"
-permalink: /interface/scripts
+title: Folder View
+parent: Web Interface
+nav_order: 5
+description: "Folder View"
+permalink: /web-interface/folder_view
 ---
 
-## Scripts
+## Folder View
 
-The scripts panel.
+The folder view panel.

@@ -4,10 +4,10 @@
 
 layout: default
 title: List View
-parent: Interface
+parent: Web Interface
 nav_order: 4
 description: "List View"
-permalink: /interface/list_view
+permalink: /web-interface/list_view
 ---
 
 ## List View
