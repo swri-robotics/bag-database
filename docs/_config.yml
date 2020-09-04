@@ -24,7 +24,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   The Bag Database is a web-based application that makes it simple to catalogue
   ROS bag files, search through them, and perform operations on them.
 baseurl: "/bag-database" # the subpath of your site, e.g. /blog
-url: "http://pjreed.github.io/bag-database/" # the base hostname & protocol for your site, e.g. http://example.com
+url: "http://pjreed.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 github_username: pjreed
 
 # Build settings
