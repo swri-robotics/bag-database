@@ -29,6 +29,7 @@ github_username: pjreed
 
 # Build settings
 theme: just-the-docs
+remote_theme: pmarsceill/just-the-docs
 
 
 # Enable or disable the site search
