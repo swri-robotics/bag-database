@@ -3,11 +3,11 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
 layout: default
-title: Building
+title: Tomcat
 parent: Installation
 nav_order: 3
-description: "Building the Bag Database from Source"
-permalink: /installation/building
+description: "Running the Bag Database as a Tomcat webapp"
+permalink: /installation/tomcat
 ---
 
 ## Building
@@ -21,13 +21,16 @@ WAR package, run:
 `mvn package`
 
 This will produce a WAR file that is suitable for deploying to a Tomcat 9 application
-server.  Setting up Tomcat is not currently described in these documents.
+server.
 
 ## Tomcat Configuration
 
 1. Start up a PostgreSQL server; create an empty database and a user with access to it.
-2. Start up your application server and deploy the WAR file to it.
-3. The bag database will automatically create a directory at `${HOME}/.ros-bag-database` and place its configuration inside there.
+2. Start up your application server and deploy the WAR file to it.  The easiest way
+to do this is to copy the WAR file into Tomcat's `webapps` directory.
+3. The bag database will automatically create a directory at `${HOME}/.ros-bag-database`
+and place its configuration inside there, where `${HOME}` is the home directory of
+the user that the `tomcat` service is running as.
 4. Edit `${HOME}/.ros-bag-database/settings.yml` and set your configuration, then restart the application.  Here's an example of a valid config file; keys you don't want to set can be omitted.
 
     ```yml
@@ -52,3 +55,5 @@ server.  Setting up Tomcat is not currently described in these documents.
 5. Look inside the log file at `${TOMCAT_HOME}/logs/bag_database.log` to find the automatically-generated administrator password.
 6. Log in through the GUI and use the Maintenance panel to change the password.
 7. Note that in order for video streaming to work, `ffmpeg` version 3 or higher must be available on the system path.
+8. After you've changed all of the configuration values to their desired properties,
+restart Tomcat to make sure they're applied.

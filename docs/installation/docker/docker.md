@@ -6,56 +6,22 @@ layout: default
 title: Docker
 parent: Installation
 nav_order: 2
+has_children: true
 description: "Installing with Docker"
 permalink: /installation/docker
 ---
 
 ## Docker
 
-The bag database can run standalone in order to demonstrate its functionality, but
-if you do so it will have to rebuild the database every time it restarts.  Instead
-you should link it to an external database.  PostgreSQL 11 with PostGIS 2.5 is
-the only supported database.
+The Bag Database supports running in multiple different configurations, and depending upon
+your needs, you may want to also have PostgreSQL, OpenLDAP, and Docker containers.  The
+easiest way to manage all of these is with [docker-compose](https://docs.docker.com/compose/).
 
-The instructions here will describe how to manually create Docker containers, but
-you may find it easier to use [Docker Compose](https://docs.docker.com/compose/) to
-run the included `docker-compose.yml` file instead; just customize it to your needs.
+Follow the official instructions for setting up docker-compose, then look at the examples
+here to get an idea of how you want to set up your Bag Database.  This page describes
+volumes and parameters that can be used to configure the Docker container.
 
-First, create a virtual network for the containers:
-```bash
-docker network create bagdb
-```
-
-Start a PostgreSQL container with PostGIS support:
-```
-docker run -d \
-    --name bagdb-postgres \
-    --net bagdb \
-    -v /var/lib/bagdb-postgres:/var/lib/postgresql/data \
-    -e POSTGRES_PASSWORD=letmein \
-    -e POSTGRES_USER=bag_database \
-    -e POSTGRES_DB=bag_database \
-    postgis/postgis:11-2.5
-```
-
-The bag database exposes port 8080 and expects to find bag files in a volume at /bags by default.  You can run it like so:
-```
-docker run -d \
-    -p 8080:8080 \
-    -v /bag/location:/bags \
-    --name bagdb \
-    --net bagdb \
-    -e DB_DRIVER=org.postgresql.Driver \
-    -e DB_PASS=letmein \
-    -e DB_URL="jdbc:postgresql://bagdb-postgres/bag_database" \
-    -e DB_USER=bag_database \
-    -e METADATA_TOPICS="/metadata" \
-    -e VEHICLE_NAME_TOPICS="/vehicle_name" \
-    -e GPS_TOPICS="/localization/gps, /gps, /imu/fix" \
-    swrirobotics/bag-database:latest
-```
-
-After the bag database has successfully started, the bag database should be available at `http://127.0.0.1:8080`.  Modify your Docker parameters as desired to expose it on a different port or set up [HAProxy](https://hub.docker.com/_/haproxy/) if you want to enable SSL or have it accessible via a subdirectory.
+### Configuration
 
 #### Volumes
 
@@ -179,35 +145,3 @@ The pattern for finding user DNs in the LDAP server.  `{0}` will be replaced wit
 ##### DEBUG_JAVASCRIPT
 
 Set this to `true` to force the application to load non-minified versions of Javascript files.  This will increase load times.  The default is `false`.
-
-### As An Application Server Servlet
-
-This has been tested with Java 11 and Tomcat 9.
-
-1. Start up a PostgreSQL server; create an empty database and a user with access to it.
-2. Start up your application server and deploy the WAR file to it.
-3. The bag database will automatically create a directory at `${HOME}/.ros-bag-database` and place its configuration inside there.
-4. Edit `${HOME}/.ros-bag-database/settings.yml` and set your configuration, then restart the application.  Here's an example of a valid config file; keys you don't want to set can be omitted.
-
-    ```yml
-    !com.github.swrirobotics.support.web.Configuration
-    bingKey: PKnOQDvUxRJ0bEZdBH7m
-    dockerHost: http://localhost:2375
-    driver: org.postgresql.Driver
-    googleApiKey: PKnOQDvUxRJ0bEZdBH7m
-    gpsTopics: 
-    - /localization/gps
-    - /gps
-    - /vehicle/gps/fix
-    jdbcPassword: letmein
-    jdbcUrl: jdbc:postgresql://bagdb-postgres/bag_database
-    jdbcUsername: bag_database
-    useBing: true
-    useMapQuest: false
-    vehicleNameTopics: 
-    - /vms/vehicle_name
-    ```
-
-5. Look inside the log file at `${TOMCAT_HOME}/logs/bag_database.log` to find the automatically-generated administrator password.
-6. Log in through the GUI and use the Maintenance panel to change the password.
-7. Note that in order for video streaming to work, `ffmpeg` version 3 or higher must be available on the system path.

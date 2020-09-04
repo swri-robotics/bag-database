@@ -11,4 +11,6 @@ permalink: /rest-api
 
 ## REST API
 
-A walkthrough of the bag database's REST API.
+The Bag Database's REST API is automatically generated as part of its build process
+and served together with the web application.  Go to the `API Documentation` item in the
+`Navigation` menu in your Bag Database installation to view it.
