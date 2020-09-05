@@ -28,7 +28,6 @@ url: "http://pjreed.github.io" # the base hostname & protocol for your site, e.g
 github_username: pjreed
 
 # Build settings
-theme: just-the-docs
 remote_theme: pmarsceill/just-the-docs
 permalink: /bag-database/
 
