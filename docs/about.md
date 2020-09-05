@@ -16,9 +16,9 @@ one person -- it turns out that there's not a lot of crossover between Java data
 and roboticists -- we're glad that the ROS community has found it useful and are very grateful
 to everybody who has contributed to it.
 
-The Bag Database's source code is hosted on GitHub at https://github.com/swri-robotics/bag-database.
+The Bag Database's source code is hosted on GitHub at [https://github.com/swri-robotics/bag-database](https://github.com/swri-robotics/bag-database).
 
-Pre-built Docker images are on Docker Hub at https://hub.docker.com/r/swrirobotics/bag-database.
+Pre-built Docker images are on Docker Hub at [https://hub.docker.com/r/swrirobotics/bag-database](https://hub.docker.com/r/swrirobotics/bag-database).
 
 Let us know how it works for you!
 

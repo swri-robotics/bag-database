@@ -12,4 +12,4 @@ The Bag Database's REST API is automatically generated as part of its build proc
 and served together with the web application.  Go to the `API Documentation` item in the
 `Navigation` menu in your Bag Database installation to view it.
 
-![Menu Item](assets/images/api_documentation_menu_item.png)
+![Menu Item](../assets/images/api_documentation_menu_item.png)
