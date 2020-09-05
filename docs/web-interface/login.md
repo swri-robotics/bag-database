@@ -22,6 +22,6 @@ page before they can access it.
 
 ![LDAP Login Page](../assets/images/ldap_login.png)
 
-In addition to loggin in as a user with an LDAP account, it is still possible to log in using
+In addition to logging in as a user with an LDAP account, it is still possible to log in using
 the built-in administrator account by using the user name `admin` and the password that was either
 pre-set or auto-generated.

@@ -13,13 +13,13 @@ So, you've got an idea for an script.  How do they actually work?
 
 ## Running
 
-When a script is run on a bag file, the Bag Database takes the following steps:
+When a script runs on a bag file, the Bag Database takes the following steps:
 
 1. Write the script to a temporary file
 2. Pull the requested Docker image
 3. Create a new Docker container based on that image
-4. Mount the temporary script file and all of the selected bags as volumes in that container
-5. Execute the script and pass in all of the bag files as command line arguments
+4. Mount the temporary script file and all the selected bags as volumes in that container
+5. Execute the script and pass in all the bag files as command line arguments
 
 After the script finishes, it saves its stdout and stderr output into the database.
 That's it!  Simple, right?

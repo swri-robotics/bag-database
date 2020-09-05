@@ -76,6 +76,6 @@ Runs a script on the selected bag file.  Refer to the [Scripts](scripts) section
 of the Web Interface for details on the UI or the [Scripts](../scripts) top-level section for
 information about how they work in general.
 
-When a script is run, a window will appear that displays the Run UUID.  Every individual run
+When a script runs, a window will appear that displays the Run UUID.  Every individual run
 is assigned a unique ID that can be used to associate it with its results in the Script Results
 panel later.

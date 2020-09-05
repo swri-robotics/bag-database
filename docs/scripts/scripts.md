@@ -32,7 +32,7 @@ to identify which script generated which results.
 ### Allow Network Access
 
 If this is checked, the Docker container the script runs inside will be allowed to access the
-network.  For security purposes, by default this is not allowed
+network.  For security purposes, by default this is not allowed.
 
 ### Description
 
