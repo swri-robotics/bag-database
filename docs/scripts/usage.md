@@ -45,7 +45,8 @@ you print a JSON object with some specific keys.  For example:
 }
 ```
 
-Each of these tags has a specific effect.
+Each of these tags has a specific effect.  Note that your output is not limited to these keys;
+any other values in your JSON output will be ignored.
 
 ### `addTags`
 
