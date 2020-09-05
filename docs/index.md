@@ -18,7 +18,7 @@ files, parses their metadata, and provides a friendly web interface for searchin
 for bags, downloading them, and doing post-processing on them.
 
 
-![Sample Screenshot](/assets/bag-database.png)
+![Sample Screenshot](assets/images/bag-database.png)
 
 ## Features
 
@@ -61,6 +61,9 @@ for bags, downloading them, and doing post-processing on them.
 - **Tagging**: Bags can be tagged and searched for with arbitrary metadata 
   strings.  Existing tags on arbitrary metadata topics in bag files will be
   automatically read.
+- **Scripting**: Users can enter scripts that can either be manually or automatically
+  run on bag files to analyze them.  Scripts can also tag bag files to make it
+  easy to find interesting ones or update their metadata.
 - **LDAP Login**: If enabled, the bag database will authenticate users against
   an LDAP database before allowing access.  LDAP configuration details can
   be provided by customizing environment variables when starting it as a
@@ -69,5 +72,3 @@ for bags, downloading them, and doing post-processing on them.
   visiting the URL `/signin` or by loggin in as a normal user and then using
   the Navigation menu.
 
-  ![Sample Screenshot](/assets/LDAP_login.png)
-  ![Sample Screenshot](/assets/LDAP_Admin_login.png)

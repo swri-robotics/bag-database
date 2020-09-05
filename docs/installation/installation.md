@@ -1,7 +1,4 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: default
 title: Installation
 nav_order: 2
@@ -10,6 +7,10 @@ description: "How to install the Bag Database"
 permalink: /installation
 ---
 
-## Installation
+# Installation
 
-A walkthrough of the bag database's installation.
+The Bag Database can be set up in multiple different ways depending on what functionality you
+need; the pages in this category have a variety of examples that you can customize.
+
+If you just want to get something up and running quickly to test it out, I recommend looking at
+[Without Authentication](docker/without-authentication) first.

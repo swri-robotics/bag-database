@@ -5,7 +5,7 @@ files, parses their metadata, and provides a friendly web interface for searchin
 for bags, downloading them, and running post-processing scripts on them.   It also
 provides a REST API that can be used to perform automated tasks.
 
-![Sample Screenshot](docs/assets/bag-database.png)
+![Sample Screenshot](docs/assets/images/bag-database.png)
 
 ## Documentation
 

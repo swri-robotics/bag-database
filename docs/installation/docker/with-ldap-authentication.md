@@ -1,7 +1,4 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: default
 title: With LDAP Authentication
 parent: Docker
@@ -11,7 +8,10 @@ description: "Using docker-compose to start up a Bag Database with an LDAP serve
 permalink: /installation/docker/with-ldap-authentication
 ---
 
-Add documentation on setting up a LDAP server
+This example is similar to [Without Authentication](without-authentication), but it also
+starts an OpenLDAP server and configures the Bag Database to use it.  In this case,
+users must have accounts in the LDAP server and will be prompted to log in when they first
+access the Bag Database.
 
 ```yaml
 version: '3.6'
@@ -51,11 +51,11 @@ services:
             METADATA_TOPICS: "/metadata"
             VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"
             GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"
-            LDAP_BINDDN: "cn=admin,dc=example,dc=com"
-            LDAP_BIND_PASSWORD: "P@ssw0rd"
-            LDAP_SEARCH_BASE: "ou=People,dc=example,dc=com"
-            LDAP_SERVER: 'ldap://openldap' # Replace this with an empty string to disable LDAP auth
-            LDAP_USER_PATTERN: "uid={0},ou=People,dc=example,dc=com"
+            LDAP_BINDDN: "cn=admin,dc=example,dc=com" # Replace this with the admin DN for your LDAP server
+            LDAP_BIND_PASSWORD: "P@ssw0rd" # Replace this with the password for your admin DN
+            LDAP_SEARCH_BASE: "ou=People,dc=example,dc=com" # Replace this with the search base for your LDAP server
+            LDAP_SERVER: 'ldap://openldap'
+            LDAP_USER_PATTERN: "uid={0},ou=People,dc=example,dc=com" # Replace this with the user pattern for your LDAP server 
     postgres:
         image: postgis/postgis:11-2.5
         networks:
@@ -101,3 +101,8 @@ volumes:
             type: 'tmpfs'
             device: 'tmpfs'
 ```
+
+The Bag Database can be started using this `docker-compose.yml` file in the same matter as
+the one in [Without Authentication](without-authentication), but you will need to add users to
+your LDAP server.  Check [LDAP Configuration](../../configuration/ldap) for examples of how
+to do that.

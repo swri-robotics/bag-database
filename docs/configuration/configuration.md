@@ -1,7 +1,4 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: default
 title: Configuration
 nav_order: 3
@@ -10,6 +7,49 @@ description: "Configuring the Bag Database"
 permalink: /configuration
 ---
 
-## Configuration
+# Configuration
 
-Information about configuring the Bag Database.
+The Bag Database stores its configuration in a file at `${HOME}/.ros-bag-database/settings.yml`,
+where `${HOME}` is the home directory of the user that the Tomcat server is running as.  If you
+are running the Bag Database a Docker container, you don't need to edit this file; it will be
+automatically generated from the environment variables set on the container.  See
+[Docker](../installation/docker) for more information.
+
+## File Format
+
+For reference, this is what a normal `settings.yml` file looks like:
+```yaml
+!com.github.swrirobotics.support.web.Configuration
+bagPath: /var/local/bags
+dockerHost: http://localhost:2375
+driver: org.postgresql.Driver
+gpsTopics: 
+- /localization/gps
+- gps
+- /vehicle/gps/fix
+- /localization/sensors/gps/novatel/raw
+- /localization/sensors/gps/novatel/fix
+- /imu_3dm_node/gps/fix
+- /local_xy_origin
+scriptTmpPath: "/var/lib/tomcat9/bagdb_scripts/"
+jdbcPassword: letmein
+jdbcUrl: jdbc:postgresql://localhost/bag_database
+jdbcUsername: bag_database
+ldapBindDn: cn=admin,dc=example,dc=com
+ldapBindPassword: P@ssw0rd
+ldapSearchBase: ou=People,dc=example,dc=com
+ldapServer: 
+ldapUserPattern: uid={0},ou=People,dc=example,dc=com
+metadataTopics: 
+- /metadata
+vehicleNameTopics: 
+- /vms/vehicle_name
+- /vehicle_name
+```
+
+Again, you should not edit this if you are running the Bag Database as a Docker container.  Any
+changes will be overwritten the next time the container restarts.
+
+If you are running the Bag Database in a standalone Tomcat server, you may want to manually
+edit these; you can also do so through the [Configuration](../web-interface/administration)
+panel.

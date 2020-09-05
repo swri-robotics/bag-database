@@ -959,7 +959,7 @@ public class BagService extends StatusProvider {
                     pred = cb.lessThan(propertyPath, ts);
                 }
                 else {
-                    pred = cb.lessThan(propertyPath, Long.valueOf(filter.getValue()));
+                    pred = cb.lessThan(propertyPath, Double.valueOf(filter.getValue()));
                 }
                 break;
             case "gt":
@@ -967,7 +967,7 @@ public class BagService extends StatusProvider {
                     pred = cb.greaterThan(propertyPath, ts);
                 }
                 else {
-                    pred = cb.greaterThan(propertyPath, Long.valueOf(filter.getValue()));
+                    pred = cb.greaterThan(propertyPath, Double.valueOf(filter.getValue()));
                 }
                 break;
             case "eq":
@@ -975,7 +975,7 @@ public class BagService extends StatusProvider {
                     pred = cb.equal(propertyPath, ts);
                 }
                 else {
-                    pred = cb.equal(path.get(filter.getProperty()), Long.valueOf(filter.getValue()));
+                    pred = cb.equal(path.get(filter.getProperty()), Double.valueOf(filter.getValue()));
                 }
                 break;
             case "=":

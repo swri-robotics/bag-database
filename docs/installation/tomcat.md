@@ -1,7 +1,4 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: default
 title: Tomcat
 parent: Installation
@@ -9,6 +6,8 @@ nav_order: 3
 description: "Running the Bag Database as a Tomcat webapp"
 permalink: /installation/tomcat
 ---
+
+# Running in a Tomcat Server
 
 ## Building
 
@@ -55,5 +54,3 @@ the user that the `tomcat` service is running as.
 5. Look inside the log file at `${TOMCAT_HOME}/logs/bag_database.log` to find the automatically-generated administrator password.
 6. Log in through the GUI and use the Maintenance panel to change the password.
 7. Note that in order for video streaming to work, `ffmpeg` version 3 or higher must be available on the system path.
-8. After you've changed all of the configuration values to their desired properties,
-restart Tomcat to make sure they're applied.

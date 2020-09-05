@@ -1,7 +1,4 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: default
 title: LDAP Server Configuration
 parent: Configuration
@@ -9,6 +6,13 @@ nav_order: 2
 description: "Setting up an LDAP Server for Authentication"
 permalink: /configuration/ldap
 ---
+
+# LDAP Server Configuration
+
+If you don't want to create an LDAP server through a Docker container as shown in
+[Installation](../installation), you can manually configure one by following these steps.
+
+Steps 3 and onward can also be used to add users to an existing database.
 
 All these steps are inspired from this [blog](https://www.linux.com/topic/desktop/how-install-openldap-ubuntu-server-1804/).
 

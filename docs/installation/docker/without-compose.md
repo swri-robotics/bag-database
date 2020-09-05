@@ -1,7 +1,4 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: default
 title: Without Compose
 parent: Docker
@@ -10,6 +7,8 @@ nav_order: 3
 description: "How to run it without docker-compose"
 permalink: /installation/docker/without-compose
 ---
+
+# Without docker-compose
 
 If you plan to manage the other services the Bag Database needs on its own, you
 can just start it up using the normal docker command like so:

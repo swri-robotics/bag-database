@@ -1,7 +1,4 @@
 ---
-# Feel free to add content and custom Front Matter to this file.
-# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
-
 layout: default
 title: Without Authentication
 parent: Docker
@@ -11,12 +8,17 @@ description: "Using docker-compose to start up a Bag Database without Authentica
 permalink: /installation/docker/without-authentication
 ---
 
-## docker-compose without Authentication
+# docker-compose without Authentication
 
 If you're on an internal network and you trust the users who can access the server,
 the simplest way to set up a Bag Database is so that authentication is not required.
 
-Here's an example `docker-compose.yml` file that will start up everything:
+Here's an example `docker-compose.yml` file; this one will run:
+- The Bag Database
+- A PostGIS database server
+- A Docker-in-Docker service (necessary for running scripts)
+
+Review the comments in the file for things you may wish to customize.
 
 ```yaml
 version: '3.6'
@@ -31,6 +33,8 @@ services:
             - scripts:/scripts
             - docker_cache:/var/lib/docker
         command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
+        # SSL is disabled since only the Bag Database can access this anyway.
+        # Be careful about allowing anything else to access this service!  
     bagdb:
         image: swri-robotics/bag-database:latest
         networks:
@@ -68,8 +72,11 @@ services:
             - postgres:/var/lib/postgresql/data
         ports:
             - "5432:5432"
+            # This port is exposed to make it easy for you to connect to the database with a
+            # SQL client to perform operations on it.   If you don't need to do so, this
+            # port does not need to be exposed.
         environment:
-            POSTGRES_PASSWORD: letmein
+            POSTGRES_PASSWORD: letmein # If you do expose it, it's a good idea to change this password to something more secure.
             POSTGRES_USER: bag_database
             POSTGRES_DB: bag_database
 networks:
@@ -92,7 +99,11 @@ volumes:
             device: 'tmpfs'
 ```
 
-Save that file to a directory, cd to that directory, and run:
+First, note that with the way these containers are configured, the directory
+containing your bags must exist before starting everything up.  The example uses
+`/var/local/bags`.
+
+Save that `docker-compose.yml` file to a directory, cd to that directory, and run:
 
 ```bash
 docker-compose up
