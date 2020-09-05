@@ -4,7 +4,7 @@ title: Configuration
 nav_order: 3
 has_children: true
 description: "Configuring the Bag Database"
-permalink: /configuration
+permalink: /configuration/
 ---
 
 # Configuration

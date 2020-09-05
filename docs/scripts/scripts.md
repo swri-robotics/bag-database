@@ -4,7 +4,7 @@ title: Scripts
 nav_order: 5
 has_children: true
 description: "Running Scripts in the Bag Database"
-permalink: /scripts
+permalink: /scripts/
 ---
 
 # Scripts

@@ -3,7 +3,7 @@ layout: default
 title: REST API
 nav_order: 6
 description: "A Walkthrough of the Bag Database's REST API"
-permalink: /rest-api
+permalink: /rest-api/
 ---
 
 # REST API

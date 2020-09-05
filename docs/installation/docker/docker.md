@@ -5,7 +5,7 @@ parent: Installation
 nav_order: 2
 has_children: true
 description: "Installing with Docker"
-permalink: /installation/docker
+permalink: /installation/docker/
 ---
 
 # Docker

@@ -4,7 +4,7 @@ title: Web Interface
 nav_order: 4
 has_children: true
 description: "A Walkthrough of the Bag Database's Web Interface"
-permalink: /web-interface
+permalink: /web-interface/
 ---
 
 # Web Interface
