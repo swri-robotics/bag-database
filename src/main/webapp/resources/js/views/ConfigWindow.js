@@ -121,9 +121,13 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             formBind: true,
             disabled: true,
             handler: function() {
-                var form = this.up('form').getForm();
+                var form, params;
+                form = this.up('form').getForm();
+                params = {};
+                params[csrfName] = csrfToken;
                 if (form.isValid()) {
                     form.submit({
+                        params: params,
                         success: function() {
                             Ext.Msg.alert('Success', 'Configuration has been updated.');
                         },

@@ -125,63 +125,63 @@ public class AdminController {
         return "admin/admin";
     }
 
-    @RequestMapping("/updateLatLons")
+    @RequestMapping(value = "/updateLatLons", method = RequestMethod.POST)
     @ResponseBody
     public void updateLatLons() {
         myLogger.trace("updateLatLons");
         myBagScanner.updateAllLatLons();
     }
 
-    @RequestMapping("/updateLocations")
+    @RequestMapping(value = "/updateLocations", method = RequestMethod.POST)
     @ResponseBody
     public void updateLocations() {
         myLogger.trace("updateLocations");
         myBagScanner.updateAllLocations();
     }
 
-    @RequestMapping("/updateGpsPaths")
+    @RequestMapping(value = "/updateGpsPaths", method = RequestMethod.POST)
     @ResponseBody
     public void updateGpsPaths() {
         myLogger.trace("updateGpsPaths");
         myBagScanner.updateAllGpsPaths();
     }
 
-    @RequestMapping("/updateVehicleNames")
+    @RequestMapping(value = "/updateVehicleNames", method = RequestMethod.POST)
     @ResponseBody
     public void updateVehicleNames() {
         myLogger.trace("updateVehicleNames");
         myBagScanner.updateAllVehicleNames();
     }
 
-    @RequestMapping("/updateTags")
+    @RequestMapping(value = "/updateTags", method = RequestMethod.POST)
     @ResponseBody
     public void updateTags() {
         myLogger.trace("updateTags");
         myBagScanner.updateAllTags();
     }
 
-    @RequestMapping("/removeMissingBags")
+    @RequestMapping(value = "/removeMissingBags", method = RequestMethod.POST)
     @ResponseBody
     public void removeMissingBags() {
         myLogger.trace("removeMissingBags");
         myBagService.removeMissingBags();
     }
 
-    @RequestMapping("/removeDuplicates")
+    @RequestMapping(value = "/removeDuplicates", method = RequestMethod.POST)
     @ResponseBody
     public void removeDuplicates() {
         myLogger.trace("removeDuplicates()");
         myBagService.removeDuplicateBags();
     }
 
-    @RequestMapping("/forceScan")
+    @RequestMapping(value = "/forceScan", method = RequestMethod.POST)
     @ResponseBody
     public void forceScan() {
         myLogger.trace("forceScan");
         myBagScanner.scanDirectory(false);
     }
 
-    @RequestMapping("/forceFullScan")
+    @RequestMapping(value = "/forceFullScan", method = RequestMethod.POST)
     @ResponseBody
     public void forceFullScan() {
         myLogger.trace("forceFullScan");
@@ -201,7 +201,7 @@ public class AdminController {
         }
     }
 
-    @RequestMapping("/changePassword")
+    @RequestMapping(value = "/changePassword", method = RequestMethod.POST)
     @ResponseBody
     public void changePassword(@RequestParam String password) {
         myLogger.trace("changePassword");

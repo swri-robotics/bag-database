@@ -55,7 +55,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             xtype: 'button',
             text: 'Force bag scan',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/forceScan'
                 });
             }
@@ -64,7 +67,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Force full (slow!) bag scan',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/forceFullScan'
                 });
             }
@@ -73,7 +79,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Re-scan all bag latitudes & longitudes',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/updateLatLons'
                 });
             }
@@ -82,7 +91,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Re-scan all bag GPS paths',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/updateGpsPaths'
                 });
             }
@@ -91,7 +103,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Update reverse-geocoded locations',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/updateLocations'
                 });
             }
@@ -100,7 +115,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Re-scan all bag vehicle names',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/updateVehicleNames'
                 });
             }
@@ -109,7 +127,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Re-scan all metadata tags',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/updateTags'
                 });
             }
@@ -118,7 +139,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Remove DB entries for missing bags',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/removeMissingBags'
                 });
             }
@@ -127,7 +151,10 @@ Ext.define('BagDatabase.views.AdminWindow', {
             text: 'Remove bags with duplicate MD5 sums',
             margin: '5 0 0 0',
             handler: function() {
+                var params = {};
+                params[csrfName] = csrfToken;
                 Ext.Ajax.request({
+                    params: params,
                     url: 'admin/removeDuplicates'
                 });
             }

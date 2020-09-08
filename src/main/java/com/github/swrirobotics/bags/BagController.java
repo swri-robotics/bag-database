@@ -336,7 +336,7 @@ public class BagController {
      * @param bagId The ID of the bag to set the tag for.
      * @throws NonexistentBagException If the specified bag doesn't exist.
      */
-    @RequestMapping("/setTag")
+    @RequestMapping(value = "/setTag", method = RequestMethod.POST)
     public void setTagForBag(@RequestParam String tagName,
                              @RequestParam(required = false) String value,
                              @RequestParam Long bagId) throws NonexistentBagException {
