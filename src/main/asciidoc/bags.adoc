@@ -1,17 +1,205 @@
+[[bags_search]]
+=== Search for Bags
+
+There are really two different ways to search the database, and this function is
+used to do either (or both) of them.  If a string is provided in the `text` field,
+it will search for any bag that has any of the listed `fields` containing that
+text.  If any `filter` objects are provided, the results will then be filtered to
+only including matching bags.
+
+Because these results could include a lot of data, there are also multiple ways
+to filter how much is returned.  Search results will be divided up into pages
+that include at most `limit` number of bags at a time, and the `page` parameter
+will return the nth page in the search result set, starting with 1.  The
+`fillTypes` and `fillTopics` parameters can also be used to control whether
+message type and topic information is included in the results, which can
+significantly increase the size of the output returned.
+
+==== Example Request
+include::{snippets}/bags/search/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/search/request-parameters.adoc[]
+
+The `filter` param is generated programmatically by the web interface, but here's
+what each object looks like.
+
+===== ExtJsFilter Fields
+|===
+|Parameter|Description
+
+|`+operator+`
+|Comparison to perform; one of `like`, `lt`, `gt`, `eq`, and `=`.  Use `like`
+for comparing strings; `lt`, `gt`, and `eq` for comparing numbers; and `=` for
+comparing boolean values.
+
+|`+value+`
+|The value to compare against; this should be either a number or a string,
+depending on the column.
+
+|`+property+`
+|Column to perform the operation on; must be one of: id, path, filename,
+location, vehicle, description, latitudeDeg, longitudeDeg, missing, md5sum,
+duration, createdOn, updatedOn, startTime, endTime, size, messageCount
+
+|===
+
+==== Example Response
+include::{snippets}/bags/search/http-response.adoc[]
+
+===== Response Fields
+include::{snippets}/bags/search/response-fields.adoc[]
+
 [[bags_get]]
 === Get a Bag
 
+If you know the database ID of a bag file, use this to get all the
+information about it from the database.
+
 ==== Example Request
-include::{snippets}/get-bag/http-request.adoc[]
+include::{snippets}/bags/get-bag/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/get-bag/request-parameters.adoc[]
 
 ==== Example Response
-include::{snippets}/get-bag/http-response.adoc[]
+include::{snippets}/bags/get-bag/http-response.adoc[]
+
+===== Response Fields
+include::{snippets}/bags/get-bag/response-fields.adoc[]
 
 [[bags_get_image]]
 === Get an Image from a Bag
 
+This retrieves an HTML document containing an img element that has the
+requested image embedded.  This method is used by the Bag Database to render
+images in the web interface; note that whatever the encoding was in the bag
+file, it will be converted into a JPEG here.
+
 ==== Example Request
-include::{snippets}/get-bag-image/http-request.adoc[]
+include::{snippets}/bags/get-bag-image/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/get-bag-image/request-parameters.adoc[]
 
 ==== Example Response
-include::{snippets}/get-bag-image/http-response.adoc[]
+include::{snippets}/bags/get-bag-image/http-response.adoc[]
+
+[[bags_get_gpscoords]]
+=== Get a Sequence of GPS Coordinates for a List of Bags
+
+If you want to get a list of coordinates you could use to draw a route on
+a map, this will get all of the coordinates for a list of bag files and
+concatenate them together.
+
+==== Example Request
+include::{snippets}/bags/get-gps-coords-for-bag/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/get-gps-coords-for-bag/request-parameters.adoc[]
+
+==== Example Response
+include::{snippets}/bags/get-gps-coords-for-bag/http-response.adoc[]
+
+===== Response Fields
+include::{snippets}/bags/get-gps-coords-for-bag/response-fields.adoc[]
+
+[[bags_get_tags]]
+=== Get Tags for a Bag
+
+==== Example Request
+include::{snippets}/bags/get-tags-for-bag/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/get-tags-for-bag/request-parameters.adoc[]
+
+==== Example Response
+include::{snippets}/bags/get-tags-for-bag/http-response.adoc[]
+
+===== Response Fields
+include::{snippets}/bags/get-tags-for-bag/response-fields.adoc[]
+
+[[bags_remove_tags]]
+=== Remove Tags for a Bag
+
+==== Example Request
+include::{snippets}/bags/remove-tags-for-bag/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/remove-tags-for-bag/request-parameters.adoc[]
+
+==== Example Response
+include::{snippets}/bags/remove-tags-for-bag/http-response.adoc[]
+
+[[bags_set_tag]]
+=== Set Tag for a Bag
+
+This sets a tag for an existing bag.  Note that tag names are unique; if there
+is an existing tag with this name, it will be overwritten.
+
+==== Example Request
+include::{snippets}/bags/set-tag-for-bag/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/set-tag-for-bag/request-parameters.adoc[]
+
+==== Example Response
+include::{snippets}/bags/set-tag-for-bag/http-response.adoc[]
+
+[[bags_set_tags]]
+=== Set Tag for multiple Bags
+
+Just like above, except this tags multiple bags at once.
+
+==== Example Request
+include::{snippets}/bags/set-tag-for-bags/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/set-tag-for-bags/request-parameters.adoc[]
+
+==== Example Response
+include::{snippets}/bags/set-tag-for-bags/http-response.adoc[]
+
+[[update_bag]]
+=== Update a Bag's Metadata
+
+This updates a bag's metadata in the database.  Note that although this method
+expects to be provided a full Bag object in the request, most of these fields
+are not mutable because they are inherent properties of the bag file.
+
+To use this method, first obtain a Bag object using <<bags_get>>, then modify
+the fields you want to update.
+
+The only fields this method can modify are:
+
+- `description`
+- `latitudeDeg`
+- `longitudeDeg`
+- `location`
+- `vehicle`
+- `tags` (* New tags will be added, but missing tags will not be removed)
+
+==== Example Request
+include::{snippets}/bags/update-bag/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/bags/update-bag/response-body.adoc[]
+
+[[bags_upload]]
+=== Upload a New Bag
+
+This method exists primarily so the web interface can upload new bag files.  For
+your own purposes, it may be easier to use another protocol such as SFTP to
+directly upload new bags to the database's filesystem.
+
+==== Example Request
+include::{snippets}/bags/upload-bag/http-request.adoc[]
+
+===== Request Params
+include::{snippets}/bags/upload-bag/request-parameters.adoc[]
+
+===== Request Parts
+include::{snippets}/bags/upload-bag/request-parts.adoc[]
+
+==== Example Response
+include::{snippets}/bags/upload-bag/http-response.adoc[]

@@ -6,12 +6,16 @@
 
 = User API
 
-== Logging In
+== Using the Bag Database's API
 
-The Bag Database's API should be straightforward to use, with two caveats:
+The Bag Database's API should be straightforward to use.  There are a few rules
+of thumb to keep in mind:
 
-1. If you submit any POST requests, you must have an active session and include a CSRF token.
-2. If authentication is enabled, you must log in before making any other requests.
+1. `GET` requests retrieve data; `POST` requests modify something in the database.
+2. If you submit any `POST` requests, you must have an active session and
+include a CSRF token.
+3. If authentication is enabled, you must log in before making any other
+requests.
 
 
 === Requesting a CSRF Token
@@ -46,9 +50,10 @@ $ curl -s -c cookies.txt -b cookies.txt -X POST \
     -d 'scriptId=1&bagIds=1%2C2%2C3&_csrf=${CSRF}'
     'http://localhost:8080/scripts/run'
 ----
-[[examples]]
-== Bag Examples
+[[bags]]
+== Bags
 include::bags.adoc[]
 
-== Script Examples
+[[scripts]]
+== Scripts
 include::scripts.adoc[]

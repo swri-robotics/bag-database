@@ -156,7 +156,8 @@ public class BagController {
         return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @RequestMapping("/update")
+    @RequestMapping(value = "/update",
+        method = RequestMethod.POST)
     public BagUpdateStatus updateBags(@RequestBody String req) {
         myLogger.info("updateBags");
         ObjectMapper mapper = new ObjectMapper();
@@ -344,7 +345,7 @@ public class BagController {
         myLogger.info("Set tag.");
     }
 
-    @RequestMapping("/setTagForBags")
+    @RequestMapping(value = "/setTagForBags", method = RequestMethod.POST)
     public void setTagForBags(@RequestParam String tagName,
                               @RequestParam(required = false) String value,
                               @RequestParam Long[] bagIds) throws NonexistentBagException {
@@ -362,7 +363,7 @@ public class BagController {
      * @param bagId The ID of the bag to remove the tags from.
      * @throws NonexistentBagException If the specified bag doesn't exist.
      */
-    @RequestMapping("/removeTags")
+    @RequestMapping(value = "/removeTags", method = RequestMethod.POST)
     public void removeTagsForBag(@RequestParam String[] tagNames,
                                  @RequestParam Long bagId) throws NonexistentBagException {
         myLogger.info("removeTagsForBag: " + Joiner.on(',').join(tagNames) + " for bag " + bagId);

@@ -30,14 +30,11 @@
 
 package com.github.swrirobotics.config;
 
-import com.github.swrirobotics.support.web.Configuration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.runner.RunWith;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.restdocs.JUnitRestDocumentation;
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation;
-import org.springframework.restdocs.mockmvc.MockMvcRestDocumentationConfigurer;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -47,8 +44,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.inject.Inject;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -76,9 +71,6 @@ public abstract class WebAppConfigurationAware {
     public void before() {
         this.mockMvc = webAppContextSetup(this.wac)
                 .apply(MockMvcRestDocumentation.documentationConfiguration(this.restDocumentation))
-                .alwaysDo(MockMvcRestDocumentation.document("{method-name}",
-                        preprocessRequest(prettyPrint()),
-                        preprocessResponse(prettyPrint())))
                 .build();
     }
 

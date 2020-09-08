@@ -83,17 +83,20 @@ Ext.define('BagDatabase.views.TagGrid', {
                 'Are you sure you want to delete ' + records.length + ' tag(s)?',
                 function(buttonId) {
                     if (buttonId == 'yes') {
-                        var tagNames = [];
+                        var tagNames, params;
+                        tagNames = [];
                         records.forEach(function(record) {
                             tagNames.push(record.get('tag'));
                         });
+                        params = {
+                            tagNames: tagNames,
+                            bagId: bagId
+                        };
+                        params[csrfName] = csrfToken;
                         Ext.Ajax.request({
                             url: 'bags/removeTags',
-                            method: 'GET',
-                            params:  {
-                                tagNames: tagNames,
-                                bagId: bagId
-                            },
+                            method: 'POST',
+                            params:  params,
                             callback: function() {
                                 tagGrid.up('window').reloadTags();
                             }

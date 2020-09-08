@@ -46,6 +46,8 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
@@ -132,7 +134,9 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
             .andExpect(jsonPath("$.runUuid").value(uuid.toString()))
-            .andDo(document("{method-name}",
+            .andDo(document("scripts/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
                 requestParameters(
                     parameterWithName("runUuid").description("The Run UUID of the result to retrieve")
                 ),
@@ -151,7 +155,9 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
         when(scriptService.getScripts()).thenReturn(list);
         mockMvc.perform(get("/scripts/list"))
             .andExpect(status().isOk())
-            .andDo(document("{method-name}",
+            .andDo(document("scripts/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
                 responseFields(
                     fieldWithPath("scripts").description("All of the runnable scripts"),
                     fieldWithPath("totalCount").description("Total number of scripts in the database")
@@ -172,7 +178,9 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
             .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.uuid").value(uuid.toString()))
-            .andDo(document("{method-name}",
+            .andDo(document("scripts/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
                 requestParameters(
                     parameterWithName("scriptId").description("Database ID of the script to run"),
                     parameterWithName("bagIds").description("List of database IDs of bags to submit to the script"),
@@ -204,7 +212,9 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andExpect(jsonPath("$.success").value("true"))
-            .andDo(document("{method-name}",
+            .andDo(document("scripts/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
                 requestParameters(
                     parameterWithName("id").description("Database ID of the script; 0 to create a new script, otherwise the ID of the script to update"),
                     parameterWithName("name").description("Short name for the script"),
@@ -232,7 +242,9 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
         when(scriptService.getScriptResults()).thenReturn(results);
         mockMvc.perform(get("/scripts/list_results"))
             .andExpect(status().isOk())
-            .andDo(document("{method-name}",
+            .andDo(document("scripts/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
                 responseFields(
                     fieldWithPath("totalCount").description("Total number of script results in the database"),
                     fieldWithPath("results").description("List of all script results")

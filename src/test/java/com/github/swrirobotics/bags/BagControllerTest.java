@@ -40,12 +40,21 @@ import com.github.swrirobotics.support.web.BagList;
 import com.github.swrirobotics.support.web.ExtJsFilter;
 import org.junit.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.restdocs.payload.FieldDescriptor;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.restdocs.request.RequestDocumentation.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 public class BagControllerTest extends WebAppConfigurationAware {
@@ -68,7 +77,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
         bag.setId(1L);
         bag.setIndexed(false);
         bag.setLeaf(true);
-        bag.setMessageCount(0L);
+        bag.setMessageCount(50L);
         bag.setMissing(false);
         bag.setPath("/");
         bag.setSize(1L);
@@ -112,10 +121,90 @@ public class BagControllerTest extends WebAppConfigurationAware {
         return bags;
     }
 
+    public FieldDescriptor[] getBagListFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("id").description("Database ID of the bag file"),
+            fieldWithPath("filename").description("Name of the bag file on disk"),
+            fieldWithPath("path").description("Path to the bag file on disk"),
+            fieldWithPath("version").description("ROS bag file version"),
+            fieldWithPath("duration").description("Duration of the bag file in seconds"),
+            fieldWithPath("startTime").description("Start time of the bag file"),
+            fieldWithPath("endTime").description("End time of the bag file"),
+            fieldWithPath("size").description("Size of the bag file in bytes"),
+            fieldWithPath("messageCount").description("Number of messages in the bag file"),
+            fieldWithPath("indexed").description("True if the bag file is indexed"),
+            fieldWithPath("compressed").description("True if the bag file is compressed"),
+            fieldWithPath("messageTypes").description("Message types in the bag file"),
+            fieldWithPath("topics").description("Topics in the bag file"),
+            fieldWithPath("createdOn").description("When the bag file was created"),
+            fieldWithPath("missing").description("True if the bag file is missing on disk"),
+            fieldWithPath("hasPath").description("True if we detected any GPS coordinates in the bag file"),
+            fieldWithPath("vehicle").description("The name of the vehicle that recorded the bag file"),
+            fieldWithPath("description").description("Friendly description of the bag file"),
+            fieldWithPath("md5sum").description("The Bag Database's MD5 Sum of the bag contents; NOT the same as the file's MD5 sum").type("String"),
+            fieldWithPath("location").description("Friendly location name for the bag file"),
+            fieldWithPath("tags").description("Tags placed on the bag file"),
+            fieldWithPath("updatedOn").description("The last time the bag file's database entry was modified"),
+            fieldWithPath("parentId").description("For internal use only; used for organization in the Folder View").type("Number"),
+            fieldWithPath("expanded").description("For internal use only; used for organization in the Folder View"),
+            fieldWithPath("leaf").description("For internal use only; used for organization in the Folder View"),
+            fieldWithPath("latitudeDeg").description("First latitude coordinate detected in the bag file").type("Number"),
+            fieldWithPath("longitudeDeg").description("First longitude coordinate detected in the bag file").type("Number")
+        };
+    }
+
+    public FieldDescriptor[] getMessageTypesFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("md5sum").description("ROS MD5 Sum of the message type"),
+            fieldWithPath("name").description("Name of the ROS message type")
+        };
+    }
+
+    public FieldDescriptor[] getTopicsFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("topicName").description("Name of the ROS topic"),
+            fieldWithPath("bagId").description("Database ID of the bag file"),
+            fieldWithPath("bag").description("Database ID of the bag file (redundant, for internal use only)"),
+            fieldWithPath("messageCount").description("Number of messages on this topic"),
+            fieldWithPath("type").description("MD5 Sum of this topic's message type"),
+            fieldWithPath("connectionCount").description("Number of connections made on this topic")
+        };
+    }
+
+    public FieldDescriptor[] getTagsFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("tag").description("Name of the tag"),
+            fieldWithPath("bagId").description("Database ID of the bag file"),
+            fieldWithPath("value").description("Value of the tag")
+        };
+    }
+
+    public FieldDescriptor[] getGpsCoordinateFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("[0]").description("Longitude coordinate"),
+            fieldWithPath("[1]").description("Latitude coordinate")
+        };
+    }
+
     @Test
     public void getBag() throws Exception {
         when(bagService.getBag(1L)).thenReturn(makeTestBag());
-        mockMvc.perform(get("/bags/get").param("bagId", "1")).andExpect(status().isOk());
+        mockMvc.perform(get("/bags/get")
+            .param("bagId", "1"))
+            .andExpect(status().isOk())
+        .andDo(document("bags/{method-name}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestParameters(
+                parameterWithName("bagId").description("Database ID of the bag to download")
+            ),
+            responseFields(
+                getBagListFields()
+            )
+            .andWithPrefix("messageTypes[].", getMessageTypesFields())
+            .andWithPrefix("topics[].", getTopicsFields())
+            .andWithPrefix("tags[].", getTagsFields())
+        ));
     }
 
     @Test
@@ -124,7 +213,17 @@ public class BagControllerTest extends WebAppConfigurationAware {
         mockMvc.perform(get("/bags/image")
                 .param("bagId", "1")
                 .param("topic", "/topic")
-                .param("index", "1")).andExpect(status().isOk());
+                .param("index", "1")).andExpect(status().isOk())
+        .andDo(document("bags/{method-name}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestParameters(
+                parameterWithName("bagId").description("Database ID of the bag to retrieve an image from"),
+                parameterWithName("topic").description("Name of the image topic"),
+                parameterWithName("index").description("Index of the message to retrieve on the message topic; note " +
+                    "that this method must iterate through (N-1) messages to retrieve the Nth message on a topic, so" +
+                    "this can be slow")
+            )));
     }
 
     @Test
@@ -133,15 +232,62 @@ public class BagControllerTest extends WebAppConfigurationAware {
         mockMvc.perform(get("/bags/download").param("bagId", "1"))
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Disposition", "attachment; filename=test.bag"))
-            .andExpect(header().string("Content-Transfer-Encoding", "application/octet-stream"));
+            .andExpect(header().string("Content-Transfer-Encoding", "application/octet-stream"))
+        .andDo(document("bags/{method-name}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestParameters(
+                parameterWithName("bagId").description("The database ID of the bag file to download")
+            )));
     }
 
     @Test
     public void updateBag() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        mockMvc.perform(get("/bags/update").content(mapper.writeValueAsString(makeTestBagList())))
+        mockMvc.perform(post("/bags/update")
+            .with(csrf())
+            .content(mapper.writeValueAsString(makeTestBagList())))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true));
+            .andExpect(jsonPath("$.success").value(true))
+            .andDo(document("bags/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                requestBody(
+                    new HashMap<>() {{
+                        put("totalCount", "The number of bags to be updated");
+                        put("bags", "Bag data to update in the database");
+                    }}
+                ),
+                responseFields(
+                    fieldWithPath("success").description("True if the update was successful")
+                )));
+    }
+
+    @Test
+    public void uploadBag() throws Exception {
+        MockMultipartFile bagFile = new MockMultipartFile("file",
+            "bagfile.bag",
+            "application/octet-stream",
+            "<< binary bag data >>".getBytes());
+
+        mockMvc.perform(multipart("/bags/upload")
+            .file(bagFile)
+            .with(csrf())
+            .param("targetDirectory", "/"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.message").value(""))
+            .andDo(document("bags/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                requestParts(
+                    partWithName("file").description("The bag file to upload")
+                ),
+                requestParameters(
+                    parameterWithName("targetDirectory").description("Location to place the bag file on disk"),
+                    parameterWithName("_csrf").description("CSRF token supplied by the Bag Database")
+                )
+                ));
     }
 
     @Test
@@ -173,7 +319,38 @@ public class BagControllerTest extends WebAppConfigurationAware {
         )
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalCount").value(1L))
-        .andExpect(jsonPath("$.bags[0].filename").value("test.bag"));
+        .andExpect(jsonPath("$.bags[0].filename").value("test.bag"))
+        .andDo(document("bags/{method-name}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestParameters(
+                parameterWithName("text").description("Text to search for in selected fields; will match if any of " +
+                    "the selected fields include this string anywhere in their contents.  leave empty to not do a " +
+                    "text search"),
+                parameterWithName("fields").description("List of fields to search for text.  Note that searching " +
+                    "both messageType and topicName at the same time is complex and may be slow.  May include any of: " +
+                    "filename, description, tags, path, location, vehicle, messageType, topicName, tags").optional(),
+                parameterWithName("page").description("Page number of results to return; 1 is the first page"),
+                parameterWithName("limit").description("Maximum number of results per page"),
+                parameterWithName("sort").description("Column to sort the results on; must be one of: " +
+                    "id, path, filename, location, vehicle, description, latitudeDeg, longitudeDeg, missing, " +
+                    "md5sum, duration, createdOn, updatedOn, startTime, endTime, size, messageCount"),
+                parameterWithName("dir").description("Direction to sort results; must be either ASC or DESC"),
+                parameterWithName("filter").description("A list of ExtJsFilter objects for columns that support " +
+                    "filtering; may be empty to not perform filtering").optional(),
+                parameterWithName("fillTopics").description("True to fill in the topic list for each bag, false to " +
+                    "leave it empty").optional(),
+                parameterWithName("fillTypes").description("True to fill in the list of message types for each bag, " +
+                    "false to leave it empty").optional()
+            ), responseFields(
+                fieldWithPath("totalCount").description("Total number of bag files returned by the search"),
+                fieldWithPath("bags").description("The requested page of bags that match the search")
+            )
+                .andWithPrefix("bags[].", getBagListFields())
+                .andWithPrefix("bags[].messageTypes[].", getMessageTypesFields())
+                .andWithPrefix("bags[].topics[].", getTopicsFields())
+                .andWithPrefix("bags[].tags[].", getTagsFields())
+        ));
     }
 
     @Test
@@ -182,33 +359,74 @@ public class BagControllerTest extends WebAppConfigurationAware {
         mockMvc.perform(get("/bags/getTagsForBag").param("bagId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].tag").value("Tag 1 Key"))
-            .andExpect(jsonPath("$[0].value").value("Tag 1 Value"));
+            .andExpect(jsonPath("$[0].value").value("Tag 1 Value"))
+            .andExpect(jsonPath("$[1].tag").value("Tag 2 Key"))
+            .andExpect(jsonPath("$[1].value").value("Tag 2 Value"))
+        .andDo(document("bags/{method-name}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestParameters(
+                parameterWithName("bagId").description("Database ID of the bag to get tags for")
+            ),
+            responseFields().andWithPrefix("[].", getTagsFields())
+        ));
     }
 
     @Test
-    public void setTagsForBag() throws Exception {
-        mockMvc.perform(get("/bags/setTag")
+    public void setTagForBag() throws Exception {
+        mockMvc.perform(post("/bags/setTag")
             .param("tagName", "Updated Key")
             .param("value", "Updated Value")
-            .param("bagId", "1"))
-            .andExpect(status().isOk());
+            .param("bagId", "1")
+            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(mvcResult -> { assertTrue(mvcResult.getResponse().getContentAsString().isEmpty()); })
+            .andDo(document("bags/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                requestParameters(
+                    parameterWithName("tagName").description("Tag name"),
+                    parameterWithName("value").description("Tag value"),
+                    parameterWithName("bagId").description("Database ID of the bag to tag"),
+                    parameterWithName("_csrf").description("CSRF token supplied by the Bag Database")
+                )));
     }
 
     @Test
     public void setTagForBags() throws Exception {
-        mockMvc.perform(get("/bags/setTag")
+        mockMvc.perform(post("/bags/setTagForBags")
             .param("tagName", "Updated Key")
             .param("value", "Updated Value")
-            .param("bagIds", "1", "2", "3"))
-            .andExpect(status().isOk());
+            .param("bagIds", "1", "2", "3")
+            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(mvcResult -> { assertTrue(mvcResult.getResponse().getContentAsString().isEmpty()); })
+            .andDo(document("bags/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                requestParameters(
+                    parameterWithName("tagName").description("Tag name"),
+                    parameterWithName("value").description("Tag value"),
+                    parameterWithName("bagIds").description("Database IDs of the bags to tag"),
+                    parameterWithName("_csrf").description("CSRF token supplied by the Bag Database")
+                )));
     }
 
     @Test
     public void removeTagsForBag() throws Exception {
-        mockMvc.perform(get("/bags/removeTags")
+        mockMvc.perform(post("/bags/removeTags")
             .param("tagNames", "Tag 1", "Tag 2", "Tag 3")
-            .param("bagId", "1"))
-            .andExpect(status().isOk());
+            .param("bagId", "1")
+            .with(csrf()))
+            .andExpect(status().isOk())
+            .andDo(document("bags/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                requestParameters(
+                    parameterWithName("tagNames").description("Tag names to remove"),
+                    parameterWithName("bagId").description("Database ID of the bag to remove tags from"),
+                    parameterWithName("_csrf").description("CSRF token supplied by the Bag Database")
+                )));
     }
 
     @Test
@@ -228,6 +446,15 @@ public class BagControllerTest extends WebAppConfigurationAware {
             .andExpect(jsonPath("$[1][1]").value("3.0"))
             .andExpect(jsonPath("$[2][0]").value("2.0"))
             .andExpect(jsonPath("$[2][1]").value("3.0"))
-        ;
+        .andDo(document("bags/{method-name}",
+            preprocessRequest(prettyPrint()),
+            preprocessResponse(prettyPrint()),
+            requestParameters(
+                parameterWithName("bagIds").description("Database IDs of bags to get GPS coordinates for")
+            ),
+            responseFields(
+                fieldWithPath("[]").description("A list of (longitude, latitude) coordinates from each bag file.")
+            ).andWithPrefix("[].", getGpsCoordinateFields())
+        ));
     }
 }
