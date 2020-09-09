@@ -66,6 +66,11 @@ any GPS coordinates at all; it will be grayed out if none are available.
 
 ![Map View](../assets/images/list_view_map.png)
 
+By default, the Bag Database uses map tiles provided by [Stamen](http://maps.stamen.com/), which
+are freely available under the [CC BY 3.0](http://maps.stamen.com/) license.  Configuration options
+as described in [Docker](../installation/docker) can be used to load tiles from a different WMTS tile
+server or from Microsoft Bing.
+
 ### Download Bag
 
 Downloads the bag file.

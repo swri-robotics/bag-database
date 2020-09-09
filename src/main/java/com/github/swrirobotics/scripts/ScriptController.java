@@ -30,9 +30,9 @@
 
 package com.github.swrirobotics.scripts;
 
-import com.github.swrirobotics.persistence.Script;
 import com.github.swrirobotics.persistence.ScriptResult;
-import com.github.swrirobotics.support.web.ScriptList;
+import com.github.swrirobotics.support.web.ScriptDTO;
+import com.github.swrirobotics.support.web.ScriptListDTO;
 import com.github.swrirobotics.support.web.ScriptResultList;
 import com.github.swrirobotics.support.web.ScriptRunResult;
 import com.google.common.collect.Lists;
@@ -44,7 +44,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -62,9 +61,9 @@ public class ScriptController {
     }
 
     @RequestMapping("/list")
-    public ScriptList getScripts() {
+    public ScriptListDTO getScripts() {
         myLogger.debug("getScripts");
-        ScriptList list = myScriptService.getScripts();
+        ScriptListDTO list = myScriptService.getScripts();
         myLogger.debug("returning scripts");
         return list;
     }
@@ -81,8 +80,16 @@ public class ScriptController {
         myLogger.info("getScript: " + scriptId);
 
         Map<String, Object> response = Maps.newHashMap();
-        response.put("success", true);
-        response.put("data", myScriptService.getScript(scriptId));
+
+        try {
+            ScriptDTO script = myScriptService.getScript(scriptId);
+            response.put("data", script);
+            response.put("success", true);
+        }
+        catch (NonexistentScriptException e) {
+            response.put("success", false);
+            response.put("data", e.getLocalizedMessage());
+        }
 
         return response;
     }
@@ -103,46 +110,30 @@ public class ScriptController {
         return result;
     }
 
-    @RequestMapping(value = "/save", method = RequestMethod.POST)
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public Map<String, Object> saveScript(@RequestParam Long id,
-                                          @RequestParam String name,
-                                          @RequestParam Boolean allowNetworkAccess,
-                                          @RequestParam Optional<String> description,
-                                          @RequestParam Optional<Long> memoryLimitBytes,
-                                          @RequestParam String dockerImage,
-                                          @RequestParam Boolean runAutomatically,
-                                          @RequestParam Optional<Double> timeoutSecs,
-                                          @RequestParam("script") String scriptText) {
+    public Map<String, Object> saveScript(@RequestBody ScriptDTO scriptdto) {
         myLogger.info("saveScript");
 
-        Script script;
-        if (id > 0) {
-            script = myScriptService.getScript(id);
-        }
-        else {
-            script = new Script();
-        }
-        script.setId(id > 0 ? id : null);
-        script.setName(name);
-        script.setAllowNetworkAccess(allowNetworkAccess);
-        script.setDescription(description.orElse(null));
-        script.setMemoryLimitBytes(memoryLimitBytes.orElse(null));
-        script.setDockerImage(dockerImage);
-        script.setRunAutomatically(runAutomatically);
-        script.setTimeoutSecs(timeoutSecs.orElse(null));
-        script.setScript(scriptText);
-
-        if (id > 0) {
-            myScriptService.updateScript(script);
-        }
-        else {
-            myScriptService.addScript(script);
-        }
-
+        Long id = scriptdto.id;
         Map<String, Object> response = Maps.newHashMap();
-        response.put("success", true);
-        response.put("data", script);
+        try {
+            if (scriptdto.id > 0) {
+                myLogger.info("Updating script " + scriptdto.id);
+                myScriptService.updateScript(scriptdto);
+            }
+            else {
+                myLogger.info("Saving new script");
+                id = myScriptService.addScript(scriptdto);
+            }
+
+            response.put("success", true);
+        }
+        catch (NonexistentScriptException e) {
+            response.put("success", false);
+            myLogger.error("Try to save a script that doesn't exist.", e);
+        }
+        response.put("scriptId", id);
 
         return response;
     }

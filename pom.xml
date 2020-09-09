@@ -530,6 +530,7 @@
                                 <include>stores/ErrorStore-min.js</include>
                                 <include>stores/ScriptStore-min.js</include>
                                 <include>stores/ScriptResultStore-min.js</include>
+                                <include>views/ScriptCriteriaWindow-min.js</include>
                                 <include>views/ScriptWindow-min.js</include>
                                 <include>views/ScriptGrid-min.js</include>
                                 <include>views/ScriptResultGrid-min.js</include>

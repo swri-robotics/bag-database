@@ -28,50 +28,71 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.persistence;
+package com.github.swrirobotics.support.web;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.github.swrirobotics.persistence.Script;
+import com.github.swrirobotics.persistence.ScriptCriteria;
 
-import javax.persistence.*;
-import java.io.Serializable;
 import java.sql.Timestamp;
-import java.util.HashSet;
-import java.util.Set;
 
-@Entity
-@Table(name="scripts")
-public class Script implements Serializable {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class ScriptDTO {
+    public Long id = 0L;
+    public Boolean allowNetworkAccess = false;
+    public String description = "";
+    public String dockerImage = "";
+    public Long memoryLimitBytes;
+    public String name = "";
+    public Boolean runAutomatically = false;
+    public ScriptCriteriaDTO[] criteria = new ScriptCriteriaDTO[0];
+    public String script = "";
+    public Double timeoutSecs;
+    public Timestamp createdOn;
+    public Timestamp updatedOn;
 
-    @Column(nullable = false)
-    private Boolean allowNetworkAccess;
-    private String description;
-    @Column(length = 128)
-    private String dockerImage;
-    private Long memoryLimitBytes;
-    @Column(nullable = false)
-    private String name;
-    @Column(nullable = false)
-    private Boolean runAutomatically;
-    @Column(nullable = false)
-    private String script;
-    private Double timeoutSecs;
-    private Timestamp createdOn;
-    private Timestamp updatedOn;
+    public ScriptDTO() {}
 
-    @OneToMany(mappedBy = "script",
-            orphanRemoval = true,
-            cascade={CascadeType.REFRESH, CascadeType.MERGE},
-            fetch = FetchType.EAGER)
-    private Set<ScriptCriteria> criteria = new HashSet<>();
+    public ScriptDTO(Script script) {
+        this.id = script.getId();
+        this.allowNetworkAccess = script.getAllowNetworkAccess();
+        this.description = script.getDescription();
+        this.dockerImage = script.getDockerImage();
+        this.memoryLimitBytes = script.getMemoryLimitBytes();
+        this.name = script.getName();
+        this.runAutomatically = script.getRunAutomatically();
+        criteria = script.getCriteria().stream().map(ScriptCriteriaDTO::new).toArray(ScriptCriteriaDTO[]::new);
+        this.script = script.getScript();
+        this.timeoutSecs = script.getTimeoutSecs();
+        this.createdOn = script.getCreatedOn();
+        this.updatedOn = script.getUpdatedOn();
+    }
 
-    @OneToMany(mappedBy = "script",
-            cascade={CascadeType.REFRESH, CascadeType.MERGE},
-            fetch = FetchType.LAZY)
-    @JsonIgnore
-    private Set<ScriptResult> results = new HashSet<>();
+    public Script toScript(Script script) {
+        if (script == null) {
+            script = new Script();
+        }
+        if (id != null) {
+            script.setId(id);
+        }
+        script.setAllowNetworkAccess(allowNetworkAccess);
+        script.setDescription(description);
+        script.setDockerImage(dockerImage);
+        script.setMemoryLimitBytes(memoryLimitBytes);
+        script.setName(name);
+        script.setRunAutomatically(runAutomatically);
+        script.setScript(this.script);
+        script.setTimeoutSecs(timeoutSecs);
+        script.setCreatedOn(createdOn);
+        script.setUpdatedOn(updatedOn);
+        script.getCriteria().clear();
+
+        for (ScriptCriteriaDTO scdto : criteria) {
+            ScriptCriteria sc = scdto.toScriptCriteria(null);
+            sc.setScript(script);
+            script.getCriteria().add(sc);
+        }
+
+        return script;
+    }
 
     public Long getId() {
         return id;
@@ -129,6 +150,14 @@ public class Script implements Serializable {
         this.runAutomatically = runAutomatically;
     }
 
+    public ScriptCriteriaDTO[] getCriteria() {
+        return criteria;
+    }
+
+    public void setCriteria(ScriptCriteriaDTO[] criteria) {
+        this.criteria = criteria;
+    }
+
     public String getScript() {
         return script;
     }
@@ -145,14 +174,6 @@ public class Script implements Serializable {
         this.timeoutSecs = timeoutSecs;
     }
 
-    public Set<ScriptCriteria> getCriteria() {
-        return criteria;
-    }
-
-    private void setCriteria(Set<ScriptCriteria> criteria) {
-        this.criteria = criteria;
-    }
-
     public Timestamp getCreatedOn() {
         return createdOn;
     }
@@ -167,13 +188,5 @@ public class Script implements Serializable {
 
     public void setUpdatedOn(Timestamp updatedOn) {
         this.updatedOn = updatedOn;
-    }
-
-    public Set<ScriptResult> getResults() {
-        return results;
-    }
-
-    private void setResults(Set<ScriptResult> results) {
-        this.results = results;
     }
 }

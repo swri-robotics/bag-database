@@ -36,7 +36,8 @@ import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
-import com.github.swrirobotics.support.web.ScriptList;
+import com.github.swrirobotics.support.web.ScriptDTO;
+import com.github.swrirobotics.support.web.ScriptListDTO;
 import com.github.swrirobotics.support.web.ScriptResultList;
 import com.google.common.base.Joiner;
 import org.apache.commons.compress.utils.Lists;
@@ -68,6 +69,8 @@ import java.util.stream.Collectors;
 public class ScriptService extends StatusProvider {
     @Autowired
     private ConfigService configService;
+    @Autowired
+    private ScriptCriteriaRepository criteriaRepository;
     @Autowired
     private ScriptRepository scriptRepository;
     @Autowired
@@ -146,8 +149,8 @@ public class ScriptService extends StatusProvider {
     }
 
     @Transactional(readOnly = true)
-    public ScriptList getScripts() {
-        ScriptList list = new ScriptList();
+    public ScriptListDTO getScripts() {
+        ScriptListDTO list = new ScriptListDTO();
         list.setScripts(scriptRepository.findAll());
         list.setTotalCount(list.getScripts().size());
         return list;
@@ -170,10 +173,12 @@ public class ScriptService extends StatusProvider {
     }
 
     @Transactional
-    public Long addScript(Script script) {
+    public Long addScript(ScriptDTO scriptDto) {
+        Script script = scriptDto.toScript(null);
         script.setCreatedOn(new Timestamp(System.currentTimeMillis()));
         script.setUpdatedOn(script.getCreatedOn());
         scriptRepository.save(script);
+        criteriaRepository.saveAll(script.getCriteria());
         return script.getId();
     }
 
@@ -183,14 +188,21 @@ public class ScriptService extends StatusProvider {
     }
 
     @Transactional(readOnly = true)
-    public Script getScript(Long scriptId) {
-        return scriptRepository.findById(scriptId).orElse(null);
+    public ScriptDTO getScript(Long scriptId) throws NonexistentScriptException {
+        return new ScriptDTO(scriptRepository.findById(scriptId).orElseThrow(() ->
+            new NonexistentScriptException("Script " + scriptId + " does not exist")));
     }
 
     @Transactional
-    public void updateScript(Script script) {
+    public void updateScript(ScriptDTO scriptDto) throws NonexistentScriptException {
+        Script script = scriptRepository.findById(scriptDto.id).orElseThrow(() ->
+            new NonexistentScriptException("Script " + scriptDto.id + " does not exist."));
+        // Trying to match new criteria to old ones is hard, just wipe them all out every time
+        criteriaRepository.deleteAll(script.getCriteria());
+        scriptDto.toScript(script);
         script.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
         scriptRepository.save(script);
+        criteriaRepository.saveAll(script.getCriteria());
     }
 
     /**

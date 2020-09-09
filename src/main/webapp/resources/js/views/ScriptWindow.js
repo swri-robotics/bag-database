@@ -42,6 +42,7 @@ Ext.define('BagDatabase.views.ScriptWindow', {
         itemId: 'scriptForm',
         url: 'scripts/save',
         defaultType: 'textfield',
+        jsonSubmit: true,
         layout: {
             type: 'vbox',
             align: 'stretch'
@@ -68,58 +69,115 @@ Ext.define('BagDatabase.views.ScriptWindow', {
         }, {
             fieldLabel: 'Name',
             name: 'name',
-            allowBlank: false
+            itemId: 'name',
+            allowBlank: false,
+            tooltipHtml: 'Short, friendly name for the script'
         }, {
             fieldLabel: 'Allow Network Access',
             name: 'allowNetworkAccess',
             xtype: 'checkboxfield',
             uncheckedValue: false,
-            inputValue: true
+            inputValue: true,
+            tooltipHtml: 'Check to allow the container to access the network'
         }, {
             fieldLabel: 'Description',
-            name: 'description'
+            name: 'description',
+            tooltipHtml: 'Longer, friendly description for the script'
         }, {
             fieldLabel: 'Memory Limit (Bytes)',
             name: 'memoryLimitBytes',
-            xtype: 'numberfield'
+            xtype: 'numberfield',
+            tooltipHtml: 'Maximum number of bytes of RAM that the script\'s container may use'
         }, {
             fieldLabel: 'Docker Image',
             name: 'dockerImage',
-            allowBlank: false
+            allowBlank: false,
+            tooltipHtml: 'Docker image that will be used as a container for the script'
         }, {
             fieldLabel: 'Run Automatically',
             name: 'runAutomatically',
             xtype: 'checkboxfield',
             uncheckedValue: false,
-            inputValue: true
+            inputValue: true,
+            tooltipHtml: 'Check to run this script every time a new bag is added'
+        }, {
+            xtype: 'fieldcontainer',
+            fieldLabel: 'Run Criteria',
+            layout: 'border',
+            flex: 0.5,
+            items: [{
+                xtype: 'grid',
+                itemId: 'criteriaGrid',
+                region: 'center',
+                cls: 'x-form-trigger-wrap-default',
+                store: {
+                    model: 'BagDatabase.models.ScriptCriteria'
+                },
+                columns: [{
+                    text: 'Filename', dataIndex: 'filename', flex: 1
+                }, {
+                    text: 'Directory', dataIndex: 'directory', flex: 1
+                }, {
+                    text: 'Message Types', dataIndex: 'messageTypes', flex: 1
+                }, {
+                    text: 'Topic Names', dataIndex: 'topicNames', flex: 1
+                }]
+            }]
         }, {
             fieldLabel: 'Timeout (s)',
             name: 'timeoutSecs',
             xtype: 'numberfield',
-            minValue: 1
+            minValue: 1,
+            tooltipHtml: 'The script\'s container will be forcibly stopped if it runs longer than this value'
         }, {
             fieldLabel: 'Script',
             name: 'script',
             xtype: 'textareafield',
             allowBlank: false,
             fieldStyle: 'font-family: monospace;',
-            flex: 1
+            flex: 1,
+            tooltipHtml: 'An executable script'
         }],
+        listeners: {
+            afterRender: function() {
+                var tips, fields;
+                tips = [];
+                fields = this.query('field');
+                fields.forEach(function(field) {
+                    if (field.config.tooltipHtml) {
+                        tips.push(new Ext.tip.ToolTip({
+                            target: field.el,
+                            width: 200,
+                            html: field.config.tooltipHtml,
+                            trackMouse: true
+                        }));
+                    }
+                });
+                this.tips = tips;
+            },
+            destroy: function() {
+                this.tips = Ext.destroy(this.tips);
+            }
+        },
         buttons: [{
             text: 'Save',
             iconCls: 'script-save-icon',
             formBind: true,
             disabled: true,
             handler: function() {
-                var form, params, store, win;
+                var form, params, store, win, criteria;
                 form = this.up('form').getForm();
                 win = this.up('window');
                 store = win.store;
                 if (form.isValid()) {
+                    criteria = Ext.pluck(win.down('#criteriaGrid').getStore().getData().items, 'data');
                     params = {};
-                    params[csrfName] = csrfToken;
+                    params['criteria'] = criteria;
+                    headers = { 'Content-Type': "application/json" };
+                    headers[csrfHeader] = csrfToken;
                     form.submit({
                         params: params,
+                        headers: headers,
                         success: function() {
                             Ext.Msg.alert('Success', 'Script was saved.');
                             if (store) {
@@ -138,11 +196,15 @@ Ext.define('BagDatabase.views.ScriptWindow', {
     initComponent: function() {
         this.callParent(arguments);
         if (this.scriptId) {
-            this.down('#scriptForm').form.doAction('load', {
+            var scriptForm = this.down('#scriptForm');
+            scriptForm.form.doAction('load', {
                 url: 'scripts/get',
                 method: 'GET',
                 params: {
                     scriptId: this.scriptId
+                },
+                success: function(form, action) {
+                    scriptForm.down('#criteriaGrid').store.loadData(action.result.data.criteria);
                 }
             });
         }

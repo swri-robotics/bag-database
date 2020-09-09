@@ -28,51 +28,36 @@
 //
 // *****************************************************************************
 
-/**
- * Starts the bag database application.
- */
-function startApplication() {
-    Ext.application({
-        name: 'Bag Database',
-        requires: [ 'BagDatabase.views.BagDatabaseViewport' ],
-        autoCreateViewport: 'BagDatabase.views.BagDatabaseViewport',
-        quickTips: true
-    });
-}
+package com.github.swrirobotics.support.web;
 
-if (!bagGridDateRenderer) {
-    bagGridDateRenderer = Ext.util.Format.dateRenderer('n/j/Y H:i:s');
-}
+import com.github.swrirobotics.persistence.ScriptCriteria;
 
-Ext.onReady(function() {
-    // Set up our state provider before we start the app so we can reliably
-    // restore our previous state.
-    Ext.state.Manager.setProvider(new Ext.state.LocalStorageProvider());
-    try {
-        startApplication();
+public class ScriptCriteriaDTO {
+    public String directory;
+    public String filename;
+    public String messageTypes;
+    public String topicNames;
+
+    public ScriptCriteriaDTO() {
+
     }
-    catch (e) {
-        if (loadCompressed && e.msg.match('Ext.Loader is not enabled')) {
-            // If the app fails to start and it is because we were set to load in non-debug
-            // mode but no classes were available, that probably means we're running in
-            // an and offline test environment (like "mvn tomcat7:run") and the compressed.js
-            // file is not on the classpath.  In order so that we can reliably run, enable
-            // the loader and try requiring a class again; if the class successfully loads,
-            // that will cause the application to start.
-            Ext.Loader.setConfig({enabled: true});
-            Ext.Loader.setPath('BagDatabase', 'resources/js');
-            console.log('Could not load compressed application; retrying in debug mode.')
-            try {
-                Ext.require('BagDatabase.views.BagDatabaseViewport');
-            }
-            catch(e2) {
-                console.error('Error loading application in debug mode:');
-                console.error(e);
-            }
-        }
-        else {
-            console.error('Failed to load Bag Database:');
-            console.error(e);
-        }
+
+    public ScriptCriteriaDTO(ScriptCriteria sc) {
+        this.directory = sc.getDirectory();
+        this.filename = sc.getFilename();
+        this.messageTypes = sc.getMessageTypes();
+        this.topicNames = sc.getTopicNames();
     }
-});
+
+    public ScriptCriteria toScriptCriteria(ScriptCriteria sc) {
+        if (sc == null) {
+            sc = new ScriptCriteria();
+        }
+        sc.setDirectory(directory);
+        sc.setFilename(filename);
+        sc.setMessageTypes(messageTypes);
+        sc.setTopicNames(topicNames);
+
+        return sc;
+    }
+}

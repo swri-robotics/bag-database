@@ -28,38 +28,10 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.support.web;
+package com.github.swrirobotics.scripts;
 
-import com.github.swrirobotics.persistence.Script;
+public class NonexistentScriptException extends Exception {
+    public NonexistentScriptException(Exception e) { super(e); }
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class ScriptList {
-    private List<Script> scripts = new ArrayList<>();
-    private long totalCount = 0;
-
-    public ScriptList() {
-    }
-
-    public ScriptList(final List<Script> scripts, long totalCount) {
-        this.scripts = scripts;
-        this.totalCount = totalCount;
-    }
-
-    public List<Script> getScripts() {
-        return scripts;
-    }
-
-    public void setScripts(List<Script> scripts) {
-        this.scripts = scripts;
-    }
-
-    public long getTotalCount() {
-        return totalCount;
-    }
-
-    public void setTotalCount(long totalCount) {
-        this.totalCount = totalCount;
-    }
+    public NonexistentScriptException(String s) { super(s); }
 }

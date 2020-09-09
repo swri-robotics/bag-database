@@ -1,11 +1,15 @@
 [[scripts_add]]
 === Add a New Script
 
+Note that unlike other POST requests here, this one's Content-Type is `application/json`,
+not `application/x-www-form-urlencoded`.  This means that the CSRF token must be included as
+a header rather than a URL-encoded parameter.
+
 ==== Example Request
 include::{snippets}/scripts/save-script/http-request.adoc[]
 
 ===== Request Params
-include::{snippets}/scripts/save-script/request-parameters.adoc[]
+include::{snippets}/scripts/save-script/request-fields.adoc[]
 
 ==== Example Response
 include::{snippets}/scripts/save-script/http-response.adoc[]

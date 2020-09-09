@@ -31,10 +31,13 @@
 package com.github.swrirobotics.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -50,10 +53,8 @@ public class ScriptCriteria implements Serializable {
     private String directory;
     @Column(length = 1024)
     private String filename;
-    @ElementCollection
-    private List<String> messageTypes = Lists.newArrayList();
-    @ElementCollection
-    private List<String> topicNames = Lists.newArrayList();
+    private String messageTypes;
+    private String topicNames;
 
     @MapsId("scriptId")
     @JoinColumn(name = "scriptId")
@@ -93,19 +94,19 @@ public class ScriptCriteria implements Serializable {
         this.filename = filename;
     }
 
-    public List<String> getMessageTypes() {
+    public String getMessageTypes() {
         return messageTypes;
     }
 
-    private void setMessageTypes(List<String> messageTypes) {
+    public void setMessageTypes(String messageTypes) {
         this.messageTypes = messageTypes;
     }
 
-    public List<String> getTopicNames() {
+    public String getTopicNames() {
         return topicNames;
     }
 
-    private void setTopicNames(List<String> topicNames) {
+    public void setTopicNames(String topicNames) {
         this.topicNames = topicNames;
     }
 
@@ -115,5 +116,6 @@ public class ScriptCriteria implements Serializable {
 
     public void setScript(Script script) {
         this.script = script;
+        this.scriptId = script.getId();
     }
 }

@@ -47,7 +47,8 @@ in the database with that value.
 
 ### Re-scan all bag GPS paths
 
-Reads every GPS coordinate from every bag file and updates their paths in the database.
+Reads every GPS coordinate from every bag file and updates their paths in the database.  Bags
+that previous had GPS coordinates successfully extracted will not be re-processed.
 
 ### Update reverse-geocoded locations
 
@@ -80,10 +81,10 @@ Changes the admin password.
 ## Bag Database Configuration
 
 This panel can be used to view or modify various configuration options for the Bag Database.
-Note that this is only useful for modifying the configuration if you are running the Bag Database
+This is only useful for modifying the configuration if you are running the Bag Database
 in a standalone Tomcat server; if you are running it using the Docker image, these values
-will be overwritten every time the contain starts based on its environment variables.
+will be overwritten every time the container starts based on its environment variables.
 
 ![Bag Database Configuration](../assets/images/configuration.png)
 
-Detailed information about what each value does is available in [Configuration](../configuration).
+Detailed information about what each value does is available in [Docker](../installation/docker).

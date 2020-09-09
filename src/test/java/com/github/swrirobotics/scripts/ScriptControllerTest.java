@@ -30,12 +30,20 @@
 
 package com.github.swrirobotics.scripts;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.swrirobotics.persistence.Script;
 import com.github.swrirobotics.persistence.ScriptResult;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
-import com.github.swrirobotics.support.web.ScriptList;
+import com.github.swrirobotics.support.web.ScriptCriteriaDTO;
+import com.github.swrirobotics.support.web.ScriptDTO;
+import com.github.swrirobotics.support.web.ScriptListDTO;
 import com.github.swrirobotics.support.web.ScriptResultList;
+import com.google.common.base.Charsets;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.payload.FieldDescriptor;
@@ -48,32 +56,36 @@ import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 public class ScriptControllerTest extends WebAppConfigurationAware {
     @MockBean
     ScriptService scriptService;
 
-    public Script makeScript() {
-        Script script = new Script();
-        script.setId(0L);
-        script.setName("Test Script");
-        script.setAllowNetworkAccess(false);
-        script.setDescription("Optional Description");
-        script.setMemoryLimitBytes(4000000000L);
-        script.setDockerImage("ros:melodic");
-        script.setRunAutomatically(false);
-        script.setTimeoutSecs(300.0);
-        script.setScript("#!/usr/bin/env python\nimport time\ntime.sleep(5)\nprint(\"Hello, world!\");\n");
-        script.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-        script.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+    public ScriptDTO makeScript() {
+        ScriptDTO script = new ScriptDTO();
+        script.id = 0L;
+        script.name = "Test Script";
+        script.allowNetworkAccess = false;
+        script.description = "Optional Description";
+        script.memoryLimitBytes = 4000000000L;
+        script.dockerImage = "ros:melodic";
+        script.runAutomatically = false;
+        script.timeoutSecs = 300.0;
+        script.script = "#!/usr/bin/env python\nimport time\ntime.sleep(5)\nprint(\"Hello, world!\");\n";
+        script.createdOn = new Timestamp(System.currentTimeMillis());
+        script.updatedOn = new Timestamp(System.currentTimeMillis());
+        ScriptCriteriaDTO sc = new ScriptCriteriaDTO();
+        sc.filename = "file.bag";
+        sc.directory = "/bags";
+        sc.messageTypes = "std_msgs/Header,gps_common/GPSFix";
+        sc.topicNames = "/rosout,/localization/gps";
+        script.criteria = new ScriptCriteriaDTO[] {sc};
         return script;
     }
 
@@ -106,6 +118,15 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
             fieldWithPath("createdOn").description("Timestamp of when the script was originally created").type("Number"),
             fieldWithPath("updatedOn").description("Timestamp of the most recent time the script was modified").type("Number"),
             fieldWithPath("criteria").description("Criteria for when the script should run automatically").optional()
+        };
+    }
+
+    public FieldDescriptor[] getScriptCriteriaFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("filename").description("A regular expression that a filename must match in order for this script to automatically run"),
+            fieldWithPath("directory").description("A regular expression that the bag's directory must much in order for this script to automatically run"),
+            fieldWithPath("messageTypes").description("A comma-separated list of ROS message types, which this bag must contain at least one of in order for this script to automatically run"),
+            fieldWithPath("topicNames").description("A comma-separated list of ROS topics, which this bag must contain at least one of in order for this script to automatically run")
         };
     }
 
@@ -148,9 +169,9 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
 
     @Test
     public void listScripts() throws Exception {
-        ScriptList list = new ScriptList();
+        ScriptListDTO list = new ScriptListDTO();
         list.getScripts().add(makeScript());
-        list.getScripts().get(0).setName("Test Script");
+        list.getScripts().get(0).name = "Test Script";
         list.setTotalCount(1);
         when(scriptService.getScripts()).thenReturn(list);
         mockMvc.perform(get("/scripts/list"))
@@ -161,7 +182,10 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
                 responseFields(
                     fieldWithPath("scripts").description("All of the runnable scripts"),
                     fieldWithPath("totalCount").description("Total number of scripts in the database")
-                ).andWithPrefix("scripts[].", getScriptFields()))
+                )
+                    .andWithPrefix("scripts[].", getScriptFields())
+                    .andWithPrefix("scripts[].criteria[].", getScriptCriteriaFields()))
+
             );
     }
 
@@ -196,40 +220,36 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
 
     @Test
     public void saveScript() throws Exception {
-        Script script = makeScript();
+        ScriptDTO script = makeScript();
         when(scriptService.addScript(script)).thenReturn(1L);
 
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.WRAP_ROOT_VALUE, false);
+        ObjectWriter ow = mapper.writer().withDefaultPrettyPrinter();
+
         mockMvc.perform(post("/scripts/save")
-            .param("id", script.getId().toString())
-            .param("name", script.getName())
-            .param("allowNetworkAccess", script.getAllowNetworkAccess().toString())
-            .param("description", script.getDescription())
-            .param("memoryLimitBytes", script.getMemoryLimitBytes().toString())
-            .param("dockerImage", script.getDockerImage())
-            .param("runAutomatically", script.getRunAutomatically().toString())
-            .param("timeoutSecs", script.getTimeoutSecs().toString())
-            .param("script", script.getScript()))
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
+            .with(csrf().asHeader())
+            .content(ow.writeValueAsString(script)))
             .andExpect(status().isOk())
+            .andExpect(mvcResult -> {
+                Logger logger = LoggerFactory.getLogger(ScriptControllerTest.class);
+                logger.info("Request:\n" + mvcResult.getRequest().getContentAsString());
+                logger.info("Response:\n" + mvcResult.getResponse().getContentAsString());
+            })
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andExpect(jsonPath("$.success").value("true"))
             .andDo(document("scripts/{method-name}",
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
-                requestParameters(
-                    parameterWithName("id").description("Database ID of the script; 0 to create a new script, otherwise the ID of the script to update"),
-                    parameterWithName("name").description("Short name for the script"),
-                    parameterWithName("allowNetworkAccess").description("Whether the script is allow to access the network from within its container"),
-                    parameterWithName("description").description("Long description of the script").optional(),
-                    parameterWithName("memoryLimitBytes").description("Memory limit for the Docker container; unset or 0 means no limit").optional(),
-                    parameterWithName("dockerImage").description("Docker image to use for creating the script's container"),
-                    parameterWithName("runAutomatically").description("Run the script automatically on new bag files"),
-                    parameterWithName("timeoutSecs").description("Time limit after which the script will be interrupted"),
-                    parameterWithName("script").description("Executable contents of the script")
-                ),
+                requestBody(),
+                requestFields(
+                    getScriptFields()
+                ).andWithPrefix("criteria[].", getScriptCriteriaFields()),
                 responseFields(
                     fieldWithPath("success").description("Whether or not the script was successfully saved"),
-                    fieldWithPath("data").description("Contents of the script as they appear in the database")
-                ).andWithPrefix("data.", getScriptFields())
+                    fieldWithPath("scriptId").description("The database ID of the script")
+                )
             ));
     }
 
