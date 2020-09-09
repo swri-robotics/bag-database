@@ -44,7 +44,7 @@ services:
             - docker_cache:/var/lib/docker
         command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
     bagdb:
-        build: .
+        image: swri-robotics/bag-database:latest
         networks:
             - bagdb
         depends_on:
@@ -64,16 +64,9 @@ services:
             DB_URL: "jdbc:postgresql://postgres/bag_database"
             DB_USER: bag_database
             DOCKER_HOST: "http://docker:2375"
-            USE_BING: "false"
-            USE_TILE_MAP: "true"
+            GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"
             METADATA_TOPICS: "/metadata"
             VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"
-            GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"
-            LDAP_BINDDN: ""
-            LDAP_BIND_PASSWORD: ""
-            LDAP_SEARCH_BASE: ""
-            LDAP_SERVER: ""
-            LDAP_USER_PATTERN: ""
     postgres:
         image: postgis/postgis:11-2.5
         networks:

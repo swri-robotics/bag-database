@@ -2,7 +2,7 @@
 layout: default
 title: Tomcat
 parent: Installation
-nav_order: 3
+nav_order: 2
 description: "Running the Bag Database as a Tomcat webapp"
 permalink: /installation/tomcat
 ---

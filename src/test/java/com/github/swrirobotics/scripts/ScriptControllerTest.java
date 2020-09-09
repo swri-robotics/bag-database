@@ -174,7 +174,7 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
 
         mockMvc.perform(post("/scripts/run")
             .param("scriptId", "1")
-            .param("bagIds", "1,2,3")
+            .param("bagIds", "1", "2", "3")
             .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.uuid").value(uuid.toString()))

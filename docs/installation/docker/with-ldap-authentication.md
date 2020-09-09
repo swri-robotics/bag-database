@@ -27,7 +27,7 @@ services:
             - docker_cache:/var/lib/docker
         command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
     bagdb:
-        build: .
+        image: swri-robotics/bag-database:latest
         networks:
             - bagdb
         depends_on:
@@ -42,20 +42,18 @@ services:
         environment:
             ADMIN_PASSWORD: "letmein"
             DB_DRIVER: org.postgresql.Driver
-            DB_PASS: letmein
-            DB_URL: "jdbc:postgresql://postgres/bag_database"
-            DB_USER: bag_database
+            DB_PASS: letmein  # Should match POSTGRES_PASSWORD below
+            DB_URL: "jdbc:postgresql://postgres/bag_database"  # Should reference POSTGRES_DB below
+            DB_USER: bag_database  # Should match POSTGRES_USER below
             DOCKER_HOST: "http://docker:2375"
-            USE_BING: "false"
-            USE_TILE_MAP: "true"
-            METADATA_TOPICS: "/metadata"
-            VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"
             GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"
             LDAP_BINDDN: "cn=admin,dc=example,dc=com" # Replace this with the admin DN for your LDAP server
             LDAP_BIND_PASSWORD: "P@ssw0rd" # Replace this with the password for your admin DN
             LDAP_SEARCH_BASE: "ou=People,dc=example,dc=com" # Replace this with the search base for your LDAP server
             LDAP_SERVER: 'ldap://openldap'
             LDAP_USER_PATTERN: "uid={0},ou=People,dc=example,dc=com" # Replace this with the user pattern for your LDAP server 
+            METADATA_TOPICS: "/metadata"
+            VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"
     postgres:
         image: postgis/postgis:11-2.5
         networks:
@@ -64,8 +62,11 @@ services:
             - postgres:/var/lib/postgresql/data
         ports:
             - "5432:5432"
+            # This port is exposed to make it easy for you to connect to the database with a
+            # SQL client to perform operations on it.   If you don't need to do so, this
+            # port does not need to be exposed.
         environment:
-            POSTGRES_PASSWORD: letmein
+            POSTGRES_PASSWORD: letmein  # Change this to something more secure if you leave that port exposed
             POSTGRES_USER: bag_database
             POSTGRES_DB: bag_database
     openldap:
@@ -78,10 +79,14 @@ services:
         ports:
             - "389:389"
             - "636:636"
+            # Similarly, these ports are exposed so you can easily connect to
+            # the container to add data.  Feel free to not expose them if you
+            # don't need to do so.
         environment:
             LDAP_ORGANIZATION: "Example Organization"
             LDAP_DOMAIN: "example.com"
             LDAP_ADMIN_PASSWORD: "P@ssw0rd"
+            # Change all of these values to something more appropriate
 networks:
     bagdb: {}
 volumes:

@@ -50,20 +50,13 @@ services:
         environment:
             ADMIN_PASSWORD: "letmein"  # Change this to something more secure
             DB_DRIVER: org.postgresql.Driver
-            DB_PASS: letmein
-            DB_URL: "jdbc:postgresql://postgres/bag_database"
-            DB_USER: bag_database
+            DB_PASS: letmein  # Should match POSTGRES_PASSWORD below
+            DB_URL: "jdbc:postgresql://postgres/bag_database"  # Should reference POSTGRES_DB below
+            DB_USER: bag_database  # Should match POSTGRES_USER below
             DOCKER_HOST: "http://docker:2375"
-            USE_BING: "false"
-            USE_TILE_MAP: "true"
+            GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"  # Add topics where you publish GPS coordinates
             METADATA_TOPICS: "/metadata"
             VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"  # Replace with a topic on which you publish your vehicle's name
-            GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"  # Add topics where you publish GPS coordinates
-            LDAP_BINDDN: ""
-            LDAP_BIND_PASSWORD: ""
-            LDAP_SEARCH_BASE: ""
-            LDAP_SERVER: ""
-            LDAP_USER_PATTERN: ""
     postgres:
         image: postgis/postgis:11-2.5
         networks:

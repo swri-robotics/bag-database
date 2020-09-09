@@ -4,7 +4,7 @@
 :toclevels: 3
 :page-layout: docs
 
-= User API
+= Bag Database User API
 
 == Using the Bag Database's API
 
