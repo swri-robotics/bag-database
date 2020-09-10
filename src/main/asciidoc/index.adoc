@@ -1,0 +1,59 @@
+:sectnums:
+:sectnumlevels: 5
+:toc: left
+:toclevels: 3
+:page-layout: docs
+
+= Bag Database User API
+
+== Using the Bag Database's API
+
+The Bag Database's API should be straightforward to use.  There are a few rules
+of thumb to keep in mind:
+
+1. `GET` requests retrieve data; `POST` requests modify something in the database.
+2. If you submit any `POST` requests, you must have an active session and
+include a CSRF token.
+3. If authentication is enabled, you must log in before making any other
+requests.
+
+
+=== Requesting a CSRF Token
+This GET request will:
+
+1. Start a session and save the session variable in cookie jar
+2. Parse the CSRF token from the output
+3. Place it in a shell variable named `CSRF`
+----
+$ CSRF=`curl -s -X GET -c cookies.txt -L http://localhost:8080/ | grep csrf | sed -r 's/^.*value="([-a-z0-9]*)".*$/\1/'`
+----
+
+
+
+=== Logging In
+If authentication is required, this will use the session we just established and log in.
+----
+$ curl -s -c cookies.txt -b cookies.txt -F "username=admin" -F "password=letmein" -F "_csrf=${CSRF}" -L  http://localhost:8080/ldap_login 2>&1 > /dev/null
+----
+
+=== Performing an Authenticated Request
+After you have an authenticated session, you can use that cookie jar to make requests.
+----
+$ curl -s -c cookies.txt -b cookies.txt -X GET \
+    "http://localhost:8080/bags/search?text=&page=1&start=0&limit=100&sort=filename&dir=ASC"
+----
+
+Note that if you are making a POST request, you must include a parameter named `_csrf` that
+is set to the token we obtained in the first step.
+----
+$ curl -s -c cookies.txt -b cookies.txt -X POST \
+    -d 'scriptId=1&bagIds=1%2C2%2C3&_csrf=${CSRF}'
+    'http://localhost:8080/scripts/run'
+----
+[[bags]]
+== Bags
+include::bags.adoc[]
+
+[[scripts]]
+== Scripts
+include::scripts.adoc[]

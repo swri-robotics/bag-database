@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -35,11 +35,14 @@ function startApplication() {
     Ext.application({
         name: 'Bag Database',
         requires: [ 'BagDatabase.views.BagDatabaseViewport' ],
-        autoCreateViewport: 'BagDatabase.views.BagDatabaseViewport'
+        autoCreateViewport: 'BagDatabase.views.BagDatabaseViewport',
+        quickTips: true
     });
 }
 
-bagGridDateRenderer = Ext.util.Format.dateRenderer('n/j/Y H:i:s');
+if (!bagGridDateRenderer) {
+    bagGridDateRenderer = Ext.util.Format.dateRenderer('n/j/Y H:i:s');
+}
 
 Ext.onReady(function() {
     // Set up our state provider before we start the app so we can reliably

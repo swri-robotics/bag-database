@@ -71,9 +71,10 @@ Ext.define('BagDatabase.views.SetTagWindow', {
             disabled: true,
             iconCls: 'tag-add-icon',
             handler: function() {
-                var params = {};
+                var params, tagWin;
+                params = {};
                 params[csrfName] = csrfToken;
-                var tagWin = this.up('window');
+                tagWin = this.up('window');
                 this.up('form').getForm().submit({
                     params: params,
                     success: function(form, action) {

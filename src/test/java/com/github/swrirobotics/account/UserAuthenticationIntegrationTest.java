@@ -30,54 +30,53 @@
 
 package com.github.swrirobotics.account;
 
+import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.config.WebSecurityConfigurationAware;
+import com.github.swrirobotics.support.web.Configuration;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import com.github.swrirobotics.config.WebSecurityConfigurationAware;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Collections;
+
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("test_ldap")
 public class UserAuthenticationIntegrationTest extends WebSecurityConfigurationAware {
-
-    private static final String SEC_CONTEXT_ATTR = HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
-
     @Autowired
-    private UserService myUserService;
+    private UserService userService;
+    @MockBean
+    private ConfigService configService;
 
     @Test
-    public void requiresAuthentication() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(redirectedUrl("http://localhost/ldap_login"));
+    public void login() throws Exception {
+        when(configService.getConfiguration()).thenReturn(new Configuration());
+        // Add a test user
+        userService.insertTestUser();
+        // Verify that requesting a page redirects us to the login page
+        String url = mockMvc.perform(get("/"))
+                .andExpect(redirectedUrl("http://localhost:8080/ldap_login"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        assertNotNull(url);
+        // Verify that we can log in
+        mockMvc.perform(post(url)
+                .param("username", "user")
+                .param("password", "demo")
+                .with(csrf()))
+                .andExpect(authenticated().withUsername("user"))
+                .andExpect(redirectedUrl("/")).andReturn();
     }
-
-//    @Test
-//    public void userAuthenticates() throws Exception {
-//        final String username = "user";
-//        myUserService.insertTestUser();
-//        ResultMatcher matcher = new ResultMatcher() {
-//            public void match(MvcResult mvcResult) throws Exception {
-//                HttpSession session = mvcResult.getRequest().getSession();
-//                SecurityContext securityContext = (SecurityContext) session.getAttribute(SEC_CONTEXT_ATTR);
-//                Assert.assertEquals(securityContext.getAuthentication().getName(), username);
-//            }
-//        };
-//        mockMvc.perform(post("/login").param("username", username).param("password", "demo"))
-//                .andExpect(redirectedUrl("/"))
-//                .andExpect(matcher);
-//    }
-//
-//    @Test
-//    public void userAuthenticationFails() throws Exception {
-//        final String username = "user";
-//        mockMvc.perform(post("/login").param("username", username).param("password", "invalid"))
-//                .andExpect(redirectedUrl("/login?error"))
-//                .andExpect(new ResultMatcher() {
-//                    public void match(MvcResult mvcResult) throws Exception {
-//                        HttpSession session = mvcResult.getRequest().getSession();
-//                        SecurityContext securityContext = (SecurityContext) session.getAttribute(SEC_CONTEXT_ATTR);
-//                        Assert.assertNull(securityContext);
-//                    }
-//                });
-//    }
 }

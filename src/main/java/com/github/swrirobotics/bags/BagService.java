@@ -30,8 +30,6 @@
 
 package com.github.swrirobotics.bags;
 
-import com.github.swrirobotics.bags.persistence.*;
-import com.github.swrirobotics.bags.persistence.MessageType;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.MessageHandler;
@@ -41,7 +39,12 @@ import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldExceptio
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
 import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.persistence.MessageType;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.remote.GeocodingService;
+import com.github.swrirobotics.scripts.NonexistentScriptException;
+import com.github.swrirobotics.scripts.ScriptRunException;
+import com.github.swrirobotics.scripts.ScriptService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.BagList;
@@ -53,12 +56,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -71,6 +74,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
@@ -85,6 +89,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -107,6 +112,8 @@ public class BagService extends StatusProvider {
     public ConfigService myConfigService;
     @Autowired
     private GeocodingService myGeocodingService;
+    @Autowired
+    private ScriptService myScriptService;
     @PersistenceContext
     private EntityManager myEM;
 
@@ -120,6 +127,9 @@ public class BagService extends StatusProvider {
     static {
         try {
             nu.pattern.OpenCV.loadShared();
+        }
+        catch (UnsatisfiedLinkError e) {
+            myLogger.warn("Library was already loaded.", e);
         }
         catch (Exception e) {
             myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadlable", e);
@@ -140,25 +150,15 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     public Bag getBag(Long bagId) throws NonexistentBagException {
-        try {
-            Bag response = bagRepository.findOne(bagId);
-            myLogger.debug("Successfully got bag: " + response.getFilename());
-            return response;
-        }
-        catch (NullPointerException e) {
-            myLogger.error("Bag not found:", e);
-            throw new NonexistentBagException(e);
-        }
-        catch (RuntimeException e) {
-            myLogger.error("Unable to get bag:", e);
-            throw e;
-        }
-
+        Bag response = bagRepository.findById(bagId).orElseThrow(() ->
+                new NonexistentBagException("Bag not found: " + bagId));
+        myLogger.debug("Successfully got bag: " + response.getFilename());
+        return response;
     }
 
     @Transactional(readOnly = true)
     public byte[] getImage(Long bagId, String topicName, int index) throws BagReaderException {
-        Bag bag = bagRepository.findOne(bagId);
+        Bag bag = bagRepository.findById(bagId).orElse(null);
         if (bag == null) {
             throw new BagReaderException("Bag not found: " + bagId);
         }
@@ -209,7 +209,7 @@ public class BagService extends StatusProvider {
      * Although we only use this for images, this should work for any message
      * type that has a std_msgs/Header.
      */
-    private class FrameRateDeterminer implements MessageHandler {
+    private static class FrameRateDeterminer implements MessageHandler {
         private double myDurationS = 0.0;
         private double myFrameRate = 10.0;
         private long myCurrentFrame = 0;
@@ -343,7 +343,7 @@ public class BagService extends StatusProvider {
             }
         }
 
-        FfmpegImageHandler(OutputStream output, double frameRate, double durationS) throws IOException {
+        FfmpegImageHandler(OutputStream output, double frameRate, double durationS) {
             myOutput = output;
             myFrameRate = frameRate;
             myDurationS = durationS;
@@ -464,7 +464,7 @@ public class BagService extends StatusProvider {
             // If the image is compressed, we need to decompress it and get a few
             // pieces of metadata from it.
             byte[] compressedData = dataArray.getAsBytes();
-            byte[] byteData = null;
+            byte[] byteData;
             try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedData)) {
                 BufferedImage image = ImageIO.read(byteStream);
                 if (!myIsInitialized) {
@@ -674,7 +674,7 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     void writeVideoStream(Long bagId, String topicName, Long frameSkip, OutputStream output) throws BagReaderException {
-        Bag bag = bagRepository.findOne(bagId);
+        Bag bag = bagRepository.findById(bagId).orElse(null);
         if (bag == null) {
             throw new BagReaderException("Bag not found: " + bagId);
         }
@@ -749,7 +749,7 @@ public class BagService extends StatusProvider {
     }
 
     private BufferedImage getUncompressedImage(com.github.swrirobotics.bags.reader.messages.serialization.MessageType mt)
-            throws UninitializedFieldException, IOException, BagReaderException {
+            throws UninitializedFieldException, BagReaderException {
 
         String encoding = mt.<StringType>getField("encoding").getValue().trim().toLowerCase();
         int imageType;
@@ -880,7 +880,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void updateBag(Bag newBag) {
-        Bag dbBag = bagRepository.findOne(newBag.getId());
+        Bag dbBag = bagRepository.findById(newBag.getId()).orElseThrow();
         dbBag.setDescription(newBag.getDescription());
         if (newBag.getLatitudeDeg() != null && newBag.getLongitudeDeg() != null)
         {
@@ -897,9 +897,39 @@ public class BagService extends StatusProvider {
         bagRepository.save(dbBag);
     }
 
+    public void uploadBag(MultipartFile file, String targetDirectory) throws IOException {
+        java.nio.file.Path inputPath = Paths.get(targetDirectory).normalize();
+
+        File path = new File(myConfigService.getConfiguration().getBagPath() + "/" + inputPath.toString());
+        myLogger.debug("Checking path: " + path.getAbsolutePath());
+
+        if (path.exists()) {
+            if (path.isDirectory()) {
+                if (!path.canWrite()) {
+                    throw new IOException("Target path is not writable.");
+                }
+            }
+            else {
+                throw new IOException("Target is a file, not a directory.");
+            }
+        }
+        else if (!path.mkdirs()) {
+            throw new IOException("Failed to create target directory.  Is the destination writable?");
+        }
+
+        File targetFile = new File(path.getAbsolutePath() + "/" + file.getOriginalFilename());
+
+        if (targetFile.exists()) {
+            throw new IOException("Not overwriting existing file.");
+        }
+
+        myLogger.debug("Writing file to: " + targetFile.getAbsolutePath());
+        FileUtils.copyInputStreamToFile(file.getInputStream(), targetFile);
+    }
+
     private Pageable createPageRequest(int page, int size, String dir, String sort) {
         // ExtJS starts counting pages at 1, but Spring Data JPA starts counting at 0.
-        return new PageRequest(page-1,
+        return PageRequest.of(page-1,
                                size,
                                dir.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC,
                                sort);
@@ -929,7 +959,7 @@ public class BagService extends StatusProvider {
                     pred = cb.lessThan(propertyPath, ts);
                 }
                 else {
-                    pred = cb.lessThan(propertyPath, Long.valueOf(filter.getValue()));
+                    pred = cb.lessThan(propertyPath, Double.valueOf(filter.getValue()));
                 }
                 break;
             case "gt":
@@ -937,7 +967,7 @@ public class BagService extends StatusProvider {
                     pred = cb.greaterThan(propertyPath, ts);
                 }
                 else {
-                    pred = cb.greaterThan(propertyPath, Long.valueOf(filter.getValue()));
+                    pred = cb.greaterThan(propertyPath, Double.valueOf(filter.getValue()));
                 }
                 break;
             case "eq":
@@ -945,7 +975,7 @@ public class BagService extends StatusProvider {
                     pred = cb.equal(propertyPath, ts);
                 }
                 else {
-                    pred = cb.equal(path.get(filter.getProperty()), Long.valueOf(filter.getValue()));
+                    pred = cb.equal(path.get(filter.getProperty()), Double.valueOf(filter.getValue()));
                 }
                 break;
             case "=":
@@ -1172,6 +1202,20 @@ public class BagService extends StatusProvider {
     }
 
     /**
+     * Gets all of the known paths in which bags are stored.  The paths here are
+     * relative to the configured base directory.
+     * @return All known bag paths.
+     */
+    public List<String> getPaths() {
+        List<String> tmpPaths = bagRepository.getDisinctPaths();
+        List<String> filteredPaths = new ArrayList<>();
+        for (String path : tmpPaths) {
+            filteredPaths.add(path.replaceFirst(myConfigService.getConfiguration().getBagPath(), ""));
+        }
+        return filteredPaths;
+    }
+
+    /**
      * Extracts metadata tags from a bag file and returns a set of Tags.
      * This differs slightly from getMetadata in that the Tags it returns
      * are suitable for inserting into the database, and the lengths of the
@@ -1202,7 +1246,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void updateGpsPositionsForBagId(long bagId) {
-        Bag bag = bagRepository.findOne(bagId);
+        Bag bag = bagRepository.findById(bagId).orElseThrow();
         String fullPath = bag.getPath() + bag.getFilename();
         try {
             BagFile bagFile = BagReader.readFile(fullPath);
@@ -1216,7 +1260,7 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    public void updateGpsPositions(final Bag bag, Collection<GpsPosition> gpsPositions) throws BagReaderException {
+    public void updateGpsPositions(final Bag bag, Collection<GpsPosition> gpsPositions) {
         List<BagPosition> existingPositions = bag.getBagPositions();
         if (!existingPositions.isEmpty()) {
             myLogger.warn("Adding new GPS positions for a bag that already has " +
@@ -1277,7 +1321,7 @@ public class BagService extends StatusProvider {
     @Transactional
     public void removeTagForBag(Collection<String> tagNames,
                                 final Long bagId) throws NonexistentBagException {
-        if (!bagRepository.exists(bagId)) {
+        if (!bagRepository.existsById(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
@@ -1288,7 +1332,7 @@ public class BagService extends StatusProvider {
     public void setTagForBag(String tagName,
                              final String value,
                              final Long bagId) throws NonexistentBagException {
-        if (!bagRepository.exists(bagId)) {
+        if (!bagRepository.existsById(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
@@ -1417,7 +1461,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void addTagsToBag(final BagFile bagFile,
-                             final Bag bag) throws BagReaderException {
+                             final Bag bag) {
         myLogger.trace("Adding tags to " + bagFile.getPath());
         Set<Tag> bagTags = extractTagsFromBagFile(bagFile);
 
@@ -1552,9 +1596,10 @@ public class BagService extends StatusProvider {
         // md5sums -- but we need to synchronize around DB transactions, since
         // different bags could all try to insert the same types of messages at
         // the same time.
+        Bag newBag = null;
         synchronized (myBagDbLock) {
             try {
-                updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions);
+                newBag = updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions);
                 String msg = "Done processing: " + bagFile.getPath().toFile().toString();
                 myLogger.debug(msg);
                 reportStatus(Status.State.IDLE, msg);
@@ -1565,15 +1610,61 @@ public class BagService extends StatusProvider {
                 myLogger.error("Error reading bag file: " + file.getAbsolutePath(), e);
             }
         }
+
+        // If bagId is null but we have a newBag at this point, that means we just inserted
+        // a new bag file.  Check to see if we need to run any scripts on it.
+        if (bagId == null && newBag != null) {
+            runAutomaticScripts(newBag);
+        }
     }
 
+    private void runAutomaticScripts(Bag bag) {
+        List<Script> scripts = myScriptService.getAutomaticScripts();
+
+        myLogger.debug("Running " + scripts.size() + " scripts on the bag file.");
+        for (Script script : scripts) {
+            try {
+                if (myScriptService.bagMatchesCriteria(bag.getId(), script.getId())) {
+                    myLogger.info("Running script " + script.getId()
+                        + " [" + script.getName() + "] on new bag " + bag.getId());
+                    myScriptService.runScript(script.getId(), Collections.singletonList(bag.getId()));
+                }
+                else {
+                    myLogger.debug("Bag " + bag.getId() + " did not match criteria for script "
+                        + script.getId() + " [" + script.getName() + "]");
+                }
+            }
+            catch (ScriptRunException e) {
+                myLogger.warn("Error automatically running script", e);
+            }
+            catch (NonexistentScriptException e) {
+                myLogger.error("Script did not exist; this should never happen", e);
+            }
+            catch (NonexistentBagException e) {
+                myLogger.error("Bag did not exist; was it successfully inserted in the DB?", e);
+            }
+        }
+    }
+
+    /***
+     * Inserts a new bag or updates an existing bag in the database.
+     * @param bagId The database ID of the bag to update; if null, inserts a new bag.
+     * @param bagFile The bag to insert.
+     * @param md5sum Our calculated MD5 sum of the bag's contents.
+     * @param missingBagMd5sums All of the MD5 sums of any bags that have been marked as missing.
+     * @param locationName The friendly name of the bag's location, if available.
+     * @param gpsPositions GPS coordinates extracted from the bag.
+     * @return The bag that was just inserted.
+     * @throws DuplicateBagException If this bag already exists in the database
+     * @throws BagReaderException If there is an error reading the bag file
+     */
     @Transactional
-    public void updateBagInDatabase(Long bagId,
-                                    final BagFile bagFile,
-                                    final String md5sum,
-                                    final Map<String, Long> missingBagMd5sums,
-                                    final String locationName,
-                                    final List<GpsPosition> gpsPositions)
+    public Bag updateBagInDatabase(Long bagId,
+                                   final BagFile bagFile,
+                                   final String md5sum,
+                                   final Map<String, Long> missingBagMd5sums,
+                                   final String locationName,
+                                   final List<GpsPosition> gpsPositions)
             throws DuplicateBagException, BagReaderException {
         Bag bag;
         File file = bagFile.getPath().toFile();
@@ -1590,7 +1681,7 @@ public class BagService extends StatusProvider {
             // If we found a missing one, remove it from the list and update
             // its path.
             String path = file.getPath().replace(file.getName(), "");
-            bag = bagRepository.findOne(bagId);
+            bag = bagRepository.findById(bagId).orElseThrow();
             bag.setPath(path);
             bag.setFilename(file.getName());
             bag.setMissing(false);
@@ -1601,12 +1692,14 @@ public class BagService extends StatusProvider {
         String msg = "Committing: " + file.getAbsolutePath();
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);
+
+        return bag;
     }
 
     @Transactional
     public void markMissingBags(final Collection<Long> missingBags) {
         for (Long bagId : missingBags) {
-            Bag bag = bagRepository.findOne(bagId);
+            Bag bag = bagRepository.findById(bagId).orElseThrow();
             if (!bag.getMissing()) {
                 myLogger.warn("Bag " + bag.getPath() + bag.getFilename() +
                                       " was missing and we couldn't find it.");
@@ -1713,7 +1806,7 @@ public class BagService extends StatusProvider {
         MessageTypeKey key = new MessageTypeKey();
         key.name = name;
         key.md5sum = md5sum;
-        MessageType dbType = myMTRepository.findOne(key);
+        MessageType dbType = myMTRepository.findById(key).orElse(null);
         if (dbType == null) {
             myLogger.info("Adding new MessageType to DB: " +
                                   name + " / " + md5sum);

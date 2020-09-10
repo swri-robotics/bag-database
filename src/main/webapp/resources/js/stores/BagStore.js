@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -61,14 +61,15 @@ Ext.define('BagDatabase.stores.BagStore', {
     },
     statics: {
         saveBags: function(bags, loadMask, button) {
-            var oldEncodeDateFn = Ext.JSON.encodeDate;
+            var oldEncodeDateFn, params;
+            oldEncodeDateFn = Ext.JSON.encodeDate;
             Ext.JSON.encodeDate = function(d) {
                 return Ext.Date.format(d, '"Y-m-d\\TH:i:s') + "." + d.getMilliseconds() + '"';
             };
             if (loadMask) {
                 loadMask.show();
             }
-            var params = {};
+            params = {};
             params[csrfName] = csrfToken;
             Ext.Ajax.request({
                 url: 'bags/update',
@@ -93,9 +94,5 @@ Ext.define('BagDatabase.stores.BagStore', {
             Ext.JSON.encodeDate = oldEncodeDateFn;
         }
     },
-    autoLoad: true,
-    initComponent: function() {
-        this.proxy.extraParams[this.csrfName] = this.csrfToken;
-        this.callParent(arguments);
-    }
+    autoLoad: true
 });

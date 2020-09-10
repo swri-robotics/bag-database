@@ -97,9 +97,9 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
         logger.log(Level.INFO, "Registering new folders at watch service ...");
 
         try {
-            Files.walkFileTree(root, new FileVisitor<Path>() {
+            Files.walkFileTree(root, new FileVisitor<>() {
                 @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                     if (ignorePaths.contains(dir)||presentSpecialCharacters(dir.getFileName())) {
                         return FileVisitResult.SKIP_SUBTREE;
                     }
@@ -110,17 +110,17 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
                 }
 
                 @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc)  {
                     return FileVisitResult.CONTINUE;
                 }
             });

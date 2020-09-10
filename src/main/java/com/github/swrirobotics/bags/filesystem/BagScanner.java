@@ -33,7 +33,7 @@ package com.github.swrirobotics.bags.filesystem;
 
 import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
@@ -191,7 +191,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if ((bag.getLocation() == null || bag.getLocation().isEmpty()) &&
                     bag.getLatitudeDeg() != null && bag.getLongitudeDeg() != null &&
                     Math.abs(bag.getLatitudeDeg()) > 0.0001 &&
@@ -220,7 +220,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                 return;
             }
 
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if (bag.getVehicle() == null || bag.getVehicle().isEmpty()) {
                 String fullPath = bag.getPath() + bag.getFilename();
                 try {
@@ -253,7 +253,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             String fullPath = bag.getPath() + bag.getFilename();
             try {
                 BagFile bagFile = BagReader.readFile(fullPath);
@@ -267,7 +267,6 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
             }
         }
     }
-
 
     private class GpsPathUpdater extends MassBagUpdater {
         @Override
@@ -291,7 +290,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
 
             if (bag.getLatitudeDeg() == null ||
                     bag.getLongitudeDeg() == null ||
@@ -409,7 +408,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
     }
 
     private class FullScanner implements Runnable {
-        private boolean forceUpdate = false;
+        final private boolean forceUpdate;
         private final String myBagDirectory;
 
         private final ExecutorService bagService = Executors.newFixedThreadPool(

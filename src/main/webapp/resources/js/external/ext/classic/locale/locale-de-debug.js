@@ -325,6 +325,18 @@ Ext.define("Ext.locale.de.window.MessageBox", {
     }    
 });
 
+Ext.define("Ext.locale.de.view.MultiSelectorSearch", {
+    override: "Ext.view.MultiSelectorSearch" ,
+    searchText: "Suche..."
+});
+
+Ext.define("Ext.locale.de.view.MultiSelector", {
+    override: "Ext.view.MultiSelector",
+    emptyText: "Nichts ausgewählt",
+    removeRowTip: "Dieses Element entfernen",
+    addToolText: "Suche Elemente zum Hinzufügen"
+});
+
 // This is needed until we can refactor all of the locales into individual files
 Ext.define("Ext.locale.de.Component", {	
     override: "Ext.Component"

@@ -32,6 +32,7 @@ package com.github.swrirobotics.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 
@@ -52,7 +53,7 @@ public class AjaxAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
             throws IOException, ServletException {
         String reqHeader = req.getHeader("X-Requested-With");
         if (reqHeader != null && reqHeader.trim().equals("XMLHttpRequest")) {
-            resp.setContentType("application/json;charset=UTF-8");
+            resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             resp.setHeader("Cache-Control", "no-cache");
             try {
                 resp.getWriter().write("{\"success\": true}");

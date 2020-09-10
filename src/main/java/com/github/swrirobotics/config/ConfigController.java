@@ -66,7 +66,7 @@ public class ConfigController {
         return "config/config";
     }
 
-    @RequestMapping(value="/get")
+    @RequestMapping(value="/get", method = RequestMethod.POST)
     @ResponseBody
     public Map<String, Object> formPost(@ModelAttribute Configuration config,
                                         Model model,

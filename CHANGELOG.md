@@ -1,8 +1,22 @@
 # Bag Database changelog
 
-Forthcoming
+3.0.0
 
-- Update dependencies
+- Upload & run post-processing scripts on bag files
+- Upload bag files through the web interface
+- UI tweaks to make various capabilities more discoverable
+- Rewrite user documentation and publish via GitHub Pages
+- Document REST API and include it with the web site
+- Update to Java 11 & Spring 5
+- Update miscellaneous other dependencies, too
+- Added unit tests to cover the entire bag & script API
+- Reorganized a few packages to make them more consistent
+- Bug fixes:
+   - Some controllers were initialized multiple times, causing unnecessary processing and weird exceptions
+   - Users had to reload the page after logging in before they could view bag details
+   - Many methods that modified the database did not require CSRF tokens
+   - Removed AspectJ, which caused some weird build issues
+   - Don't write out log file when running unit tests
 
 2.7.3
 

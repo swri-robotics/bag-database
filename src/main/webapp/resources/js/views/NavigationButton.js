@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,10 @@ Ext.define('BagDatabase.views.NavigationButton', {
         text: 'About', iconCls: 'information-icon', handler: function() {
             var win = Ext.create('BagDatabase.views.AboutWindow');
             win.show();
+        }
+    }, {
+        text: 'API Documentation', iconCls: 'book-icon', handler: function() {
+            window.open("resources/docs/index.html", "_blank");
         }
     }],
     initComponent: function() {

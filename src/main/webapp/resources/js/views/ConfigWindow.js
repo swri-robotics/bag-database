@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,9 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             fieldLabel: 'Bag Path',
             name: 'bagPath'
         }, {
+            fieldLabel: 'Docker Host',
+            name: 'dockerHost'
+        }, {
             fieldLabel: 'JDBC Driver',
             name: 'driver',
             allowBlank: false
@@ -67,11 +70,14 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             fieldLabel: 'Google API Key',
             name: 'googleApiKey'
         }, {
+            fieldLabel: 'Temporary Script Path',
+            name: 'scriptTmpPath'
+        }, {
             fieldLabel: 'Remove Bags from the Database on Deletion',
             name: 'removeOnDeletion',
             xtype: 'checkboxfield',
             uncheckedValue: false,
-            inputvalue: true
+            inputValue: true
         }, {
             fieldLabel: 'Use Tile Map',
             name: 'useMapQuest',
@@ -115,9 +121,13 @@ Ext.define('BagDatabase.views.ConfigWindow', {
             formBind: true,
             disabled: true,
             handler: function() {
-                var form = this.up('form').getForm();
+                var form, params;
+                form = this.up('form').getForm();
+                params = {};
+                params[csrfName] = csrfToken;
                 if (form.isValid()) {
                     form.submit({
+                        params: params,
                         success: function() {
                             Ext.Msg.alert('Success', 'Configuration has been updated.');
                         },

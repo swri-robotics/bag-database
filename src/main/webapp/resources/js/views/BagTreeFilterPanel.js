@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -51,10 +51,11 @@ Ext.define('BagDatabase.views.BagTreeFilterPanel', {
             listeners: {
                 specialkey: function(field, event) {
                     if (event.getKey() == event.ENTER) {
-                        var vp = field.up('viewport');
-                        var filterPanel = field.up('bagTreeFilterPanel');
-                        var store = vp.down('#bagTreePanel').getStore();
-                        var text = field.getValue();
+                        var vp, filterPanel, store, text;
+                        vp = field.up('viewport');
+                        filterPanel = field.up('bagTreeFilterPanel');
+                        store = vp.down('#bagTreePanel').getStore();
+                        text = field.getValue();
                         store.clearFilter();
                         store.filter([{
                             filterFn: function(item) {
@@ -78,10 +79,11 @@ Ext.define('BagDatabase.views.BagTreeFilterPanel', {
             iconCls: 'magnifier-icon',
             margin: 5,
             handler: function(button) {
-                var vp = button.up('viewport');
-                var filterPanel = button.up('bagTreeFilterPanel');
-                var store = vp.down('#bagTreePanel').getStore();
-                var text = vp.down('#filterText').getValue();
+                var vp, filterPanel, store, text;
+                vp = button.up('viewport');
+                filterPanel = button.up('bagTreeFilterPanel');
+                store = vp.down('#bagTreePanel').getStore();
+                text = vp.down('#filterText').getValue();
                 store.clearFilter();
                 store.filter([{
                     filterFn: function(item) {

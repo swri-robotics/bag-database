@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,9 @@ Ext.define('BagDatabase.views.StatusText', {
         if (errorButton) {
             this.errorButton = errorButton;
         }
-        var me = this;
+        var me, viewport;
+        me = this;
+        viewport = me.up('viewport');
         // Manually get the latest status before we connect.
         Ext.Ajax.request({
             url: 'status/latest',
@@ -68,34 +70,22 @@ Ext.define('BagDatabase.views.StatusText', {
             }
         });
 
-        // Then connect a web socket to handle future updates.
-        me.stompClient = Stomp.over(function() {
-            return new SockJS(window.location.pathname + 'register');
-        });
-        me.stompClient.connect({},
-            function(frame) {
-                me.stompClient.subscribe('/topic/status', function(status){
+        if (viewport) {
+            viewport.subscribeToTopic('/topic/status',
+                function(status){
                     me.updateStatus(Ext.JSON.decode(status.body));
                 });
-            },
-            function() {
-                console.log('Disconnected; reconnecting in 2s.');
-                Ext.Function.defer(me.connectWebSocket, 2000, me);
-            });
-        setInterval(function() {
-            if (me.stompClient.connected) {
-                me.stompClient.send('/topic/heartbeat', {priority: 9}, 'heartbeat');
-            }
-        }, 20000);
+        }
+        else {
+            console.error('Unable to find viewport; will not be able to receive status updates.');
+        }
     },
     updateStatus: function(status) {
-        //var statusText = this.down('#statusText');
         if (!status) {
             this.setData({status:{message:'Error getting status!'}});
         }
         else {
             this.setData(status);
-            //var errorButton = this.down('#errorButton');
             if (this.errorButton) {
                 this.errorButton.setText(status.errorCount + ' errors');
                 this.errorButton.setDisabled(status.errorCount == 0);

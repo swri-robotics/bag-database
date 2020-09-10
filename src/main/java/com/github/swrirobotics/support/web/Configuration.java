@@ -36,11 +36,13 @@ public class Configuration implements Serializable {
     private static final long serialVersionUID = 7088819138941988062L;
 
     private String bagPath = "/bags";
+    private String dockerHost = "";
     private String driver = "org.h2.Driver";
     private String jdbcUsername = "sa";
     private String jdbcUrl = "jdbc:h2:mem:testdb";
     private String jdbcPassword = "";
     private String googleApiKey = "";
+    private String scriptTmpPath = "/scripts";
     private Boolean useBing = false;
     private String bingKey = "";
     private String adminPassword = "";
@@ -70,6 +72,14 @@ public class Configuration implements Serializable {
 
     public void setBagPath(String bagPath) {
         this.bagPath = bagPath;
+    }
+
+    public String getDockerHost() {
+        return dockerHost;
+    }
+
+    public void setDockerHost(String dockerHost) {
+        this.dockerHost = dockerHost;
     }
 
     public String getDriver() {
@@ -110,6 +120,14 @@ public class Configuration implements Serializable {
 
     public void setGoogleApiKey(String googleApiKey) {
         this.googleApiKey = googleApiKey;
+    }
+
+    public String getScriptTmpPath() {
+        return scriptTmpPath;
+    }
+
+    public void setScriptTmpPath(String scriptTmpPath) {
+        this.scriptTmpPath = scriptTmpPath;
     }
 
     public Boolean getUseMapQuest() {

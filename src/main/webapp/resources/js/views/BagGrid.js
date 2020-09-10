@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -41,20 +41,137 @@ Ext.define('BagDatabase.views.BagGrid', {
                'BagDatabase.views.ErrorWindow',
                'BagDatabase.views.StatusText',
                'BagDatabase.views.ErrorButton'],
+    header: {
+        padding: 6,
+        items: [{
+            xtype: 'button',
+            text: 'Info',
+            itemId: 'infoButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'information-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.showBagDetails(records[0].get('id'));
+            }
+        }, {
+            xtype: 'button',
+            text: 'Add Tag',
+            itemId: 'addTagButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'tag-add-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.addTag(records);
+            }
+        }, {
+            xtype: 'button',
+            text: 'Copy Link',
+            itemId: 'copyLinkButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'link-icon',
+            handler: function(button) {
+                var grid, records, links;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                links = [];
+                records.forEach(function(record) {
+                    links.push(document.location.href +
+                        'bags/download?bagId=' + record.get('id'));
+                });
+                grid.copyTextToClipboard(links.join('\n'));
+            }
+        }, {
+            xtype: 'button',
+            text: 'Map Bag',
+            itemId: 'mapBagButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'map-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.displayBagsOnMap(records);
+            }
+        }, {
+            xtype: 'button',
+            text: 'Download Bag',
+            itemId: 'downloadButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'save-icon',
+            handler: function(button) {
+                var grid, records;
+                grid = button.up('grid');
+                records = grid.getSelection();
+                grid.downloadBags(records);
+            }
+        }, {
+            xtype: 'splitbutton',
+            text: 'Run Script',
+            itemId: 'runScriptButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'script-go-icon',
+            listeners: {
+                click: function(button, event) {
+                    button.showMenu(event);
+                },
+                menushow: function(button, menu) {
+                    var scriptStore, grid, records, bagIds;
+                    bagIds = [];
+                    grid = button.up('grid');
+                    records = grid.getSelection();
+                    scriptStore = Ext.getStore('scriptStore');
+                    scriptStore.reload();
+
+                    records.forEach(function(record) {
+                        bagIds.push(record.get('id'));
+                    });
+                    menu.removeAll();
+                    scriptStore.each(function(record, idx) {
+                        menu.add({
+                            text: record.get('name'),
+                            iconCls: 'script-icon',
+                            handler: Ext.Function.pass(scriptStore.runScript, [record.get('id'), bagIds])
+                        })
+                    });
+                }
+            },
+            menu: [{
+                text: 'About', iconCls: 'information-icon', handler: function() {
+                    var win = Ext.create('BagDatabase.views.AboutWindow');
+                    win.show();
+                }
+            }, {
+                text: 'API Documentation', iconCls: 'book-icon', handler: function() {
+                    window.open("resources/docs/index.html", "_blank");
+                }
+            }]
+        }]
+    },
     listeners: {
         edit: function(editor, context, event) {
-            var origVal;
+            var origVal, newVal, valueChanged;
+            origVal;
             if (context.record.modified && context.record.modified[context.field]){
                 origVal = context.record.modified[context.field];
             }
             else {
                 origVal = context.originalValue;
             }
-            var newVal = context.value;
+            newVal = context.value;
             if (!newVal) {
                 newVal = null;
             }
-            var valueChanged = false;
+            valueChanged = false;
 
             if (typeof(newVal) == 'number' && typeof(origVal) == 'number') {
                 if (Math.abs(Math.abs(newVal) - Math.abs(origVal)) > 0.0000000001) {
@@ -75,77 +192,78 @@ Ext.define('BagDatabase.views.BagGrid', {
             }
         },
         rowcontextmenu: function(grid, record, tr, rowIndex, event) {
-            var records = grid.getSelection();
-            var items;
+            var bagIds, records, items, pluralSuffix, scriptStore, scriptItems;
+            records = grid.getSelection();
+            pluralSuffix = records.length == 1 ? '' : 's';
+            scriptStore = Ext.getStore('scriptStore');
+            bagIds = [];
+            items = [];
+            scriptItems = [];
+
             if (records.length == 1) {
-                items = [{
+                // Only allow viewing details for one bag at a time, all other actions can
+                // be applied to multiple bags.
+                items.push({
                     text: 'View Bag Information',
                     iconCls: 'information-icon',
                     handler: function() {
                         grid.ownerCt.showBagDetails(record.get('id'));
                     }
-                }, {
-                    text: 'Add Tag',
-                    iconCls: 'tag-add-icon',
-                    handler: function() {
-                        grid.ownerCt.addTag([record]);
-                    }
-                }, {
-                    text: 'Display Bag on Map',
-                    iconCls: 'map-icon',
-                    handler: function() {
-                        grid.ownerCt.displayBagsOnMap([record]);
-                    }
-                }, {
-                    text: 'Download Bag',
-                    iconCls: 'save-icon',
-                    handler: function() {
-                        grid.ownerCt.downloadBags([record]);
-                    }
-                }, {
-                    text: 'Copy Link',
-                    iconCls: 'link-icon',
-                    handler: function() {
-                        grid.ownerCt.copyTextToClipboard(
-                            document.location.href +
-                            'bags/download?bagId=' +
-                             record.get('id'));
-                    }
-                }];
+                });
             }
-            else {
-                items = [{
+
+            records.forEach(function(record) {
+                bagIds.push(record.get('id'));
+            });
+
+            scriptStore.each(function(record, idx) {
+                scriptItems.push({
+                    text: record.get('name'),
+                    iconCls: 'script-icon',
+                    handler: Ext.Function.pass(scriptStore.runScript, [record.get('id'), bagIds])
+                });
+            });
+
+            items = items.concat(
+                [{
                     text: 'Add Tag',
                     iconCls: 'tag-add-icon',
                     handler: function() {
                         grid.ownerCt.addTag(records);
                     }
                 }, {
-                    text: 'Display Bags on Map',
+                    text: 'Copy Link' + pluralSuffix,
+                    iconCls: 'link-icon',
+                    handler: function() {
+                        var links = [];
+                        bagIds.forEach(function(bagId) {
+                            links.push(document.location.href +
+                                'bags/download?bagId=' + bagId);
+                        });
+                        grid.ownerCt.copyTextToClipboard(links.join('\n'));
+                    }
+                }, {
+                    text: 'Display Bag' + pluralSuffix + ' on Map',
                     iconCls: 'map-icon',
                     handler: function() {
                         grid.ownerCt.displayBagsOnMap(records);
                     }
                 }, {
-                    text: 'Download Bags',
+                    text: 'Download Bag' + pluralSuffix,
                     iconCls: 'save-icon',
                     handler: function() {
                         grid.ownerCt.downloadBags(records);
                     }
                 }, {
-                    text: 'Copy Links',
-                    iconCls: 'link-icon',
-                    handler: function() {
-                        var links = [];
-                        records.forEach(function(record) {
-                            links.push(document.location.href +
-                                'bags/download?bagId=' +
-                                 record.get('id'));
-                        });
-                        grid.ownerCt.copyTextToClipboard(links.join('\n'));
+                    text: 'Process Bag' + pluralSuffix + ' with Script',
+                    iconCls: 'script-go-icon',
+                    disabled: scriptItems.length == 0,
+                    menu: {
+                        items: scriptItems
                     }
-                }];
-            }
+                }]
+            );
+
             Ext.create('Ext.menu.Menu', {
                 items: items
             }).showAt(event.getXY());
@@ -154,6 +272,33 @@ Ext.define('BagDatabase.views.BagGrid', {
         rowdblclick: function(grid, record) {
             var bagId = record.get('id');
             grid.ownerCt.showBagDetails(bagId);
+        },
+        selectionchange: function(rowmodel, records, index) {
+            var grid, isDisabled, copyLinkButton, mapBagButton, downloadBagButton;
+            grid = rowmodel.view.up('grid');
+            isDisabled = !(records && records.length > 0);
+            copyLinkButton = grid.down('#copyLinkButton');
+            mapBagButton = grid.down('#mapBagButton');
+            downloadBagButton = grid.down('#downloadButton');
+
+            // Only allow "View Info" for one bag at a time
+            grid.down('#infoButton').setDisabled(isDisabled || records.length > 1);
+            grid.down('#addTagButton').setDisabled(isDisabled);
+            copyLinkButton.setDisabled(isDisabled);
+            mapBagButton.setDisabled(isDisabled);
+            downloadBagButton.setDisabled(isDisabled);
+            grid.down('#runScriptButton').setDisabled(isDisabled);
+
+            if (records.length > 1) {
+                copyLinkButton.setText("Copy Links");
+                mapBagButton.setText("Map Bags");
+                downloadBagButton.setText("Download Bags");
+            }
+            else {
+                copyLinkButton.setText("Copy Link");
+                mapBagButton.setText("Map Bag");
+                downloadBagButton.setText("Download Bag");
+            }
         }
     },
     selModel: {
@@ -235,8 +380,9 @@ Ext.define('BagDatabase.views.BagGrid', {
         renderer: function(value, metadata, record) {
             var strTags = [];
             record.tags().each(function(tag) {
-                var key = Ext.String.htmlEncode(tag.get('tag'));
-                var value = tag.get('value');
+                var key, value;
+                key = Ext.String.htmlEncode(tag.get('tag'));
+                value = tag.get('value');
                 if (value) {
                     value = Ext.String.htmlEncode(value);
                 }
@@ -249,14 +395,8 @@ Ext.define('BagDatabase.views.BagGrid', {
         }
     }, {
         xtype: 'actioncolumn',
-        width: 75,
+        width: 25,
         items: [{
-            tooltip: 'Bag Information',
-            iconCls: 'bag-action-icon information-icon',
-            handler: function(grid, rowIndex, colIndex) {
-                grid.ownerCt.showBagDetails(grid.getStore().getAt(rowIndex).get('id'));
-            }
-        }, {
             iconCls: 'bag-action-icon map-icon',
             isDisabled: function(view, rowIndex, colIndex, item, record) {
                 return record.get('hasPath') !== true;
@@ -267,12 +407,6 @@ Ext.define('BagDatabase.views.BagGrid', {
             handler: function(grid, rowIndex, colIndex) {
                 grid.ownerCt.displayBagsOnMap([grid.getStore().getAt(rowIndex)]);
             }
-        }, {
-            iconCls: 'save-icon',
-            tooltip: 'Download',
-            handler: function(grid, rowIndex, colIndex) {
-                grid.ownerCt.downloadBags([grid.getStore().getAt(rowIndex)]);
-            }
         }]
     }],
     viewConfig: {
@@ -282,12 +416,13 @@ Ext.define('BagDatabase.views.BagGrid', {
     },
 
     addTag: function(bagRecords) {
-        var bagIds = [];
+        var bagIds, win;
+        bagIds = [];
         bagRecords.forEach(function(record) {
             bagIds.push(record.get('id'));
         });
 
-        var win = Ext.create('BagDatabase.views.SetTagWindow', {
+        win = Ext.create('BagDatabase.views.SetTagWindow', {
             bagIds: bagIds,
             targetStores: [this.getStore(),
                 this.up('viewport').down('bagTreePanel').getStore()]
@@ -299,13 +434,14 @@ Ext.define('BagDatabase.views.BagGrid', {
         this.showBagDetails(bagId);
     },
     displayBagsOnMap: function(bagRecords) {
-        var bagIds = [];
-        var bagFilenames = [];
+        var bagIds, bagFilenames, win, loadMask, params;
+        bagIds = [];
+        bagFilenames = [];
         bagRecords.forEach(function(record) {
             bagIds.push(record.get('id'));
             bagFilenames.push(record.get('filename'));
         });
-        var win = Ext.create({
+        win = Ext.create({
             xtype: 'mapWindow',
             title: 'Path for ' + bagFilenames[0],
             width: 600,
@@ -313,13 +449,13 @@ Ext.define('BagDatabase.views.BagGrid', {
         });
         win.show();
 
-        var loadMask = new Ext.LoadMask({
+        loadMask = new Ext.LoadMask({
             target: win,
             msg: 'Loading coordinates...'
         });
         loadMask.show();
 
-        var params = {
+        params = {
             bagIds: bagIds
         };
         params[csrfName] = csrfToken;
@@ -387,7 +523,8 @@ Ext.define('BagDatabase.views.BagGrid', {
         win.show();
     },
     copyTextToClipboard: function(text) {
-      var textArea = document.createElement("textarea");
+      var successful, msg, textArea;
+      textArea = document.createElement("textarea");
 
       //
       // *** This styling is an extra step which is likely not required. ***
@@ -433,8 +570,8 @@ Ext.define('BagDatabase.views.BagGrid', {
       textArea.select();
 
       try {
-        var successful = document.execCommand('copy');
-        var msg = successful ? 'successful' : 'unsuccessful';
+        successful = document.execCommand('copy');
+        msg = successful ? 'successful' : 'unsuccessful';
         console.log('Copying text command was ' + msg);
       } catch (err) {
         console.log('Oops, unable to copy');

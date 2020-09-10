@@ -30,6 +30,7 @@
 
 package com.github.swrirobotics.status;
 
+import com.github.swrirobotics.scripts.ScriptService;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import org.slf4j.Logger;
@@ -50,6 +51,8 @@ public class StatusService implements StatusListener {
     private BagScanner myScanner;
     @Autowired
     private BagService myBagService;
+    @Autowired
+    private ScriptService myScriptService;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
@@ -91,6 +94,7 @@ public class StatusService implements StatusListener {
             myScanner.registerStatusListener(this);
         }
         myBagService.registerStatusListener(this);
+        myScriptService.registerStatusListener(this);
     }
 
     @Override
