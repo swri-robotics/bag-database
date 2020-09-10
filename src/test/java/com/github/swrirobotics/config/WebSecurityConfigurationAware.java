@@ -31,6 +31,7 @@
 package com.github.swrirobotics.config;
 
 import org.junit.Before;
+import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation;
 import org.springframework.security.web.FilterChainProxy;
 
 import javax.inject.Inject;
@@ -43,8 +44,10 @@ public abstract class WebSecurityConfigurationAware extends WebAppConfigurationA
     private FilterChainProxy springSecurityFilterChain;
 
     @Before
+    @Override
     public void before() {
         this.mockMvc = webAppContextSetup(this.wac)
+                .apply(MockMvcRestDocumentation.documentationConfiguration(this.restDocumentation))
                 .addFilters(this.springSecurityFilterChain).build();
     }
 }

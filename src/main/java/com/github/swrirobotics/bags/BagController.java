@@ -31,9 +31,9 @@
 package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.swrirobotics.bags.persistence.Bag;
-import com.github.swrirobotics.bags.persistence.BagCount;
-import com.github.swrirobotics.bags.persistence.Tag;
+import com.github.swrirobotics.persistence.Bag;
+import com.github.swrirobotics.persistence.BagCount;
+import com.github.swrirobotics.persistence.Tag;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
@@ -42,17 +42,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("bags")
@@ -61,7 +63,7 @@ public class BagController {
     @Autowired
     private BagService myBagService;
 
-    private Logger myLogger = LoggerFactory.getLogger(BagController.class);
+    private final Logger myLogger = LoggerFactory.getLogger(BagController.class);
 
     @RequestMapping(value="/download", produces="application/x-bag")
     public FileSystemResource downloadBag(
@@ -112,7 +114,7 @@ public class BagController {
     @RequestMapping("/image")
     public ModelAndView getImage(@RequestParam Long bagId,
                                  @RequestParam String topic,
-                                 @RequestParam Integer index) throws FileNotFoundException {
+                                 @RequestParam Integer index) {
         myLogger.info("getImage: " + bagId + " / " + topic + " / " + index);
         ModelAndView mav = new ModelAndView("image/image");
         try {
@@ -127,25 +129,35 @@ public class BagController {
     }
 
     @RequestMapping("/video")
-    public void getVideo(@RequestParam Long bagId,
-                         @RequestParam String topic,
-                         @RequestParam Long frameSkip,
-                         HttpServletResponse response) {
+    public ResponseEntity<StreamingResponseBody> getVideo(@RequestParam Long bagId,
+                                                          @RequestParam String topic,
+                                                          @RequestParam Long frameSkip,
+                                                          HttpServletResponse response) {
         myLogger.info("getVideo: " + bagId + ":" + topic);
         try {
             OutputStream output = response.getOutputStream();
             response.setContentType("video/webm;codecs=\"vp8\"");
-            myBagService.writeVideoStream(bagId, topic, frameSkip, output);
+            StreamingResponseBody stream = out -> {
+                try {
+                    myBagService.writeVideoStream(bagId, topic, frameSkip, output);
+                }
+                catch (BagReaderException e) {
+                    myLogger.error("Error reading bag file:", e);
+                }
+            };
+            return new ResponseEntity<>(stream, HttpStatus.OK);
         }
-        catch (BagReaderException | IOException e) {
+        catch (IOException e) {
             myLogger.error("Error getting video stream:", e);
         }
         finally {
             myLogger.info("Finished getVideo()");
         }
+        return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @RequestMapping("/update")
+    @RequestMapping(value = "/update",
+        method = RequestMethod.POST)
     public BagUpdateStatus updateBags(@RequestBody String req) {
         myLogger.info("updateBags");
         ObjectMapper mapper = new ObjectMapper();
@@ -170,13 +182,51 @@ public class BagController {
         return status;
     }
 
+    @RequestMapping(value = "/upload",
+            method = RequestMethod.POST,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String, Object> uploadBag(@RequestParam("file") MultipartFile file,
+                                         @RequestParam String targetDirectory) {
+        myLogger.info("uploadBag: " + file.getName());
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", "");
+        try {
+            myBagService.uploadBag(file, targetDirectory);
+            response.put("success", true);
+        }
+        catch (Exception e) {
+            myLogger.error("Error uploading bag", e);
+            response.put("message", e.getLocalizedMessage());
+        }
+        myLogger.info("uploadBag finished.");
+        return response;
+    }
+
+    @RequestMapping("/paths")
+    @ResponseBody
+    public Map<String, Object> getPaths() {
+        Map<String, Object> result = new HashMap<>();
+        List<String> paths = myBagService.getPaths();
+        result.put("totalCount", paths.size());
+        List<Map<String, String>> pathList = new ArrayList<>();
+        result.put("paths", pathList);
+        for (String path : paths) {
+            Map<String, String> pathEntry = new HashMap<>();
+            pathEntry.put("path", path);
+            pathList.add(pathEntry);
+        }
+        return result;
+    }
+
     @RequestMapping("/treenode")
     public BagTreeNode[] getTreeNode(@RequestParam String node) throws IOException {
         myLogger.info("getTreeNode: " + node);
 
         List<BagTreeNode> nodes = myBagService.getTreePath(node);
 
-        return nodes.toArray(new BagTreeNode[nodes.size()]);
+        return nodes.toArray(new BagTreeNode[0]);
     }
 
     @RequestMapping("/filteredcount")
@@ -286,7 +336,7 @@ public class BagController {
      * @param bagId The ID of the bag to set the tag for.
      * @throws NonexistentBagException If the specified bag doesn't exist.
      */
-    @RequestMapping("/setTag")
+    @RequestMapping(value = "/setTag", method = RequestMethod.POST)
     public void setTagForBag(@RequestParam String tagName,
                              @RequestParam(required = false) String value,
                              @RequestParam Long bagId) throws NonexistentBagException {
@@ -295,7 +345,7 @@ public class BagController {
         myLogger.info("Set tag.");
     }
 
-    @RequestMapping("/setTagForBags")
+    @RequestMapping(value = "/setTagForBags", method = RequestMethod.POST)
     public void setTagForBags(@RequestParam String tagName,
                               @RequestParam(required = false) String value,
                               @RequestParam Long[] bagIds) throws NonexistentBagException {
@@ -313,7 +363,7 @@ public class BagController {
      * @param bagId The ID of the bag to remove the tags from.
      * @throws NonexistentBagException If the specified bag doesn't exist.
      */
-    @RequestMapping("/removeTags")
+    @RequestMapping(value = "/removeTags", method = RequestMethod.POST)
     public void removeTagsForBag(@RequestParam String[] tagNames,
                                  @RequestParam Long bagId) throws NonexistentBagException {
         myLogger.info("removeTagsForBag: " + Joiner.on(',').join(tagNames) + " for bag " + bagId);

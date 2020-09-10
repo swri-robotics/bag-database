@@ -31,9 +31,16 @@
 package com.github.swrirobotics.config;
 
 import org.springframework.security.web.context.AbstractSecurityWebApplicationInitializer;
+import org.springframework.web.multipart.support.MultipartFilter;
+
+import javax.servlet.ServletContext;
 
 public class SecurityInitializer extends AbstractSecurityWebApplicationInitializer {
     // This class is empty, but we need to extend an instance of
     // AbstractSecurityWebApplicationInitializer in order to add Spring Session
     // support to Spring Security.
+    @Override
+    protected void beforeSpringSecurityFilterChain(ServletContext servletContext) {
+        insertFilters(servletContext, new MultipartFilter());
+    }
 }

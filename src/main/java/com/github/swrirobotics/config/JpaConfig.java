@@ -30,7 +30,7 @@
 
 package com.github.swrirobotics.config;
 
-import com.github.swrirobotics.Application;
+import com.github.swrirobotics.BagApplication;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.h2gis.functions.factory.H2GISDBFactory;
@@ -51,20 +51,21 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.TransactionManagementConfigurer;
 
+import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Properties;
 
 @Configuration
-@EnableTransactionManagement(mode= AdviceMode.ASPECTJ)
-@EnableJpaRepositories(basePackageClasses = Application.class,
+@EnableTransactionManagement(mode = AdviceMode.PROXY, proxyTargetClass = true)
+@EnableJpaRepositories(basePackageClasses = BagApplication.class,
         transactionManagerRef = "annotationDrivenTransactionManager")
 @EnableJdbcHttpSession
 public class JpaConfig implements TransactionManagementConfigurer {
     @Autowired(required = false)
     private DataSourceProperties properties;
 
-    private Logger myLogger = LoggerFactory.getLogger(JpaConfig.class);
+    private final Logger myLogger = LoggerFactory.getLogger(JpaConfig.class);
 
     @Bean
     @Profile("!test")
@@ -123,8 +124,10 @@ public class JpaConfig implements TransactionManagementConfigurer {
         return entityManagerFactoryBean;
     }
 
+    @Override
     @Bean
     public PlatformTransactionManager annotationDrivenTransactionManager() {
-        return new JpaTransactionManager();
+        var txManager = new JpaTransactionManager();
+        return txManager;
     }
 }

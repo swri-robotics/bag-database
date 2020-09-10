@@ -36,11 +36,13 @@ public class Configuration implements Serializable {
     private static final long serialVersionUID = 7088819138941988062L;
 
     private String bagPath = "/bags";
+    private String dockerHost = "";
     private String driver = "org.h2.Driver";
     private String jdbcUsername = "sa";
     private String jdbcUrl = "jdbc:h2:mem:testdb";
     private String jdbcPassword = "";
     private String googleApiKey = "";
+    private String scriptTmpPath = "/scripts";
     private Boolean useBing = false;
     private String bingKey = "";
     private String adminPassword = "";
@@ -50,6 +52,11 @@ public class Configuration implements Serializable {
     private Boolean debugJavascript = false;
     private Boolean removeOnDeletion = true;
     private Boolean fasterCodec = false;
+    private String ldapBindDn = "";
+    private String ldapBindPassword = "";
+    private String ldapSearchBase = "";
+    private String ldapServer = "";
+    private String ldapUserPattern = "";
 
     // Named "useMapQuest" for legacy support with older configs;
     // MapQuest is actually unsupported now and this will enable/disable
@@ -65,6 +72,14 @@ public class Configuration implements Serializable {
 
     public void setBagPath(String bagPath) {
         this.bagPath = bagPath;
+    }
+
+    public String getDockerHost() {
+        return dockerHost;
+    }
+
+    public void setDockerHost(String dockerHost) {
+        this.dockerHost = dockerHost;
     }
 
     public String getDriver() {
@@ -105,6 +120,14 @@ public class Configuration implements Serializable {
 
     public void setGoogleApiKey(String googleApiKey) {
         this.googleApiKey = googleApiKey;
+    }
+
+    public String getScriptTmpPath() {
+        return scriptTmpPath;
+    }
+
+    public void setScriptTmpPath(String scriptTmpPath) {
+        this.scriptTmpPath = scriptTmpPath;
     }
 
     public Boolean getUseMapQuest() {
@@ -204,10 +227,50 @@ public class Configuration implements Serializable {
     }
 
     public Boolean getFasterCodec() {
-    	return fasterCodec;
+        return fasterCodec;
     }
 
     public void setFasterCodec(Boolean fasterCodec) {
-    	this.fasterCodec = fasterCodec;
+        this.fasterCodec = fasterCodec;
+    }
+
+    public String getLdapBindDn() {
+        return ldapBindDn;
+    }
+
+    public void setLdapBindDn(String ldapBindDn) {
+        this.ldapBindDn = ldapBindDn;
+    }
+
+    public String getLdapBindPassword() {
+        return ldapBindPassword;
+    }
+
+    public void setLdapBindPassword(String ldapBindPassword) {
+        this.ldapBindPassword = ldapBindPassword;
+    }
+
+    public String getLdapServer() {
+        return ldapServer;
+    }
+
+    public void setLdapServer(String ldapServer) {
+        this.ldapServer = ldapServer;
+    }
+
+    public String getLdapSearchBase() {
+        return ldapSearchBase;
+    }
+
+    public void setLdapSearchBase(String ldapSearchBase) {
+        this.ldapSearchBase = ldapSearchBase;
+    }
+
+    public String getLdapUserPattern() {
+        return ldapUserPattern;
+    }
+
+    public void setLdapUserPattern(String ldapUserPattern) {
+        this.ldapUserPattern = ldapUserPattern;
     }
 }

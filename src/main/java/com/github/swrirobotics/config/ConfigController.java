@@ -55,7 +55,7 @@ public class ConfigController {
     @Autowired
     private ConfigService myConfigService;
 
-    private Logger myLogger = LoggerFactory.getLogger(ConfigController.class);
+    private final Logger myLogger = LoggerFactory.getLogger(ConfigController.class);
 
     @RequestMapping(value="", method=RequestMethod.GET)
     public String getConfig(Model model) {
@@ -66,7 +66,7 @@ public class ConfigController {
         return "config/config";
     }
 
-    @RequestMapping(value="/get")
+    @RequestMapping(value="/get", method = RequestMethod.POST)
     @ResponseBody
     public Map<String, Object> formPost(@ModelAttribute Configuration config,
                                         Model model,

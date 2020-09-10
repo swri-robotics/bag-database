@@ -30,22 +30,23 @@
 
 package com.github.swrirobotics.bags.filesystem;
 
+
 import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.bags.persistence.*;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
-import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Profile("default")
@@ -133,7 +136,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         if (bagDir != null && !bagDir.isEmpty()) {
             Path path = FileSystems.getDefault().getPath(bagDir);
             myWatcher = RecursiveWatcher.createRecursiveWatcher(
-                    path, new ArrayList<Path>(), 3000, this);
+                    path, new ArrayList<>(), 3000, this);
             try {
                 myWatcher.start();
             }
@@ -188,7 +191,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if ((bag.getLocation() == null || bag.getLocation().isEmpty()) &&
                     bag.getLatitudeDeg() != null && bag.getLongitudeDeg() != null &&
                     Math.abs(bag.getLatitudeDeg()) > 0.0001 &&
@@ -217,7 +220,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                 return;
             }
 
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if (bag.getVehicle() == null || bag.getVehicle().isEmpty()) {
                 String fullPath = bag.getPath() + bag.getFilename();
                 try {
@@ -250,7 +253,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
             String fullPath = bag.getPath() + bag.getFilename();
             try {
                 BagFile bagFile = BagReader.readFile(fullPath);
@@ -264,7 +267,6 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
             }
         }
     }
-
 
     private class GpsPathUpdater extends MassBagUpdater {
         @Override
@@ -288,7 +290,7 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            Bag bag = myBagRepo.findOne(bagId);
+            Bag bag = myBagRepo.findById(bagId).orElseThrow();
 
             if (bag.getLatitudeDeg() == null ||
                     bag.getLongitudeDeg() == null ||
@@ -362,29 +364,35 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         myExecutor.execute(new FullScanner(forceUpdate, bagDir));
     }
 
+    private boolean presentSpecialCharacters(Path dir){
+        String dirName = dir.toString();
+        Pattern p = Pattern.compile("@.*");
+        Matcher m = p.matcher(dirName);
+        return m.find();
+    }
+
     private Set<File> getBagFiles(Path dir) {
         Set<File> bagFiles = Sets.newHashSet();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.bag")) {
-            for (Path bagFile : stream) {
-                myLogger.trace("  Adding: " + bagFile.toString());
-                bagFiles.add(bagFile.toAbsolutePath().toFile());
+        if (!presentSpecialCharacters(dir.getFileName())) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.bag")) {
+                for (Path bagFile : stream) {
+                    myLogger.trace("  Adding: " + bagFile.toString());
+                    bagFiles.add(bagFile.toAbsolutePath().toFile());
+                }
+            } catch (IOException e) {
+                myLogger.error("Error parsing directory:", e);
+                reportStatus(Status.State.ERROR, "Unable to read directory: " + dir.toString());
+            }
+
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, myDirFilter)) {
+                for (Path subdir : stream) {
+                    myLogger.trace("  Checking subdir: " + subdir.toString());
+                    bagFiles.addAll(getBagFiles(subdir));
+                }
+            } catch (IOException e) {
+                myLogger.error("Error parsing subdirectory:", e);
             }
         }
-        catch (IOException e) {
-            myLogger.error("Error parsing directory:", e);
-            reportStatus(Status.State.ERROR, "Unable to read directory: " + dir.toString());
-        }
-
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, myDirFilter)) {
-            for (Path subdir : stream) {
-                myLogger.trace("  Checking subdir: " + subdir.toString());
-                bagFiles.addAll(getBagFiles(subdir));
-            }
-        }
-        catch (IOException e) {
-            myLogger.error("Error parsing subdirectory:", e);
-        }
-
         return bagFiles;
     }
 
@@ -400,8 +408,8 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
     }
 
     private class FullScanner implements Runnable {
-        private boolean forceUpdate = false;
-        private String myBagDirectory;
+        final private boolean forceUpdate;
+        private final String myBagDirectory;
 
         private final ExecutorService bagService = Executors.newFixedThreadPool(
                 Runtime.getRuntime().availableProcessors());
@@ -442,6 +450,22 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                                                        existingBagPaths,
                                                        missingBagMd5sums,
                                                        forceUpdate);
+                        }
+                        catch (ConstraintViolationException e) {
+                            // Constraint name is hard-coded in db.changelog-1.0.yaml
+                            if ("uk_a2r00kd2qd94dohkimsp5rdgn".equals(e.getConstraintName())) {
+                                String message = "The data in " + file.getName() + " seems to be a duplicate " +
+                                        "of an existing bag file.  If you believe this is incorrect, please " +
+                                        "report it as a bug.";
+                                reportStatus(Status.State.ERROR, message);
+                                myLogger.warn(message);
+                                myLogger.warn(e.getLocalizedMessage());
+                            }
+                            else {
+                                String message = e.getLocalizedMessage();
+                                reportStatus(Status.State.ERROR,"Error checking bag file: " + message);
+                                myLogger.error("Unexpected error updating bag file:", e);
+                            }
                         }
                         catch (RuntimeException e) {
                             reportStatus(Status.State.ERROR,

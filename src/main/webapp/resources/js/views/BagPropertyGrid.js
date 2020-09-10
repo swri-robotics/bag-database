@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -66,12 +66,13 @@ Ext.define('BagDatabase.views.BagPropertyGrid', {
         itemId: 'saveButton',
         disabled: true,
         handler: function(button) {
-            var pgrid = button.up('window').down('propertygrid');
+            var pgrid, bag;
+            pgrid = button.up('window').down('propertygrid');
             if (!pgrid.loadMask) {
                 pgrid.loadMask = new Ext.LoadMask(pgrid, {msg: 'Saving...'});
             }
             pgrid.loadMask.show();
-            var bag = button.up('window').down('propertygrid').getSource();
+            bag = button.up('window').down('propertygrid').getSource();
             BagDatabase.stores.BagStore.saveBags([bag], pgrid.loadMask, button);
         }
     }],

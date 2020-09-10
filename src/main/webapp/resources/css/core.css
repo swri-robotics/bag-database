@@ -28,6 +28,18 @@ div.ol-viewport {
     position: absolute !important;
 }
 
+.add-icon {
+    background-image: url('../images/add.png');
+}
+
+.bag-add-icon {
+    background-image: url('../images/basket_add.png');
+}
+
+.book-icon {
+    background-image: url('../images/book.png');
+}
+
 .chart-organisation-icon {
     background-image: url('../images/chart_organisation.png');
 }
@@ -42,6 +54,14 @@ div.ol-viewport {
 
 .database-icon {
     background-image: url('../images/database.png');
+}
+
+.delete-icon {
+    background-image: url('../images/delete.png');
+}
+
+.edit-icon {
+    background-image: url('../images/pencil.png');
 }
 
 .film-icon {
@@ -73,7 +93,7 @@ div.ol-viewport {
 }
 
 .login-icon {
-    background-image: url('../images/door_in.png');
+    background-image: url('../images/house_go.png');
 }
 
 .logout-icon {
@@ -89,11 +109,43 @@ div.ol-viewport {
 }
 
 .refresh-icon {
-    background-image: url('../images/arrow_rotate_anticlockwise.png');
+    background-image: url('../images/arrow_refresh.png');
 }
 
 .save-icon {
     background-image: url('../images/save.png');
+}
+
+.script-code-icon {
+    background-image: url('../images/script_code.png');
+}
+
+.script-code-red-icon  {
+    background-image: url('../images/script_code_red.png');
+}
+
+.script-edit-icon {
+    background-image: url('../images/script_edit.png');
+}
+
+.script-icon {
+    background-image: url('../images/script.png');
+}
+
+.script-go-icon {
+    background-image: url('../images/script_go.png');
+}
+
+.script-add-icon {
+    background-image: url('../images/script_add.png');
+}
+
+.script-delete-icon {
+    background-image: url('../images/script_delete.png');
+}
+
+.script-save-icon {
+    background-image: url('../images/script_save.png');
 }
 
 .table-icon {

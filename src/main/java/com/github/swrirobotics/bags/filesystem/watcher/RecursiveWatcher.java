@@ -41,56 +41,56 @@ import java.util.logging.Logger;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public abstract class RecursiveWatcher {
-	protected static final Logger logger = Logger.getLogger(RecursiveWatcher.class.getSimpleName());
+    protected static final Logger logger = Logger.getLogger(RecursiveWatcher.class.getSimpleName());
 
-	protected Path root;
-	protected List<Path> ignorePaths;
-	private int settleDelay;
-	private WatchListener listener;
+    protected final Path root;
+    protected final List<Path> ignorePaths;
+    private final int settleDelay;
+    private final WatchListener listener;
 
-	private AtomicBoolean running;
+    private final AtomicBoolean running;
 
-	private Thread watchThread;
-	private Timer timer;
+    private Thread watchThread;
+    private Timer timer;
 
-	public RecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
-		this.root = root;
-		this.ignorePaths = ignorePaths;
-		this.settleDelay = settleDelay;
-		this.listener = listener;
+    public RecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
+        this.root = root;
+        this.ignorePaths = ignorePaths;
+        this.settleDelay = settleDelay;
+        this.listener = listener;
 
-		this.running = new AtomicBoolean(false);
-	}
+        this.running = new AtomicBoolean(false);
+    }
 
-	/**
-	 * Creates a recursive watcher for the given root path. The returned watcher
-	 * will ignore the ignore paths and fire an event through the {@link WatchListener}
-	 * as soon as the settle delay (in ms) has passed.
-	 */
-	public static RecursiveWatcher createRecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
-		return new DefaultRecursiveWatcher(root, ignorePaths, settleDelay, listener);
-	}
+    /**
+     * Creates a recursive watcher for the given root path. The returned watcher
+     * will ignore the ignore paths and fire an event through the {@link WatchListener}
+     * as soon as the settle delay (in ms) has passed.
+     */
+    public static RecursiveWatcher createRecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
+        return new DefaultRecursiveWatcher(root, ignorePaths, settleDelay, listener);
+    }
 
-	/**
-	 * Starts the watcher service and registers watches in all of the sub-folders of
-	 * the given root folder.
-	 *
-	 * <p>This method calls the {@link #beforeStart()} method before everything else.
-	 * Subclasses may execute their own commands there. Before the watch thread is started,
-	 * {@link #beforePollEventLoop()} is called. And in the watch thread loop,
-	 * {@link #pollEvents()} is called.
-	 *
-	 * <p><b>Important:</b> This method returns immediately, even though the watches
-	 * might not be in place yet. For large file trees, it might take several seconds
-	 * until all directories are being monitored. For normal cases (1-100 folders), this
-	 * should not take longer than a few milliseconds.
-	 */
-	public void start() throws Exception {
-		// Call before-start hook
-		beforeStart();
+    /**
+     * Starts the watcher service and registers watches in all of the sub-folders of
+     * the given root folder.
+     *
+     * <p>This method calls the {@link #beforeStart()} method before everything else.
+     * Subclasses may execute their own commands there. Before the watch thread is started,
+     * {@link #beforePollEventLoop()} is called. And in the watch thread loop,
+     * {@link #pollEvents()} is called.
+     *
+     * <p><b>Important:</b> This method returns immediately, even though the watches
+     * might not be in place yet. For large file trees, it might take several seconds
+     * until all directories are being monitored. For normal cases (1-100 folders), this
+     * should not take longer than a few milliseconds.
+     */
+    public void start() throws Exception {
+        // Call before-start hook
+        beforeStart();
 
-		// Start watcher thread
-		watchThread = new Thread(() -> {
+        // Start watcher thread
+        watchThread = new Thread(() -> {
             running.set(true);
             beforePollEventLoop(); // Call before-loop hook
 
@@ -113,91 +113,91 @@ public abstract class RecursiveWatcher {
             }
         }, "Watcher/" + root.toFile().getName());
 
-		watchThread.start();
-	}
+        watchThread.start();
+    }
 
-	/**
-	 * Stops the watch thread by interrupting it and subsequently
-	 * calls the {@link #afterStop()} template method (to be implemented
-	 * by subclasses.
-	 */
-	public synchronized void stop() {
-		if (watchThread != null) {
-			try {
-				running.set(false);
-				watchThread.interrupt();
+    /**
+     * Stops the watch thread by interrupting it and subsequently
+     * calls the {@link #afterStop()} template method (to be implemented
+     * by subclasses.
+     */
+    public synchronized void stop() {
+        if (watchThread != null) {
+            try {
+                running.set(false);
+                watchThread.interrupt();
 
-				// Call after-stop hook
-				afterStop();
-			}
-			catch (IOException e) {
-				logger.log(Level.FINE, "Could not close watcher", e);
-			}
-		}
-	}
+                // Call after-stop hook
+                afterStop();
+            }
+            catch (IOException e) {
+                logger.log(Level.FINE, "Could not close watcher", e);
+            }
+        }
+    }
 
-	private synchronized void restartWaitSettlementTimer() {
-		logger.log(Level.FINE, "File system events registered. Waiting " + settleDelay + "ms for settlement ....");
+    private synchronized void restartWaitSettlementTimer() {
+        logger.log(Level.FINE, "File system events registered. Waiting " + settleDelay + "ms for settlement ....");
 
-		if (timer != null) {
-			timer.cancel();
-			timer = null;
-		}
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
 
-		timer = new Timer("FsSettleTim/" + root.toFile().getName());
-		timer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				logger.log(Level.INFO, "File system actions (on watched folders) settled. Updating watches ...");
+        timer = new Timer("FsSettleTim/" + root.toFile().getName());
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                logger.log(Level.INFO, "File system actions (on watched folders) settled. Updating watches ...");
 
-				watchEventsOccurred();
-				fireListenerEvents();
-			}
-		}, settleDelay);
-	}
+                watchEventsOccurred();
+                fireListenerEvents();
+            }
+        }, settleDelay);
+    }
 
-	private synchronized void fireListenerEvents() {
-		if (listener != null) {
-			logger.log(Level.INFO, "- Firing watch event (watchEventsOccurred) ...");
-			listener.watchEventsOccurred();
-		}
-	}
+    private synchronized void fireListenerEvents() {
+        if (listener != null) {
+            logger.log(Level.INFO, "- Firing watch event (watchEventsOccurred) ...");
+            listener.watchEventsOccurred();
+        }
+    }
 
-	/**
-	 * Called before the {@link #start()} method. This method is
-	 * only called once.
-	 */
-	protected abstract void beforeStart() throws Exception;
+    /**
+     * Called before the {@link #start()} method. This method is
+     * only called once.
+     */
+    protected abstract void beforeStart() throws Exception;
 
-	/**
-	 * Called in the watch service polling thread, right
-	 * before the {@link #pollEvents()} loop. This method is
-	 * only called once.
-	 */
-	protected abstract void beforePollEventLoop();
+    /**
+     * Called in the watch service polling thread, right
+     * before the {@link #pollEvents()} loop. This method is
+     * only called once.
+     */
+    protected abstract void beforePollEventLoop();
 
-	/**
-	 * Called in the watch service polling thread, inside
-	 * of the {@link #pollEvents()} loop. This method is called
-	 * multiple times.
-	 */
-	protected abstract boolean pollEvents() throws InterruptedException;
+    /**
+     * Called in the watch service polling thread, inside
+     * of the {@link #pollEvents()} loop. This method is called
+     * multiple times.
+     */
+    protected abstract boolean pollEvents() throws InterruptedException;
 
-	/**
-	 * Called in the watch service polling thread, whenever
-	 * a file system event occurs. This may be used by subclasses
-	 * to (re-)set watches on folders. This method is called
-	 * multiple times.
-	 */
-	protected abstract void watchEventsOccurred();
+    /**
+     * Called in the watch service polling thread, whenever
+     * a file system event occurs. This may be used by subclasses
+     * to (re-)set watches on folders. This method is called
+     * multiple times.
+     */
+    protected abstract void watchEventsOccurred();
 
-	/**
-	 * Called after the {@link #stop()} method. This method is
-	 * only called once.
-	 */
-	protected abstract void afterStop() throws IOException;
+    /**
+     * Called after the {@link #stop()} method. This method is
+     * only called once.
+     */
+    protected abstract void afterStop() throws IOException;
 
-	public interface WatchListener {
-		void watchEventsOccurred();
-	}
+    public interface WatchListener {
+        void watchEventsOccurred();
+    }
 }

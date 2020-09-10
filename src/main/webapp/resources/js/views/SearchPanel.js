@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -50,9 +50,10 @@ Ext.define('BagDatabase.views.SearchPanel', {
             listeners: {
                 specialkey: function(field, event) {
                     if (event.getKey() == event.ENTER) {
-                        var vp = field.up('viewport');
-                        var store = vp.down('#bagGrid').getStore();
-                        var fields = vp.down('#searchFields').getValue();
+                        var vp, store, fields;
+                        vp = field.up('viewport');
+                        store = vp.down('#bagGrid').getStore();
+                        fields = vp.down('#searchFields').getValue();
                         store.filterBags(field.getValue(), fields);
                     }
                 },
@@ -71,10 +72,11 @@ Ext.define('BagDatabase.views.SearchPanel', {
             iconCls: 'magnifier-icon',
             margin: 5,
             handler: function(button) {
-                var vp = button.up('viewport');
-                var store = vp.down('#bagGrid').getStore();
-                var terms = vp.down('#searchTerms').getValue();
-                var fields = vp.down('#searchFields').getValue();
+                var vp, store, terms, fields;
+                vp = button.up('viewport');
+                store = vp.down('#bagGrid').getStore();
+                terms = vp.down('#searchTerms').getValue();
+                fields = vp.down('#searchFields').getValue();
                 store.filterBags(terms, fields);
             }
         }]
@@ -95,9 +97,10 @@ Ext.define('BagDatabase.views.SearchPanel', {
             return this.getValue();
         },
         getErrors: function(value) {
-            var errors = [];
-            var tnCheckbox = this.down('#topicNameCheckbox');
-            var mtCheckbox = this.down('#messageTypeCheckbox');
+            var errors, tnCheckbox, mtCheckbox;
+            errors = [];
+            tnCheckbox = this.down('#topicNameCheckbox');
+            mtCheckbox = this.down('#messageTypeCheckbox');
             if (tnCheckbox.getValue() && mtCheckbox.getValue()) {
                 errors.push('Searching both Message Types and Topic Names will be slow.');
             }

@@ -30,6 +30,8 @@
 
 package com.github.swrirobotics.support.web;
 
+import java.util.Objects;
+
 public class ExtJsFilter {
     protected String operator;
     protected String value;
@@ -57,5 +59,24 @@ public class ExtJsFilter {
 
     public void setProperty(String property) {
         this.property = property;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ExtJsFilter that = (ExtJsFilter) o;
+        return operator.equals(that.operator) &&
+            value.equals(that.value) &&
+            property.equals(that.property);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(operator, value, property);
     }
 }

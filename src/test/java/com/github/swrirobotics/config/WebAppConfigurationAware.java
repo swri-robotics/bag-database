@@ -31,7 +31,10 @@
 package com.github.swrirobotics.config;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.runner.RunWith;
+import org.springframework.restdocs.JUnitRestDocumentation;
+import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -56,6 +59,9 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
         SecurityConfig.class
 })
 public abstract class WebAppConfigurationAware {
+    @Rule
+    public JUnitRestDocumentation restDocumentation =
+            new JUnitRestDocumentation("target/generated-snippets");
 
     @Inject
     protected WebApplicationContext wac;
@@ -63,7 +69,9 @@ public abstract class WebAppConfigurationAware {
 
     @Before
     public void before() {
-        this.mockMvc = webAppContextSetup(this.wac).build();
+        this.mockMvc = webAppContextSetup(this.wac)
+                .apply(MockMvcRestDocumentation.documentationConfiguration(this.restDocumentation))
+                .build();
     }
 
 }

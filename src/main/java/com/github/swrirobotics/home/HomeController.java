@@ -45,11 +45,11 @@ public class HomeController {
     private ConfigService myConfigService;
     @Autowired
     private Environment myEnvironment;
-	
-	@RequestMapping(value = "/", method = RequestMethod.GET)
-	public String index(Model model) {
+
+    @RequestMapping(value = "/", method = RequestMethod.GET)
+    public String index(Model model) {
         Configuration config = myConfigService.getConfiguration();
         model.addAttribute("config", config);
         return "home/home";
-	}
+    }
 }

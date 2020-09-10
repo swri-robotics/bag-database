@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2020, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,10 +37,12 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
     layout: 'fit',
     requires: [ 'BagDatabase.views.BagGrid',
                 'BagDatabase.views.BagTreePanel',
+                'BagDatabase.views.BagUploadWindow',
                 'BagDatabase.views.NavigationButton',
                 'BagDatabase.views.MapWindow',
                 'BagDatabase.views.SearchPanel',
-                'BagDatabase.views.BagTreeFilterPanel' ],
+                'BagDatabase.views.BagTreeFilterPanel',
+                'BagDatabase.views.ScriptGrid'],
     items: [{
         xtype: 'tabpanel',
         region: 'center',
@@ -88,6 +90,28 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 stateId: 'bagTreePanel',
                 region: 'center'
             }]
+        }, {
+            xtype: 'panel',
+            layout: {
+                type: 'vbox',
+                align: 'stretch'
+            },
+            title: 'Scripts',
+            iconCls: 'script-icon',
+            stateId: 'scriptTab',
+            items: [{
+                xtype: 'scriptGrid',
+                itemId: 'scriptGrid',
+                stateful: true,
+                stateId: 'scriptGrid',
+                flex: 1
+            }, { xtype: 'splitter' }, {
+                xtype: 'scriptResultGrid',
+                itemId: 'scriptResultGrid',
+                stateful: true,
+                stateId: 'scriptResultGrid',
+                flex: 2
+            }]
         }],
         tabBar: {
             items: [{ xtype: 'tbfill' }, {
@@ -95,6 +119,15 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 iconCls: 'chart-organisation-icon',
                 isAdmin: isAdmin,
                 margin: 5
+            }, {
+                xtype: 'button',
+                text: 'Upload Bags',
+                iconCls: 'bag-add-icon',
+                margin: 5,
+                handler: function() {
+                    var win = Ext.create('BagDatabase.views.BagUploadWindow');
+                    win.show();
+                }
             }]
         },
         fbar: [{
@@ -135,10 +168,48 @@ Ext.define('BagDatabase.views.BagDatabaseViewport',
                 bagGrid.down('#statusText').connectWebSocket(bagGrid.down('#errorButton'));
             },
             tabchange: function() {
-                var tabPanel = Ext.getCmp('tabPanel');
-                var index = tabPanel.items.indexOf(tabPanel.getActiveTab());
+                var tabPanel, index;
+                tabPanel = Ext.getCmp('tabPanel');
+                index = tabPanel.items.indexOf(tabPanel.getActiveTab());
                 Ext.state.Manager.set('active_tab', index);
             }
         }
-    }]
+    }],
+    subscribeToTopic: function(topic, callback) {
+        // If we're already connected, we can subscribe now.  Otherwise, pushing them into this list
+        // will make our callback subscribe to them as soon as we connect.
+        this.subscriptions.push([topic, callback]);
+        if (this.isStompConnected) {
+            this.stompClient.subscribe(topic, callback);
+        }
+    },
+    initComponent: function() {
+        var me, isStompConnected;
+        me = this;
+        me.isStompConnected = false;
+        me.subscriptions = [];
+        me.stompClient = Stomp.over(function() {
+            return new SockJS(window.location.pathname + 'register');
+        });
+
+        // For the sake of convenience, the viewport creates a STOMP client.  Any other widgets that
+        // want to use the client for communication can use this client to subscribe.
+        me.stompClient.connect({},
+            function(frame) {
+                me.isStompConnected = true;
+                me.subscriptions.forEach(function(subscription) {
+                    me.stompClient.subscribe(subscription[0], subscription[1]);
+                });
+            },
+            function() {
+                console.log('Disconnected; reconnecting in 2s.');
+                Ext.Function.defer(me.connectWebSocket, 2000, me);
+            });
+        setInterval(function() {
+            if (me.stompClient.connected) {
+                me.stompClient.send('/topic/heartbeat', {priority: 9}, 'heartbeat');
+            }
+        }, 20000);
+        this.callParent(arguments);
+    }
 });
