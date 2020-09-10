@@ -47,8 +47,6 @@ public class ScriptCriteria implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long scriptId;
     @Column(length = 1024)
     private String directory;
     @Column(length = 1024)
@@ -56,7 +54,6 @@ public class ScriptCriteria implements Serializable {
     private String messageTypes;
     private String topicNames;
 
-    @MapsId("scriptId")
     @JoinColumn(name = "scriptId")
     @ManyToOne(optional = false)
     @JsonIgnore
@@ -68,14 +65,6 @@ public class ScriptCriteria implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getScriptId() {
-        return scriptId;
-    }
-
-    public void setScriptId(Long scriptId) {
-        this.scriptId = scriptId;
     }
 
     public String getDirectory() {
@@ -116,6 +105,5 @@ public class ScriptCriteria implements Serializable {
 
     public void setScript(Script script) {
         this.script = script;
-        this.scriptId = script.getId();
     }
 }

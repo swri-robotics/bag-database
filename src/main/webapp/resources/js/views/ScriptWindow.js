@@ -84,15 +84,21 @@ Ext.define('BagDatabase.views.ScriptWindow', {
             name: 'description',
             tooltipHtml: 'Longer, friendly description for the script'
         }, {
+            fieldLabel: 'Docker Image',
+            name: 'dockerImage',
+            allowBlank: false,
+            tooltipHtml: 'Docker image that will be used as a container for the script'
+        }, {
             fieldLabel: 'Memory Limit (Bytes)',
             name: 'memoryLimitBytes',
             xtype: 'numberfield',
             tooltipHtml: 'Maximum number of bytes of RAM that the script\'s container may use'
         }, {
-            fieldLabel: 'Docker Image',
-            name: 'dockerImage',
-            allowBlank: false,
-            tooltipHtml: 'Docker image that will be used as a container for the script'
+            fieldLabel: 'Timeout (s)',
+            name: 'timeoutSecs',
+            xtype: 'numberfield',
+            minValue: 1,
+            tooltipHtml: 'The script\'s container will be forcibly stopped if it runs longer than this value'
         }, {
             fieldLabel: 'Run Automatically',
             name: 'runAutomatically',
@@ -105,6 +111,8 @@ Ext.define('BagDatabase.views.ScriptWindow', {
             fieldLabel: 'Run Criteria',
             layout: 'border',
             flex: 0.5,
+            tooltipHtml: 'If any criteria are added, at least one set must mach in order for the script to ' +
+                         'automatically run.<br>If none are set, the script will always run.',
             items: [{
                 xtype: 'grid',
                 itemId: 'criteriaGrid',
@@ -114,21 +122,69 @@ Ext.define('BagDatabase.views.ScriptWindow', {
                     model: 'BagDatabase.models.ScriptCriteria'
                 },
                 columns: [{
-                    text: 'Filename', dataIndex: 'filename', flex: 1
-                }, {
                     text: 'Directory', dataIndex: 'directory', flex: 1
+                }, {
+                    text: 'Filename', dataIndex: 'filename', flex: 1
                 }, {
                     text: 'Message Types', dataIndex: 'messageTypes', flex: 1
                 }, {
                     text: 'Topic Names', dataIndex: 'topicNames', flex: 1
+                }],
+                saveCriteria: function(criteria) {
+                    if (criteria.id) {
+                        this.store.getById(criteria.id).set(criteria);
+                    }
+                    else {
+                        this.store.add(criteria);
+                    }
+                    this.store.commitChanges();
+                }
+            }, {
+                xtype: 'toolbar',
+                region: 'east',
+                vertical: true,
+                items: [{
+                    xtype: 'button',
+                    text: 'Add',
+                    iconCls: 'add-icon',
+                    handler: function(button) {
+                        var grid, win;
+                        grid = button.up('window').down('#criteriaGrid');
+                        win = Ext.create('BagDatabase.views.ScriptCriteriaWindow', {
+                            scriptGrid: grid
+                        });
+                        win.show();
+                    }
+                }, '', {
+                    xtype: 'button',
+                    text: 'Edit',
+                    iconCls: 'edit-icon',
+                    handler: function(button) {
+                        var grid, selection, win;
+                        grid = button.up('window').down('#criteriaGrid');
+                        selection = grid.getSelection();
+                        if (selection.length > 0) {
+                            win = Ext.create('BagDatabase.views.ScriptCriteriaWindow', {
+                                scriptGrid: grid,
+                                criteria: selection[0]
+                            });
+                            win.show();
+                        }
+                    }
+                }, '', {
+                    xtype: 'button',
+                    text: 'Delete',
+                    iconCls: 'delete-icon',
+                    handler: function(button) {
+                        var grid, selection;
+                        grid = button.up('window').down('#criteriaGrid');
+                        selection = grid.getSelection();
+                        if (selection.length > 0)  {
+                            grid.store.remove(selection[0]);
+                        }
+                    }
                 }]
             }]
-        }, {
-            fieldLabel: 'Timeout (s)',
-            name: 'timeoutSecs',
-            xtype: 'numberfield',
-            minValue: 1,
-            tooltipHtml: 'The script\'s container will be forcibly stopped if it runs longer than this value'
         }, {
             fieldLabel: 'Script',
             name: 'script',
@@ -143,10 +199,11 @@ Ext.define('BagDatabase.views.ScriptWindow', {
                 var tips, fields;
                 tips = [];
                 fields = this.query('field');
+                fields.push(this.down('fieldcontainer'));
                 fields.forEach(function(field) {
                     if (field.config.tooltipHtml) {
                         tips.push(new Ext.tip.ToolTip({
-                            target: field.el,
+                            target: field.labelEl,
                             width: 200,
                             html: field.config.tooltipHtml,
                             trackMouse: true

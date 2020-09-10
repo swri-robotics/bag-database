@@ -178,7 +178,7 @@ public class ScriptService extends StatusProvider {
         script.setCreatedOn(new Timestamp(System.currentTimeMillis()));
         script.setUpdatedOn(script.getCreatedOn());
         scriptRepository.save(script);
-        criteriaRepository.saveAll(script.getCriteria());
+        //criteriaRepository.saveAll(script.getCriteria());
         return script.getId();
     }
 

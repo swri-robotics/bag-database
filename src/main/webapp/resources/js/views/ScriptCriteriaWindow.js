@@ -33,8 +33,7 @@ Ext.define('BagDatabase.views.ScriptCriteriaWindow', {
     alias: 'widget.scriptCriteriaWindow',
     layout: 'fit',
     title: 'Criteria Editor',
-    width: 500,
-    height: 400,
+    width: 400,
     constrainHeader: true,
     items: [{
         xtype: 'form',
@@ -79,13 +78,13 @@ Ext.define('BagDatabase.views.ScriptCriteriaWindow', {
         }],
         listeners: {
             afterRender: function() {
-                var tips, fields;
+                var tips, fields, win;
                 tips = [];
                 fields = this.query('field');
                 fields.forEach(function(field) {
                     if (field.config.tooltipHtml) {
                         tips.push(new Ext.tip.ToolTip({
-                            target: field.el,
+                            target: field.labelEl,
                             width: 200,
                             html: field.config.tooltipHtml,
                             trackMouse: true
@@ -93,11 +92,25 @@ Ext.define('BagDatabase.views.ScriptCriteriaWindow', {
                     }
                 });
                 this.tips = tips;
+
+                win = this.up('window');
+                if (win.criteria) {
+                    this.loadRecord(win.criteria);
+                }
             },
             destroy: function() {
                 this.tips = Ext.destroy(this.tips);
             }
-        }
+        },
+        buttons: [{
+            text: 'Save',
+            handler: function(button) {
+                var criteria, win;
+                win = button.up('window');
+                criteria = win.down('#scriptCriteriaForm').getForm().getValues();
+                win.scriptGrid.saveCriteria(criteria);
+                win.close();
+            }
+        }]
     }]
-
 });

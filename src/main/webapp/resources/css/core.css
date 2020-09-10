@@ -28,6 +28,10 @@ div.ol-viewport {
     position: absolute !important;
 }
 
+.add-icon {
+    background-image: url('../images/add.png');
+}
+
 .bag-add-icon {
     background-image: url('../images/basket_add.png');
 }
@@ -50,6 +54,14 @@ div.ol-viewport {
 
 .database-icon {
     background-image: url('../images/database.png');
+}
+
+.delete-icon {
+    background-image: url('../images/delete.png');
+}
+
+.edit-icon {
+    background-image: url('../images/pencil.png');
 }
 
 .film-icon {

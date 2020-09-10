@@ -63,7 +63,7 @@ public class Script implements Serializable {
 
     @OneToMany(mappedBy = "script",
             orphanRemoval = true,
-            cascade={CascadeType.REFRESH, CascadeType.MERGE},
+            cascade={CascadeType.ALL},
             fetch = FetchType.EAGER)
     private Set<ScriptCriteria> criteria = new HashSet<>();
 
