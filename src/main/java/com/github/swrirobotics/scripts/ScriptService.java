@@ -39,6 +39,7 @@ import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.ScriptDTO;
 import com.github.swrirobotics.support.web.ScriptListDTO;
+import com.github.swrirobotics.support.web.ScriptResultDTO;
 import com.github.swrirobotics.support.web.ScriptResultList;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -163,7 +164,7 @@ public class ScriptService extends StatusProvider {
     @Transactional(readOnly = true)
     public ScriptResultList getScriptResults() {
         ScriptResultList list = new ScriptResultList();
-        list.setResults(resultRepository.findAll());
+        list.setResults(resultRepository.findAll().stream().map(ScriptResultDTO::new).collect(Collectors.toList()));
         list.setTotalCount(list.getResults().size());
         return list;
     }

@@ -31,10 +31,7 @@
 package com.github.swrirobotics.scripts;
 
 import com.github.swrirobotics.persistence.ScriptResult;
-import com.github.swrirobotics.support.web.ScriptDTO;
-import com.github.swrirobotics.support.web.ScriptListDTO;
-import com.github.swrirobotics.support.web.ScriptResultList;
-import com.github.swrirobotics.support.web.ScriptRunResult;
+import com.github.swrirobotics.support.web.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
@@ -140,8 +137,8 @@ public class ScriptController {
 
     @RequestMapping(value = "/get_result_by_uuid",
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ScriptResult getScriptResultByUuid(@RequestParam UUID runUuid) {
+    public ScriptResultDTO getScriptResultByUuid(@RequestParam UUID runUuid) {
         myLogger.info("getScriptResultByUuid: " + runUuid.toString());
-        return myScriptService.getScriptResultByUuid(runUuid);
+        return new ScriptResultDTO(myScriptService.getScriptResultByUuid(runUuid));
     }
 }

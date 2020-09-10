@@ -36,10 +36,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.swrirobotics.persistence.Script;
 import com.github.swrirobotics.persistence.ScriptResult;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
-import com.github.swrirobotics.support.web.ScriptCriteriaDTO;
-import com.github.swrirobotics.support.web.ScriptDTO;
-import com.github.swrirobotics.support.web.ScriptListDTO;
-import com.github.swrirobotics.support.web.ScriptResultList;
+import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Charsets;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -133,10 +130,11 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
     public FieldDescriptor[] getScriptResultFields() {
         return new FieldDescriptor[] {
             fieldWithPath("id").description("Database ID of the result"),
+            fieldWithPath("bags").description("The full paths to every bag that was processed during the run"),
             fieldWithPath("durationSecs").description("How long the script ran").optional(),
             fieldWithPath("errorMessage").description("If the script failed to run, the reason why").optional(),
             fieldWithPath("runUuid").description("The Run UUID of the result"),
-            fieldWithPath("scriptId").description("The database ID of the script that was run"),
+            fieldWithPath("script").description("The name of the script"),
             fieldWithPath("startTime").description("The date and time when the script was started"),
             fieldWithPath("stderr").description("The script's stderr output").optional(),
             fieldWithPath("stdout").description("The script's stdout output").optional(),
@@ -257,7 +255,7 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
     public void listScriptResults() throws Exception {
         ScriptResultList results = new ScriptResultList();
         results.setTotalCount(1);
-        results.getResults().add(makeResult());
+        results.getResults().add(new ScriptResultDTO(makeResult()));
 
         when(scriptService.getScriptResults()).thenReturn(results);
         mockMvc.perform(get("/scripts/list_results"))

@@ -30,35 +30,42 @@
 
 package com.github.swrirobotics.support.web;
 
+import com.github.swrirobotics.persistence.Bag;
+import com.github.swrirobotics.persistence.ScriptResult;
+import com.google.common.base.Joiner;
+
+import java.nio.file.Paths;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-public class ScriptResultList {
-    private List<ScriptResultDTO> results = new ArrayList<>();
-    private long totalCount = 0;
+public class ScriptResultDTO {
+    public String bags;
+    public double durationSecs;
+    public String errorMessage;
+    public Long id;
+    public UUID runUuid;
+    public String script;
+    public Timestamp startTime;
+    public String stderr;
+    public String stdout;
+    public Boolean success;
 
-    public ScriptResultList() {
-
-    }
-
-    public ScriptResultList(final List<ScriptResultDTO> results, long totalCount) {
-        this.results = results;
-        this.totalCount = totalCount;
-    }
-
-    public List<ScriptResultDTO> getResults() {
-        return results;
-    }
-
-    public void setResults(List<ScriptResultDTO> results) {
-        this.results = results;
-    }
-
-    public long getTotalCount() {
-        return totalCount;
-    }
-
-    public void setTotalCount(long totalCount) {
-        this.totalCount = totalCount;
+    public ScriptResultDTO(ScriptResult sr) {
+        List<String> bagList = new ArrayList<>();
+        for (Bag bag : sr.getBags()) {
+            bagList.add(Paths.get(bag.getPath(), bag.getFilename()).toString());
+        }
+        bags = Joiner.on(", ").join(bagList);
+        durationSecs = sr.getDurationSecs();
+        errorMessage = sr.getErrorMessage();
+        id = sr.getId();
+        runUuid = sr.getRunUuid();
+        script = sr.getScript() == null ? "" : sr.getScript().getName();
+        startTime = sr.getStartTime();
+        stderr = sr.getStderr();
+        stdout = sr.getStdout();
+        success = sr.getSuccess();
     }
 }

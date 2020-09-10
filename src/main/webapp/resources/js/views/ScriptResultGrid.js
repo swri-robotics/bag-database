@@ -37,14 +37,12 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
     columns: [{
         text: 'Run UUID', dataIndex: 'runUuid', flex: 2
     }, {
-        text: 'Script', dataIndex: 'scriptId', flex: 1, renderer: function(value) {
-            var store = Ext.getStore('scriptStore');
-            if (store) {
-                return store.getById(value).get('name');
-            }
-            else {
-                return value;
-            }
+        text: 'Script', dataIndex: 'script', flex: 1
+    }, {
+        text: 'Bags', dataIndex: 'bags', flex: 1, tooltipHtml: 'Testing', renderer: function(value, metadata) {
+            var newlineValue = value.replace(",", "<br>");
+            metadata.tdAttr = 'data-qtip="' + newlineValue + '"';
+            return value;
         }
     }, {
         text: 'Start Time', dataIndex: 'startTime', renderer: bagGridDateRenderer, flex: 1

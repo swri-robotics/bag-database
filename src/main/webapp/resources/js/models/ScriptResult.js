@@ -33,6 +33,8 @@ Ext.define('BagDatabase.models.ScriptResult', {
     requires: ['BagDatabase.models.Base'],
     idProperty: 'id',
     fields: [{
+        name: 'bags'
+    }, {
         name: 'id', type: 'int'
     }, {
         name: 'durationSecs', type: 'float'
@@ -41,7 +43,7 @@ Ext.define('BagDatabase.models.ScriptResult', {
     },  {
         name: 'runUuid', sortType: function(value) { return value ? value : ''; }
     }, {
-        name: 'scriptId', type: 'int'
+        name: 'script'
     }, {
         name: 'startTime', type: 'date', dateFormat: 'time'
     }, {
