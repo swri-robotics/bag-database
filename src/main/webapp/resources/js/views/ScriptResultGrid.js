@@ -40,7 +40,7 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
         text: 'Script', dataIndex: 'script', flex: 1
     }, {
         text: 'Bags', dataIndex: 'bags', flex: 1, tooltipHtml: 'Testing', renderer: function(value, metadata) {
-            var newlineValue = value.replace(",", "<br>");
+            var newlineValue = value.replaceAll(",", "<br>");
             metadata.tdAttr = 'data-qtip="' + newlineValue + '"';
             return value;
         }
