@@ -38,25 +38,45 @@ network.  For security purposes, by default this is not allowed.
 
 A longer description of a script to make it easier for you to keep track of them.
 
-### Memory Limit (Bytes)
-
-The maximum amount of memory the script's container may use.  If it is blank or zero, there
-is no limit.
-
 ### Docker Image
 
 The name of the Docker image that the script will run inside.  This image needs to contain
 all of your script's pre-requisites installed.  `ros:melodic` is a convenient one for analyzing
 ROS bags, but you could make your own image with additional programs and use it instead.
 
-### Run Automatically
+### Memory Limit (Bytes)
 
-If this is checked, this script will automatically run on every new bag file added to the database.
+The maximum amount of memory the script's container may use.  If it is blank or zero, there
+is no limit.
 
 ### Timeout (s)
 
 The maximum amount of time the script's container may run before it is killed.  If this is unset
 or zero, it may run forever.
+
+### Run Automatically
+
+If this is checked, this script will automatically run on every new bag file added to the database.
+
+Automatic scripts are run individually on every added bag file.  If you want to run a script on a batch of
+bags after adding several new ones at once, instead use the [REST API](../rest-api) after 
+finishing uploading your bags to run the desired script.
+
+### Run Criteria
+
+If Run Automatically is checked, criteria can be set to control which bags will be processed.
+Every row in this table is a set of criteria.  If any set of criteria matches,
+the script will run.  Within a set of criteria, all of its conditions must match;
+empty fields are ignored.
+
+#### Criteria Fields
+
+| Name | Description | Examples |
+| ---- | ----------- | -------- |
+| Directory | A [Java regular expression](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html) that the directory containing the bag must match | `^/bags/project/.*$` |
+| Filename | A [Java regular expression](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html) that the bag's filename must match | `^.*vehicle-.*\.bag$` |
+| Message Types | A comma-separated list of ROS message types, all of which must be in the bag file | `gps_common/GPSFix, sensor_msgs/Imu` |
+| Topic Names | A comma-separated list of ROS topics, all of which must be in the bag file | `/localization/imu, /camera/right` |
 
 ### Script
 

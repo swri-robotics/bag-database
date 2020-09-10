@@ -32,6 +32,7 @@ package com.github.swrirobotics.scripts;
 
 import com.amihaiemil.docker.Docker;
 import com.amihaiemil.docker.TcpDocker;
+import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.status.Status;
@@ -40,6 +41,8 @@ import com.github.swrirobotics.support.web.ScriptDTO;
 import com.github.swrirobotics.support.web.ScriptListDTO;
 import com.github.swrirobotics.support.web.ScriptResultList;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Sets;
 import org.apache.commons.compress.utils.Lists;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -61,6 +64,7 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -347,8 +351,82 @@ public class ScriptService extends StatusProvider {
         scriptRepository.deleteById(scriptId);
     }
 
+    /**
+     * Returns true if the automatic run criteria for a script successfully match against a bag.
+     *
+     * A bag is considered to match a script's criteria if either the script has no criteria or if, for any set
+     * of criteria on the script, all of that set's conditions (excluding any that are blank) match the bag.
+     * For each set of script criteria "sc", you can think of that boolean logic as looking like:
+     * (sc1.filename matches AND sc1.directory matches AND sc1.messagetypes matches AND sc1.topicnames matches) OR
+     * (sc2.filename matches AND sc2.directory matches AND sc2.messagetypes matches AND sc2.topicnames matches) OR ...
+     *
+     * The Filename and Directory fields are both regular expressions that are matched against the bag; the Message
+     * Types and Topic Names are comma-separated lists, and all of their values must be present in the bag in order
+     * for them to match.
+     * @param bagId The bag to check.
+     * @param scriptId The script to check.
+     * @return True if the bag matches the script's automatic run criteria.
+     * @throws NonexistentScriptException If the script doesn't exist.
+     * @throws NonexistentBagException If the bag doesn't exist.
+     */
+    @Transactional(readOnly = true)
+    public boolean bagMatchesCriteria(Long bagId, Long scriptId) throws NonexistentScriptException, NonexistentBagException {
+        Script script = scriptRepository.findById(scriptId).orElseThrow(() ->
+            new NonexistentScriptException("No script exists with ID " + scriptId));
+
+        if (script.getCriteria().isEmpty()) {
+            return true;
+        }
+
+        Bag bag = bagRepository.findById(bagId).orElseThrow(() ->
+            new NonexistentBagException("No bag exists with ID " + bagId));
+
+        Splitter commaSplitter = Splitter.on(',').trimResults().omitEmptyStrings();
+        Joiner commaJoiner = Joiner.on(',');
+
+        for (ScriptCriteria sc : script.getCriteria()) {
+            if (!sc.getFilename().isEmpty() && !bag.getFilename().matches(sc.getFilename())) {
+                myLogger.debug("Filename [" + bag.getFilename() + "]  did not match regex /" + sc.getFilename() + "/");
+                continue;
+            }
+            if (!sc.getDirectory().isEmpty() && !bag.getPath().matches(sc.getDirectory())) {
+                myLogger.debug("Directory [" + bag.getPath() + "] did not match regex /" + sc.getDirectory() + "/");
+                continue;
+            }
+            Set<String> bagMessages = bag.getMessageTypes().stream().map(MessageType::getName).collect(Collectors.toSet());
+            Set<String> scMessages = Sets.newHashSet(commaSplitter.splitToList(sc.getMessageTypes()));
+            if (!sc.getMessageTypes().isEmpty() && !bagMessages.containsAll(scMessages)) {
+                myLogger.debug("Bag's message types [" + commaJoiner.join(bagMessages) + "] did not contain all of: ["
+                    + commaJoiner.join(scMessages) + "]");
+                continue;
+            }
+            Set<String> bagTopics = bag.getTopics().stream().map(Topic::getTopicName).collect(Collectors.toSet());
+            Set<String> scTopics = Sets.newHashSet(commaSplitter.splitToList(sc.getTopicNames()));
+            if (!sc.getTopicNames().isEmpty() && !bagTopics.containsAll(scTopics)) {
+                myLogger.debug("Bag's topics [" + commaJoiner.join(bagTopics) + "] did not contain all of: ["
+                    + commaJoiner.join(scTopics) + "]");
+                continue;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Runs a script on a set of bag files.  This function does a few basic checks and then dispatches the
+     * script to a task executor that runs it in a separate thread.
+     * @param scriptId The ID of the script to run.
+     * @param bagIds A list of bags to run the script on.
+     * @return A UUID that can be used to look up the results of the run after it finished.
+     * @throws ScriptRunException If there was an error starting the task.
+     */
     @Transactional
     public UUID runScript(Long scriptId, List<Long> bagIds) throws ScriptRunException {
+        if (bagIds.isEmpty()) {
+            throw new ScriptRunException("You must specify bag files.");
+        }
+
         Docker docker = new TcpDocker(URI.create(configService.getConfiguration().getDockerHost()));
 
         Script script = scriptRepository.findById(scriptId).orElseThrow(
@@ -359,7 +437,7 @@ public class ScriptService extends StatusProvider {
             throw new ScriptRunException("No bag files found.");
         }
 
-        myLogger.info("Dispatching script to executor.");
+        myLogger.debug("Dispatching script to executor.");
         var runScript = myAC.getBean(RunnableScript.class);
         runScript.initialize(script, bags, docker);
         runScript.setFuture(taskExecutor.submit(runScript));

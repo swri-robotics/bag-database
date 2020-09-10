@@ -99,3 +99,11 @@ because your script recognized something in one of its images, or because an err
 in its output -- you could have an automatic script mark those bags with a tag to make it easier
 to find them.  To make it even fancier, if you allow your script to have network access, you could
 automatically e-mail specific people whenever an interesting bag is uploaded.
+
+### Setting Criteria to Restrict Scripts
+
+It's convenient to automatically run scripts every time you add a new bag file, but if
+your script takes a long time to run or if you don't need them to run for most bag files,
+you can set [Script Criteria](../scripts/#run-criteria) to control whether they're automatically run.
+Consider placing your bag files for a specific project in a project-specific directory
+or naming them with a particular pattern that makes it easy to filter them.

@@ -122,14 +122,18 @@ Ext.define('BagDatabase.views.ScriptWindow', {
                     model: 'BagDatabase.models.ScriptCriteria'
                 },
                 columns: [{
-                    text: 'Directory', dataIndex: 'directory', flex: 1
+                    text: 'Directory', dataIndex: 'directory', flex: 1, editor: { field: { xtype: 'textfield' } }
                 }, {
-                    text: 'Filename', dataIndex: 'filename', flex: 1
+                    text: 'Filename', dataIndex: 'filename', flex: 1, editor: { field: { xtype: 'textfield' } }
                 }, {
-                    text: 'Message Types', dataIndex: 'messageTypes', flex: 1
+                    text: 'Message Types', dataIndex: 'messageTypes', flex: 1, editor: { field: { xtype: 'textfield' } }
                 }, {
-                    text: 'Topic Names', dataIndex: 'topicNames', flex: 1
+                    text: 'Topic Names', dataIndex: 'topicNames', flex: 1, editor: { field: { xtype: 'textfield' } }
                 }],
+                plugins: {
+                    ptype: 'cellediting',
+                    clicksToEdit: 1
+                },
                 saveCriteria: function(criteria) {
                     if (criteria.id) {
                         this.store.getById(criteria.id).set(criteria);

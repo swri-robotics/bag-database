@@ -30,8 +30,6 @@
 
 package com.github.swrirobotics.bags;
 
-import com.github.swrirobotics.persistence.*;
-import com.github.swrirobotics.persistence.MessageType;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.MessageHandler;
@@ -41,7 +39,10 @@ import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldExceptio
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
 import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.persistence.MessageType;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.remote.GeocodingService;
+import com.github.swrirobotics.scripts.NonexistentScriptException;
 import com.github.swrirobotics.scripts.ScriptRunException;
 import com.github.swrirobotics.scripts.ScriptService;
 import com.github.swrirobotics.status.Status;
@@ -61,7 +62,6 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -1624,10 +1624,24 @@ public class BagService extends StatusProvider {
         myLogger.debug("Running " + scripts.size() + " scripts on the bag file.");
         for (Script script : scripts) {
             try {
-                myScriptService.runScript(script.getId(), Collections.singletonList(bag.getId()));
+                if (myScriptService.bagMatchesCriteria(bag.getId(), script.getId())) {
+                    myLogger.info("Running script " + script.getId()
+                        + " [" + script.getName() + "] on new bag " + bag.getId());
+                    myScriptService.runScript(script.getId(), Collections.singletonList(bag.getId()));
+                }
+                else {
+                    myLogger.debug("Bag " + bag.getId() + " did not match criteria for script "
+                        + script.getId() + " [" + script.getName() + "]");
+                }
             }
             catch (ScriptRunException e) {
                 myLogger.warn("Error automatically running script", e);
+            }
+            catch (NonexistentScriptException e) {
+                myLogger.error("Script did not exist; this should never happen", e);
+            }
+            catch (NonexistentBagException e) {
+                myLogger.error("Bag did not exist; was it successfully inserted in the DB?", e);
             }
         }
     }
