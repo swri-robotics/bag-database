@@ -44,6 +44,10 @@ The name of the Docker image that the script will run inside.  This image needs 
 all of your script's pre-requisites installed.  `ros:melodic` is a convenient one for analyzing
 ROS bags, but you could make your own image with additional programs and use it instead.
 
+Images in local registries can also be used; just refer to them by their full label name,
+for example, `myexample.com:5000/ros:melodic`.  Unfortunately, the Docker API library in use
+does not currently support registries that require authentication.
+
 ### Memory Limit (Bytes)
 
 The maximum amount of memory the script's container may use.  If it is blank or zero, there

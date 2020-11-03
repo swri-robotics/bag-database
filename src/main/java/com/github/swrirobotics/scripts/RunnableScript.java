@@ -32,11 +32,10 @@ package com.github.swrirobotics.scripts;
 
 import com.amihaiemil.docker.Container;
 import com.amihaiemil.docker.Docker;
-import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.status.Status;
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +181,9 @@ public class RunnableScript implements Runnable {
             try (FileWriter writer = new FileWriter(scriptFile)) {
                 writer.write(script.getScript());
             }
-            scriptFile.setExecutable(true);
+            if (!scriptFile.setExecutable(true)) {
+                myLogger.warn("Unable to mark script as executable.  Will try to run it anyway.");
+            }
 
             // Assemble bind configurations for our script and all of the bags it uses
             JsonArrayBuilder bindBuilder = Json.createArrayBuilder();
@@ -196,9 +197,35 @@ public class RunnableScript implements Runnable {
             }
 
             // Pull the Docker image to make sure it's ready
-            myLogger.info("Pulling Docker image: " + script.getDockerImage());
-            var splitImageName = Splitter.on(':').split(script.getDockerImage()).iterator();
-            docker.images().pull(splitImageName.next(), splitImageName.next());
+            // Docker images on the official Docker hub might look like this:
+            // ros
+            // ros:melodic
+            // osrf/ros:melodic-desktop
+            // Ones in custom registries might look like:
+            // localserver:5000/ros:melodic
+            // The Docker API call to pull an image expects everything before the last :
+            // as one argument and everything after the : as another, so we need to split
+            // it on the last colon.  Additionally, if there is no colon, assume the tag
+            // "latest".
+            var tagSepIndex = script.getDockerImage().lastIndexOf(":");
+            String label;
+            String tag;
+            if (tagSepIndex == -1) {
+                label = script.getDockerImage();
+                tag = "latest";
+            }
+            else {
+                label = script.getDockerImage().substring(0, tagSepIndex);
+                try {
+                    tag = script.getDockerImage().substring(tagSepIndex + 1);
+                }
+                catch (IndexOutOfBoundsException e) {
+                    myLogger.warn("Invalid Docker tag format.  Will try 'latest'.");
+                    tag = "latest";
+                }
+            }
+            myLogger.info("Pulling Docker image: [" + label + "] with tag: [" + tag + "]");
+            docker.images().pull(label, tag);
 
             JsonObjectBuilder hostConfig =  Json.createObjectBuilder().add("Binds", bindBuilder);
             if (script.getMemoryLimitBytes() != null && script.getMemoryLimitBytes() > 0) {

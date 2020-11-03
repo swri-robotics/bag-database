@@ -84,7 +84,9 @@ public class StatusService implements StatusListener {
         }
 
         public long getErrorCount() {
-            return myErrors.size();
+            synchronized (myErrors) {
+                return myErrors.size();
+            }
         }
     }
 
@@ -103,10 +105,12 @@ public class StatusService implements StatusListener {
                 " / " + status.getState().toString() + " / " + status.getMessage());
         myStates.put(source, status);
         if (status.getState() == Status.State.ERROR) {
-            if (myErrors.size() >= MAX_ERRORS) {
-                myErrors.remove();
+            synchronized (myErrors) {
+                if (myErrors.size() >= MAX_ERRORS) {
+                    myErrors.remove();
+                }
+                myErrors.add(status);
             }
-            myErrors.add(status);
         }
         if (status.getTime().after(myLatestStatus.getStatus().getTime())) {
             myLatestStatus.update(source, status);
@@ -119,7 +123,9 @@ public class StatusService implements StatusListener {
     }
 
     public Queue<Status> getErrors() {
-        return myErrors;
+        synchronized (myErrors) {
+            return Queues.newArrayDeque(myErrors);
+        }
     }
 
     public Map<String, Status> getStates() {
@@ -127,7 +133,9 @@ public class StatusService implements StatusListener {
     }
 
     public void clearErrors() {
-        myErrors.clear();
+        synchronized (myErrors) {
+            myErrors.clear();
+        }
         statusUpdate("UI", new Status(Status.State.IDLE, "Cleared errors."));
     }
 }
