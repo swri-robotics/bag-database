@@ -8,7 +8,7 @@ description: "Using docker-compose to start up a Bag Database without Authentica
 permalink: /installation/docker/without-authentication
 ---
 
-# docker-compose without Authentication
+# Without Authentication
 
 If you're on an internal network and you trust the users who can access the server,
 the simplest way to set up a Bag Database is so that authentication is not required.
