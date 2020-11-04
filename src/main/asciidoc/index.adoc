@@ -31,7 +31,7 @@ This GET request will:
 2. Parse the CSRF token from the output
 3. Place it in a shell variable named `CSRF`
 ----
-$ CSRF=`curl -s -L -X GET -c cookies.txt ${URL}/signin | sed -rn 's/^.*(value=|csrfToken = )"([-a-z0-9]*)".*$/\2/p'`
+$ CSRF=`curl -s -L -X GET -c cookies.txt ${URL} | sed -rn 's/^.*(value=|csrfToken = )"([-a-z0-9]*)".*$/\2/p'`
 ----
 
 === Logging In
