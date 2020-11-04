@@ -8,6 +8,8 @@ description: "Using docker-compose to start up a Bag Database with an LDAP serve
 permalink: /installation/docker/with-ldap-authentication
 ---
 
+# With LDAP Authentication
+
 This example is similar to [Without Authentication](without-authentication), but it also
 starts an OpenLDAP server and configures the Bag Database to use it.  In this case,
 users must have accounts in the LDAP server and will be prompted to log in when they first
