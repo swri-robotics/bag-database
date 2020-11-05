@@ -33,6 +33,7 @@ volumes and parameters that can be used to configure the Docker container.
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `ADMIN_PASSWORD` | The default password for administrative access.  If this is not set, one will be randomly generated and printed to the log file on initial startup. | |
+| `BAGDB_PATH` | The subdirectory to serve the Bag DB from.  For example, if this is `bagdb`, you might access it from `http://localhost:8080/bagdb/`.  Leaving this empty (the default) will serve it from the root path. | |
 | `BING_KEY` | The API key to use when connecting to Bing Maps.  You can get an API Key through the [Bing Maps Portal](https://www.bingmapsportal.com/). | |
 | `DB_DRIVER` | The class name of the JDBC driver to use. | org.hsqldb.jdbcDriver |
 | `DB_PASS` | The password to use when connecting to the database. | |

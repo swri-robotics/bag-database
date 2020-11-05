@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
+# Set default values for any environment variables that were not explicitly specified
 ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+BAGDB_PATH=${BAGDB_PATH:-}
 BING_KEY=${BING_KEY:-}
 DB_DRIVER=${DB_DRIVER:-org.hsqldb.jdbcDriver}
 DB_PASS=${DB_PASS:-}
@@ -26,9 +28,11 @@ USE_MAPQUEST=${USE_MAPQUEST:-true}
 USE_TILE_MAP=${USE_TILE_MAP:-true}
 VEHICLE_NAME_TOPICS='['`echo ${VEHICLE_NAME_TOPICS} | perl -pe 's#([/\w+]+)#"\1"#g'`']'
 
-if [ ! -f ${HOME}/.ros-bag-database/settings.yml ]
+# Don't overwrite an existing settings.yml file, but if we don't have one, write all of
+# the variables out to it
+if [ ! -f "${HOME}/.ros-bag-database/settings.yml" ]
 then
-    mkdir ${HOME}/.ros-bag-database
+    mkdir "${HOME}/.ros-bag-database"
     echo "!com.github.swrirobotics.support.web.Configuration
 adminPassword: ${ADMIN_PASSWORD}
 bingKey: ${BING_KEY}
@@ -54,7 +58,15 @@ tileWidthPx: ${TILE_WIDTH_PX}
 useBing: ${USE_BING}
 useMapQuest: ${USE_TILE_MAP}
 vehicleNameTopics: ${VEHICLE_NAME_TOPICS}
-" > ${HOME}/.ros-bag-database/settings.yml
+" > "${HOME}/.ros-bag-database/settings.yml"
 fi
+
+# If BAGDB_PATH was specified, rename the ROOT.war file; Tomcat will
+# automatically extract it to the new path
+if [ -f "/usr/local/tomcat/webapps/ROOT.war" ] && [ -n "${BAGDB_PATH}" ]
+then
+  mv "/usr/local/tomcat/webapps/ROOT.war" "/usr/local/tomcat/webapps/${BAGDB_PATH}.war"
+fi
+
 
 catalina.sh run

@@ -17,8 +17,13 @@ a reverse proxy.
 This Dockerfile is similar to the one in the
 [Without Authentication](without-authentication) example, but it
 uses [traefik](https://docs.traefik.io/) as a reverse proxy to serve the Bag Database
-at http://bagdb.docker.localhost/.  Consult [traefik's HTTP and SSL documentation](https://docs.traefik.io/https/overview/)
+at http://localhost/bagdb.  Consult [traefik's HTTP and SSL documentation](https://docs.traefik.io/https/overview/)
 for more information about setting up encryption.
+
+If you intend to have a reverse proxy that serves multiple servers behind different
+subdirectories, you should make sure to set the Bag DB's `BAGDB_PATH` environment variable
+to match the path you intend to serve it from; see the [Docker](docker) documentation.
+The below example serves it from the path `bagdb`.
 
 ```yaml
 version: '3.6'
@@ -50,15 +55,16 @@ services:
         depends_on:
             - postgres
         labels:
-            # This label tells traefik to direct all traffic for "bagdb.docker.localhost"
-            # to this container.  Change the hostname to whatever is appropriate.
-            - "traefik.http.routers.bagdb.rule=Host(`bagdb.docker.localhost`)"
+            # This label tells traefik to direct all traffic that begins with the
+            # path "/bagdb" to this container.
+            - "traefik.http.routers.bagdb.rule=PathPrefix(`/bagdb`)"
         volumes:
             - bags:/bags # Replace this with the path to your bag files
             - indexes:/root/.ros-bag-database/indexes
             - scripts:/scripts
         environment:
             ADMIN_PASSWORD: "letmein"
+            BAGDB_PATH: "bagdb"
             DB_DRIVER: org.postgresql.Driver
             DB_PASS: letmein
             DB_URL: "jdbc:postgresql://postgres/bag_database"
