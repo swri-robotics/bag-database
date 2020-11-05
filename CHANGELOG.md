@@ -1,5 +1,14 @@
 # Bag Database changelog
 
+3.1.0
+
+- Add a BAGDB\_PATH environment variable to change the path used to serve the application
+- Updated the reverse proxy example to use a custom path
+- Fix API examples that didn't work without LDAP authentication
+- Add documentation for how to use a private Docker registry
+- Fix a bug that prevented private Docker registries with ports from being parsed correctly
+- Improve Dockerfile to reduce rebuild times
+
 3.0.0
 
 - Upload & run post-processing scripts on bag files
