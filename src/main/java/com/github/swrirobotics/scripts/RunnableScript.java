@@ -191,9 +191,10 @@ public class RunnableScript implements Runnable {
             List<String> command = new ArrayList<>();
             command.add(SCRIPT_TMP_NAME);
             for (Bag bag : bags) {
-                bindBuilder.add(Joiner.on(':').join(bag.getPath() + "/" + bag.getFilename(),
-                    "/" + bag.getFilename(), ""));
-                command.add("/" + bag.getFilename());
+                String absolutePath = bag.getPath() + "/" + bag.getFilename();
+                bindBuilder.add(Joiner.on(':').join(absolutePath,
+                    "/" + absolutePath, ""));
+                command.add("/" + absolutePath);
             }
 
             // Pull the Docker image to make sure it's ready
