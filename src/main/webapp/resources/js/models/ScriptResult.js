@@ -47,6 +47,8 @@ Ext.define('BagDatabase.models.ScriptResult', {
     }, {
         name: 'startTime', type: 'date', dateFormat: 'time'
     }, {
+        name: 'exitCode', type: 'int'
+    }, {
         name: 'stderr', sortType: function(value) { return value ? value : ''; }
     }, {
         name: 'stdout', sortType: function(value) { return value ? value : ''; }

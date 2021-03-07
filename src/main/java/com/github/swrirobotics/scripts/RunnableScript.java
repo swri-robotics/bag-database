@@ -45,14 +45,10 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.StringWriter;
+import javax.json.*;
+import javax.json.stream.JsonParserFactory;
+import javax.json.stream.JsonParsingException;
+import java.io.*;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -258,18 +254,58 @@ public class RunnableScript implements Runnable {
             // Wait until the container stops, then collect its output
             container.waitOn("not-running");
 
+            try {
+                JsonObject status = container.inspect();
+                if (status !=  null) {
+                    int exitCode = status.getJsonObject("State").getInt("ExitCode");
+                    myLogger.debug("Exit code: " + exitCode);
+                    result.setExitCode(exitCode);
+                }
+            }
+            catch (ClassCastException e) {
+                myLogger.warn("Unable to get exit code from Docker container");
+            }
+
+
             stdout = container.logs().stdout().fetch();
             myLogger.debug("Output:\n" + stdout);
+
+            /*
+             * The original behavior here is that the script would be considered unsuccessful if its stderr output
+             * was not empty.  Sometimes scripts can be successful and print to stderr, though, so it would be better
+             * to use the script's exit code to determine success instead.
+             * For the sake of preserving backwards compatibility, this will check the output for a JSON object
+             * containing a boolean value named "useExitCodeForSuccess"; if that is false or doesn't exist, the old
+             * behavior will be preserved, but if it is true, the contents of stderr will be ignored and the script
+             * will be marked as successful if the exit code is 0.
+             */
+            boolean useExitCodeForSuccess = false;
+            try (StringReader strReader = new StringReader(stdout)) {
+                JsonReader reader = Json.createReader(strReader);
+                JsonObject obj = reader.readObject();
+                useExitCodeForSuccess = obj.getBoolean("useExitCodeForSuccess");
+            }
+            catch (JsonException | IllegalStateException | ClassCastException | NullPointerException e) {
+                // If we can't read that value, just continue
+            }
+
             String stderr = container.logs().stderr().fetch();
             if (!stderr.isEmpty()) {
                 result.setStderr(stderr);
                 myLogger.warn("Stderr:\n" + stderr);
             }
-            else {
+
+            if (useExitCodeForSuccess) {
+                if (result.getExitCode() == 0) {
+                    result.setSuccess(true);
+                }
+            }
+            else if (stderr.isEmpty()){
                 result.setSuccess(true);
             }
 
             result.setStdout(stdout);
+
         }
         catch (IOException e) {
             myLogger.error("IO Exception:", e);

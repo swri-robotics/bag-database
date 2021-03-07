@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-exit-code-for-script-result
+      author: preed
+      changes:
+        - addColumn:
+            tableName: 'script_results'
+            columns:
+              - column:
+                  name: exitcode
+                  type: INTEGER
