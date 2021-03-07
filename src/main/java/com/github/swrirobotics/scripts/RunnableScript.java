@@ -46,8 +46,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.json.*;
-import javax.json.stream.JsonParserFactory;
-import javax.json.stream.JsonParsingException;
 import java.io.*;
 import java.sql.Timestamp;
 import java.util.ArrayList;
