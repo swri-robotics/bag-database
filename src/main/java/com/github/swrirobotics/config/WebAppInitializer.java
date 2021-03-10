@@ -41,7 +41,7 @@ import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletRegistration;
 
 public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
-    public static Long maxUploadSizeBytes = 1024L * 1024L * 1024L * 4L; // 4 GB
+    public static Long maxUploadSizeBytes = 1024L * 1024L * 1024L * 50L; // 50 GB
 
     @Override
     protected String[] getServletMappings() {
