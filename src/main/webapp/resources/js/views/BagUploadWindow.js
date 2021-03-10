@@ -269,8 +269,8 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
             fd.append('file', item.get('file'));
             xhr.setRequestHeader("serverTimeDiff", 0);
             xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4) {
-                    if (xhr.status == 200) {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
                         //handle the answer, in order to detect any server side error
                         var response = Ext.decode(xhr.responseText);
                         if (response.success) {
@@ -280,8 +280,11 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
                             item.set('status', 'Error: ' + response.message);
                         }
                     }
-                    else if (xhr.status == 500) {
+                    else if (xhr.status === 500) {
                         item.set('status', 'Error');
+                    }
+                    else if (xhr.status === 0) {
+                        item.set('status', 'Max upload size (50GB) exceeded');
                     }
                     else {
                         item.set('status', 'Unknown');
