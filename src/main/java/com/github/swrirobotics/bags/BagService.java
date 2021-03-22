@@ -776,6 +776,9 @@ public class BagService extends StatusProvider {
             case "mono16":
                 imageType = BufferedImage.TYPE_USHORT_GRAY;
                 break;
+            case "bgra8":
+                imageType = BufferedImage.TYPE_INT_ARGB;
+                break;
             default:
                 String errorMsg = "Unsupported image encoding: " + encoding;
                 myLogger.warn(errorMsg);
