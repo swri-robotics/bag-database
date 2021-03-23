@@ -62,6 +62,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -801,6 +802,11 @@ public class BagService extends StatusProvider {
             byteData = convertBayer(width, height, byteData, encoding);
         }
 
+        // Special handling to swap the channels for bgra8 encoding
+        if (encoding.equals("bgra8")) {
+            byteData = bgra2rgba(width, height, byteData);
+        }
+
         // Java's ImageIO expects pixel data as an array of ints, so
         // cast them all...
         int[] intData = new int[byteData.length];
@@ -838,6 +844,18 @@ public class BagService extends StatusProvider {
         sourceMat.put(0, 0, input);
         Mat destMat = new Mat(height, width, type);
         Imgproc.cvtColor(sourceMat, destMat, pattern);
+        byte[] output = new byte[(int)destMat.total() * destMat.channels()];
+        destMat.get(0, 0, output);
+        return output;
+    }
+
+    private byte[] bgra2rgba(int width, int height, byte[] input) {
+        int ch[] = {0, 1, 2, 3, 2, 1, 0, 3};
+        Core.MatOfInt fromto = new Core.MatOfInt(ch);
+        Mat sourceMat = new Mat(height, width, CvType.CV_8UC4);
+        sourceMat.put(0, 0, input);
+        Mat destMat = new Mat(height, width, CvType.CV_8UC4);
+        Core.mixChannels(sourceMat, destMat, fromto);
         byte[] output = new byte[(int)destMat.total() * destMat.channels()];
         destMat.get(0, 0, output);
         return output;
