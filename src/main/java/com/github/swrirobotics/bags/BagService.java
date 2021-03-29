@@ -121,6 +121,9 @@ public class BagService extends StatusProvider {
 
     final private Object myBagDbLock = new Object();
 
+    final private int[] rgba2rgb = {0,0, 1,1, 2,2};
+    final private int[] bgra2rgb = {0,2, 1,1, 2,0};
+
     private final GeometryFactory myGeometryFactory =
             new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), 4326);
 
@@ -320,6 +323,7 @@ public class BagService extends StatusProvider {
         private final OutputStream myOutput;
         private Process myFfmpegProc = null;
         private String myPixelFormat = "";
+        private String myRosEncoding = "";
         private int byteNb = 3;
 
         private class OutputConsumer extends Thread {
@@ -420,11 +424,14 @@ public class BagService extends StatusProvider {
                         // the same topic after the first have the same parameters.
                         // For compressed images, these will be encoded in the image data
                         // and are set by the processCompressedImage method.
-                        String encoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
-                        myPixelFormat = convertRosEncodingToFfmpeg(encoding);
+                        myRosEncoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
+                        myPixelFormat = convertRosEncodingToFfmpeg(myRosEncoding);
 
                         myHeight = message.<UInt32Type>getField("height").getValue().intValue();
                         myWidth = message.<UInt32Type>getField("width").getValue().intValue();
+                    }
+                    else {
+                        myRosEncoding = message.<StringType>getField("format").getValue().trim().toLowerCase();
                     }
 
                     myIsInitialized = true;
@@ -434,6 +441,12 @@ public class BagService extends StatusProvider {
                                    " / " + myFrameRate + " Hz");
 
                     startFfmpeg();
+                }
+
+                if (isCompressed && myRosEncoding.contains("bgr8")) {
+                    // If the format for a CompressedImage contains bgr8, ImageIO will read in the JPEG,
+                    // but it thinks it's rgb8; we we'll swap the channels before sending it to ffmpeg
+                    byteData = mix2rgb(myWidth, myHeight, 3, byteData, bgra2rgb);
                 }
 
                 IOUtils.write(byteData, myFfmpegProc.getOutputStream());
@@ -817,17 +830,17 @@ public class BagService extends StatusProvider {
         // See https://docs.opencv.org/3.4/d2/de8/group__core__array.html#ga51d768c270a1cdd3497255017c4504be
         switch (encoding) {
             case "bgra8":
-                mixChannels = new int[]{0,2, 1,1, 2,0};
+                mixChannels = bgra2rgb;
                 break;
             case "rgba8":
-                mixChannels = new int[]{0,0, 1,1, 2,2};
+                mixChannels = rgba2rgb;
                 break;
             default:
                 mixChannels = null;
                 break;
         }
         if (mixChannels != null) {
-            byteData = mix2rgb(width, height, byteData, mixChannels);
+            byteData = mix2rgb(width, height, 4, byteData, mixChannels);
         }
 
         // Java's ImageIO expects pixel data as an array of ints, so
@@ -876,9 +889,9 @@ public class BagService extends StatusProvider {
         return output;
     }
 
-    private byte[] mix2rgb(int width, int height, byte[] input, int[] mixChannels) {
+    private byte[] mix2rgb(int width, int height, int inputChannels, byte[] input, int[] mixChannels) {
         MatOfInt fromto = new MatOfInt(mixChannels);
-        var sourceMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC4));
+        var sourceMatList = Lists.newArrayList(new Mat(height, width, inputChannels == 4 ? CvType.CV_8UC4 : CvType.CV_8UC3));
         sourceMatList.get(0).put(0, 0, input);
         var destMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC3));
         Core.mixChannels(sourceMatList, destMatList, fromto);
