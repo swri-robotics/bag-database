@@ -65,6 +65,7 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfInt;
 import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -564,6 +565,7 @@ public class BagService extends StatusProvider {
                     "-i", "pipe:0",
                     "-c:v", "libvpx",
                     "-f", "webm",
+                    "-auto-alt-ref", "0",
                     "-minrate", bitrate,
                     "-maxrate", bitrate,
                     "-b:v", bitrate,
@@ -586,6 +588,7 @@ public class BagService extends StatusProvider {
                         "-i", "pipe:0",
                         "-c:v", "libvpx",
                         "-f", "webm",
+                        "-auto-alt-ref", "0",
                         "-vf", "scale=400:-1",
                         "-threads", numThreads,
                         "-crf", "28",
@@ -627,6 +630,8 @@ public class BagService extends StatusProvider {
                 case "rgb8":
                     return "rgb24";
                 case "8uc4":
+                case "bgra8":
+                    return "bgra";
                 case "rgba8":
                     return "rgba";
                 case "8uc1":
@@ -744,7 +749,9 @@ public class BagService extends StatusProvider {
 
     private byte[] convertImageToJpeg(BufferedImage image) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        ImageIO.write(image, "jpeg", stream);
+        if (!ImageIO.write(image, "jpeg", stream)) {
+            myLogger.warn("ImageIO said it couldn't find a valid writer.");
+        }
 
         return stream.toByteArray();
     }
@@ -764,6 +771,7 @@ public class BagService extends StatusProvider {
             case "bayer_grbg8":
                 imageType = BufferedImage.TYPE_INT_RGB;
                 break;
+            case "bgra8":
             case "rgba8":
                 imageType = BufferedImage.TYPE_INT_ARGB;
                 break;
@@ -776,9 +784,6 @@ public class BagService extends StatusProvider {
                 break;
             case "mono16":
                 imageType = BufferedImage.TYPE_USHORT_GRAY;
-                break;
-            case "bgra8":
-                imageType = BufferedImage.TYPE_INT_ARGB;
                 break;
             default:
                 String errorMsg = "Unsupported image encoding: " + encoding;
@@ -796,15 +801,33 @@ public class BagService extends StatusProvider {
         }
 
         byte[] byteData = dataArray.getAsBytes();
+        return decodeImage(width, height, encoding, imageType, byteData);
+    }
+
+    public BufferedImage decodeImage(int width, int height, String encoding, int imageType, byte[] byteData) {
         if (encoding.startsWith("bayer")) {
             // If the image is in a Bayer filter format, use OpenCV
             // to convert it to RGB8.
             byteData = convertBayer(width, height, byteData, encoding);
         }
 
-        // Special handling to swap the channels for bgra8 encoding
-        if (encoding.equals("bgra8")) {
-            byteData = bgra2rgba(width, height, byteData);
+        // ImageIO won't output four-channel images to JPEG, so we have to downmix them to 3 channels, and
+        // we also need to swap the red and blue channels for bgra8
+        int[] mixChannels;
+        // See https://docs.opencv.org/3.4/d2/de8/group__core__array.html#ga51d768c270a1cdd3497255017c4504be
+        switch (encoding) {
+            case "bgra8":
+                mixChannels = new int[]{0,2, 1,1, 2,0};
+                break;
+            case "rgba8":
+                mixChannels = new int[]{0,0, 1,1, 2,2};
+                break;
+            default:
+                mixChannels = null;
+                break;
+        }
+        if (mixChannels != null) {
+            byteData = mix2rgb(width, height, byteData, mixChannels);
         }
 
         // Java's ImageIO expects pixel data as an array of ints, so
@@ -812,6 +835,10 @@ public class BagService extends StatusProvider {
         int[] intData = new int[byteData.length];
         for (int i = 0; i < byteData.length; i++) {
             intData[i] = byteData[i];
+        }
+
+        if (imageType == BufferedImage.TYPE_INT_ARGB) {
+            imageType = BufferedImage.TYPE_INT_RGB;
         }
 
         BufferedImage image = new BufferedImage(width, height, imageType);
@@ -849,13 +876,13 @@ public class BagService extends StatusProvider {
         return output;
     }
 
-    private byte[] bgra2rgba(int width, int height, byte[] input) {
-        int ch[] = {0, 1, 2, 3, 2, 1, 0, 3};
-        Core.MatOfInt fromto = new Core.MatOfInt(ch);
-        Mat sourceMat = new Mat(height, width, CvType.CV_8UC4);
-        sourceMat.put(0, 0, input);
-        Mat destMat = new Mat(height, width, CvType.CV_8UC4);
-        Core.mixChannels(sourceMat, destMat, fromto);
+    private byte[] mix2rgb(int width, int height, byte[] input, int[] mixChannels) {
+        MatOfInt fromto = new MatOfInt(mixChannels);
+        var sourceMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC4));
+        sourceMatList.get(0).put(0, 0, input);
+        var destMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC3));
+        Core.mixChannels(sourceMatList, destMatList, fromto);
+        var destMat = destMatList.get(0);
         byte[] output = new byte[(int)destMat.total() * destMat.channels()];
         destMat.get(0, 0, output);
         return output;
