@@ -44,6 +44,7 @@ public class ScriptResultDTO {
     public String bags;
     public double durationSecs;
     public String errorMessage;
+    public Integer exitCode;
     public Long id;
     public UUID runUuid;
     public String script;
@@ -60,6 +61,7 @@ public class ScriptResultDTO {
         bags = Joiner.on(", ").join(bagList);
         durationSecs = sr.getDurationSecs();
         errorMessage = sr.getErrorMessage();
+        exitCode = sr.getExitCode();
         id = sr.getId();
         runUuid = sr.getRunUuid();
         script = sr.getScript() == null ? "" : sr.getScript().getName();

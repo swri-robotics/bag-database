@@ -92,6 +92,7 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
         result.setRunUuid(uuid);
         result.setSuccess(true);
         result.setErrorMessage("");
+        result.setExitCode(0);
         result.setId(1L);
         result.setScriptId(1L);
         result.setStderr("");
@@ -133,6 +134,7 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
             fieldWithPath("bags").description("The full paths to every bag that was processed during the run"),
             fieldWithPath("durationSecs").description("How long the script ran").optional(),
             fieldWithPath("errorMessage").description("If the script failed to run, the reason why").optional(),
+            fieldWithPath("exitCode").description("Exit code returned by the script").optional(),
             fieldWithPath("runUuid").description("The Run UUID of the result"),
             fieldWithPath("script").description("The name of the script"),
             fieldWithPath("startTime").description("The date and time when the script was started"),

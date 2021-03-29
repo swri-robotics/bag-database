@@ -48,6 +48,7 @@ public class ScriptResult implements Serializable {
 
     private double durationSecs;
     private String errorMessage;
+    private Integer exitCode;
     @Column(nullable = false)
     private UUID runUuid;
     @Column(nullable = false)
@@ -96,6 +97,14 @@ public class ScriptResult implements Serializable {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public Integer getExitCode() {
+        return exitCode;
+    }
+
+    public void setExitCode(Integer exitCode) {
+        this.exitCode = exitCode;
     }
 
     public UUID getRunUuid() {

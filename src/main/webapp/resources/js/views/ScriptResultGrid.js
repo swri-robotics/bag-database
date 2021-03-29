@@ -49,6 +49,8 @@ Ext.define('BagDatabase.views.ScriptResultGrid', {
     }, {
         text: 'Duration (s)', dataIndex: 'durationSecs', flex: 1
     }, {
+        text: 'Exit Code', dataIndex: 'exitCode', flex: 1
+    },{
         text: 'Std Output', dataIndex: 'stdout', flex: 2
     }, {
         text: 'Std Error', dataIndex: 'stderr', flex: 2
