@@ -323,7 +323,6 @@ public class BagService extends StatusProvider {
         private final OutputStream myOutput;
         private Process myFfmpegProc = null;
         private String myPixelFormat = "";
-        private String myRosEncoding = "";
         private int byteNb = 3;
 
         private class OutputConsumer extends Thread {
@@ -418,20 +417,27 @@ public class BagService extends StatusProvider {
                 }
 
                 if (!myIsInitialized) {
+                    String rosEncoding;
                     if (!isCompressed) {
                         // For uncompressed images, including disparity, we need to pull the
                         // encoding, height, and width from the image.  Assume all images on
                         // the same topic after the first have the same parameters.
                         // For compressed images, these will be encoded in the image data
                         // and are set by the processCompressedImage method.
-                        myRosEncoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
-                        myPixelFormat = convertRosEncodingToFfmpeg(myRosEncoding);
+                        rosEncoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
+                        myPixelFormat = convertRosEncodingToFfmpeg(rosEncoding);
 
                         myHeight = message.<UInt32Type>getField("height").getValue().intValue();
                         myWidth = message.<UInt32Type>getField("width").getValue().intValue();
                     }
                     else {
-                        myRosEncoding = message.<StringType>getField("format").getValue().trim().toLowerCase();
+                        rosEncoding = message.<StringType>getField("format").getValue().trim().toLowerCase();
+                        if (rosEncoding.contains("bgr8") && myPixelFormat.equals("bgr24")) {
+                            // If the compressed image is in bgr, Java's ImageIO will flip the channels to rgb when
+                            // it reads it in, which means that telling ffmpeg it's still bgr will cause it to flip
+                            // them back.  Instead we'll just tell ffmpeg that it's rgb24 now...
+                            myPixelFormat = "rgb24";
+                        }
                     }
 
                     myIsInitialized = true;
@@ -441,12 +447,6 @@ public class BagService extends StatusProvider {
                                    " / " + myFrameRate + " Hz");
 
                     startFfmpeg();
-                }
-
-                if (isCompressed && myRosEncoding.contains("bgr8")) {
-                    // If the format for a CompressedImage contains bgr8, ImageIO will read in the JPEG,
-                    // but it thinks it's rgb8; we we'll swap the channels before sending it to ffmpeg
-                    byteData = mix2rgb(myWidth, myHeight, 3, byteData, bgra2rgb);
                 }
 
                 IOUtils.write(byteData, myFfmpegProc.getOutputStream());
@@ -840,7 +840,7 @@ public class BagService extends StatusProvider {
                 break;
         }
         if (mixChannels != null) {
-            byteData = mix2rgb(width, height, 4, byteData, mixChannels);
+            byteData = mix2rgb(width, height, byteData, mixChannels);
         }
 
         // Java's ImageIO expects pixel data as an array of ints, so
@@ -889,9 +889,9 @@ public class BagService extends StatusProvider {
         return output;
     }
 
-    private byte[] mix2rgb(int width, int height, int inputChannels, byte[] input, int[] mixChannels) {
+    private byte[] mix2rgb(int width, int height, byte[] input, int[] mixChannels) {
         MatOfInt fromto = new MatOfInt(mixChannels);
-        var sourceMatList = Lists.newArrayList(new Mat(height, width, inputChannels == 4 ? CvType.CV_8UC4 : CvType.CV_8UC3));
+        var sourceMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC4));
         sourceMatList.get(0).put(0, 0, input);
         var destMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC3));
         Core.mixChannels(sourceMatList, destMatList, fromto);
