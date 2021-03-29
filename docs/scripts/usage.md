@@ -9,7 +9,7 @@ permalink: /scripts/usage
 
 # Usage
 
-So, you've got an idea for an script.  How do they actually work?
+So, you've got an idea for a script.  How do they actually work?
 
 ## Running
 
@@ -41,7 +41,8 @@ you print a JSON object with some specific keys.  For example:
      "longitude" : 60
   },
   "setLocation" : "Here",
-  "setVehicle" : "Something"
+  "setVehicle" : "Something",
+  "useExitCodeForSuccess": true
 }
 ```
 
@@ -72,6 +73,15 @@ If this key is present, all processed bag files will have their location set to 
 ### `setVehicle`
 
 If this key is present, all processed bag files will have their vehicle name set to this value.
+
+### `useExitCodeForSuccess`
+
+If this key is present and the value is `true`, the script's exit code will be used to determine
+if it was successful or not; 0 means successful, any other value is failure.
+
+If this key is not present or if it is false, success will be determined based on whether the script
+writes anything to stderr.  This behavior is considered deprecated, and a future release will probably
+remove this flag and always use the exit code to determine success.
 
 ## Advanced Usage
 

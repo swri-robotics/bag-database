@@ -43,7 +43,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     output = {
-        'addTags': {}
+        'addTags': {},
+        'useExitCodeForSuccess': True
     }
     angular_x_velocities = []
     angular_y_velocities = []
