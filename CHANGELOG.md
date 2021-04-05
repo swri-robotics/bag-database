@@ -1,5 +1,12 @@
 # Bag Database changelog
 
+3.2.0
+
+- Fix running scripts with multiple bags with the same name
+- Increase maximum upload size from 4 GB to 50 GB
+- Use exit code of scripts to determine success
+- Support BGRA8 image encoding
+
 3.1.0
 
 - Add a BAGDB\_PATH environment variable to change the path used to serve the application
