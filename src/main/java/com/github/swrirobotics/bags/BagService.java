@@ -62,8 +62,10 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfInt;
 import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +120,9 @@ public class BagService extends StatusProvider {
     private EntityManager myEM;
 
     final private Object myBagDbLock = new Object();
+
+    final private int[] rgba2rgb = {0,0, 1,1, 2,2};
+    final private int[] bgra2rgb = {0,2, 1,1, 2,0};
 
     private final GeometryFactory myGeometryFactory =
             new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING), 4326);
@@ -412,17 +417,27 @@ public class BagService extends StatusProvider {
                 }
 
                 if (!myIsInitialized) {
+                    String rosEncoding;
                     if (!isCompressed) {
                         // For uncompressed images, including disparity, we need to pull the
                         // encoding, height, and width from the image.  Assume all images on
                         // the same topic after the first have the same parameters.
                         // For compressed images, these will be encoded in the image data
                         // and are set by the processCompressedImage method.
-                        String encoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
-                        myPixelFormat = convertRosEncodingToFfmpeg(encoding);
+                        rosEncoding = message.<StringType>getField("encoding").getValue().trim().toLowerCase();
+                        myPixelFormat = convertRosEncodingToFfmpeg(rosEncoding);
 
                         myHeight = message.<UInt32Type>getField("height").getValue().intValue();
                         myWidth = message.<UInt32Type>getField("width").getValue().intValue();
+                    }
+                    else {
+                        rosEncoding = message.<StringType>getField("format").getValue().trim().toLowerCase();
+                        if (rosEncoding.contains("bgr8") && myPixelFormat.equals("bgr24")) {
+                            // If the compressed image is in bgr, Java's ImageIO will flip the channels to rgb when
+                            // it reads it in, which means that telling ffmpeg it's still bgr will cause it to flip
+                            // them back.  Instead we'll just tell ffmpeg that it's rgb24 now...
+                            myPixelFormat = "rgb24";
+                        }
                     }
 
                     myIsInitialized = true;
@@ -563,6 +578,7 @@ public class BagService extends StatusProvider {
                     "-i", "pipe:0",
                     "-c:v", "libvpx",
                     "-f", "webm",
+                    "-auto-alt-ref", "0",
                     "-minrate", bitrate,
                     "-maxrate", bitrate,
                     "-b:v", bitrate,
@@ -585,6 +601,7 @@ public class BagService extends StatusProvider {
                         "-i", "pipe:0",
                         "-c:v", "libvpx",
                         "-f", "webm",
+                        "-auto-alt-ref", "0",
                         "-vf", "scale=400:-1",
                         "-threads", numThreads,
                         "-crf", "28",
@@ -626,6 +643,8 @@ public class BagService extends StatusProvider {
                 case "rgb8":
                     return "rgb24";
                 case "8uc4":
+                case "bgra8":
+                    return "bgra";
                 case "rgba8":
                     return "rgba";
                 case "8uc1":
@@ -743,7 +762,9 @@ public class BagService extends StatusProvider {
 
     private byte[] convertImageToJpeg(BufferedImage image) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        ImageIO.write(image, "jpeg", stream);
+        if (!ImageIO.write(image, "jpeg", stream)) {
+            myLogger.warn("ImageIO said it couldn't find a valid writer.");
+        }
 
         return stream.toByteArray();
     }
@@ -763,6 +784,7 @@ public class BagService extends StatusProvider {
             case "bayer_grbg8":
                 imageType = BufferedImage.TYPE_INT_RGB;
                 break;
+            case "bgra8":
             case "rgba8":
                 imageType = BufferedImage.TYPE_INT_ARGB;
                 break;
@@ -792,10 +814,33 @@ public class BagService extends StatusProvider {
         }
 
         byte[] byteData = dataArray.getAsBytes();
+        return decodeImage(width, height, encoding, imageType, byteData);
+    }
+
+    public BufferedImage decodeImage(int width, int height, String encoding, int imageType, byte[] byteData) {
         if (encoding.startsWith("bayer")) {
             // If the image is in a Bayer filter format, use OpenCV
             // to convert it to RGB8.
             byteData = convertBayer(width, height, byteData, encoding);
+        }
+
+        // ImageIO won't output four-channel images to JPEG, so we have to downmix them to 3 channels, and
+        // we also need to swap the red and blue channels for bgra8
+        int[] mixChannels;
+        // See https://docs.opencv.org/3.4/d2/de8/group__core__array.html#ga51d768c270a1cdd3497255017c4504be
+        switch (encoding) {
+            case "bgra8":
+                mixChannels = bgra2rgb;
+                break;
+            case "rgba8":
+                mixChannels = rgba2rgb;
+                break;
+            default:
+                mixChannels = null;
+                break;
+        }
+        if (mixChannels != null) {
+            byteData = mix2rgb(width, height, byteData, mixChannels);
         }
 
         // Java's ImageIO expects pixel data as an array of ints, so
@@ -803,6 +848,10 @@ public class BagService extends StatusProvider {
         int[] intData = new int[byteData.length];
         for (int i = 0; i < byteData.length; i++) {
             intData[i] = byteData[i];
+        }
+
+        if (imageType == BufferedImage.TYPE_INT_ARGB) {
+            imageType = BufferedImage.TYPE_INT_RGB;
         }
 
         BufferedImage image = new BufferedImage(width, height, imageType);
@@ -835,6 +884,18 @@ public class BagService extends StatusProvider {
         sourceMat.put(0, 0, input);
         Mat destMat = new Mat(height, width, type);
         Imgproc.cvtColor(sourceMat, destMat, pattern);
+        byte[] output = new byte[(int)destMat.total() * destMat.channels()];
+        destMat.get(0, 0, output);
+        return output;
+    }
+
+    private byte[] mix2rgb(int width, int height, byte[] input, int[] mixChannels) {
+        MatOfInt fromto = new MatOfInt(mixChannels);
+        var sourceMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC4));
+        sourceMatList.get(0).put(0, 0, input);
+        var destMatList = Lists.newArrayList(new Mat(height, width, CvType.CV_8UC3));
+        Core.mixChannels(sourceMatList, destMatList, fromto);
+        var destMat = destMatList.get(0);
         byte[] output = new byte[(int)destMat.total() * destMat.channels()];
         destMat.get(0, 0, output);
         return output;
