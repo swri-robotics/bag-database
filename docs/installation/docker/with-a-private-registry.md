@@ -89,7 +89,7 @@ volumes:
         driver_opts:
             type: 'none'
             o: 'bind'
-            device: '/var/local/bags'  # Replace this with the bath to your bags
+            device: '/var/local/bags'  # Replace this with the path to your bags
     docker_cache:
     postgres:
     ldap:
