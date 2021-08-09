@@ -32,15 +32,17 @@ package com.github.swrirobotics.bags.filesystem;
 
 
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
+import com.github.swrirobotics.bags.storage.*;
+import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageConfigImpl;
+import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageImpl;
 import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
@@ -60,27 +62,21 @@ import javax.annotation.PreDestroy;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @Profile("default")
 // This class doesn't directly access it, but we need to depend on the Liquibase
 // bean to ensure the database is configured before our @PostContruct runs.
 @DependsOn("liquibase")
-public class BagScanner extends StatusProvider implements RecursiveWatcher.WatchListener {
+public class BagScanner extends StatusProvider implements BagStorageChangeListener {
     @Autowired
     private ConfigService myConfigService;
     @Autowired
@@ -101,15 +97,9 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
 
     private final ExecutorService myExecutor = Executors.newSingleThreadExecutor();
 
-    private RecursiveWatcher myWatcher = null;
-
     private final Logger myLogger = LoggerFactory.getLogger(BagScanner.class);
 
-    private final DirectoryStream.Filter<Path> myDirFilter = path -> path.toFile().isDirectory();
-
-    public String getBagDirectory() {
-        return myConfigService.getConfiguration().getBagPath();
-    }
+    private final Map<String, BagStorage> myBagStorages = Maps.newHashMap();
 
     @PostConstruct
     public void initialize() {
@@ -132,16 +122,27 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         // Updates the vehicle names from the bag files
         //updateAllVehicleNames();
 
-        String bagDir = getBagDirectory();
-        if (bagDir != null && !bagDir.isEmpty()) {
-            Path path = FileSystems.getDefault().getPath(bagDir);
-            myWatcher = RecursiveWatcher.createRecursiveWatcher(
-                    path, new ArrayList<>(), 3000, this);
+        List<BagStorageConfiguration> storageConfigs = myConfigService.getConfiguration().getStorageConfigurations();
+
+        if (storageConfigs.isEmpty()) {
+            myLogger.info("No storage configs explicitly defined; creating default filesystem storage.");
+            FilesystemBagStorageConfigImpl fsConfig = new FilesystemBagStorageConfigImpl();
+            fsConfig.basePath = myConfigService.getConfiguration().getBagPath();
+            fsConfig.name = "Default Filesystem";
+            storageConfigs.add(fsConfig);
+        }
+
+        for (BagStorageConfiguration config : storageConfigs) {
             try {
-                myWatcher.start();
+                if (config instanceof FilesystemBagStorageConfigImpl) {
+                    FilesystemBagStorageImpl filesystemStorage = new FilesystemBagStorageImpl();
+                    filesystemStorage.loadConfig(config);
+                    myBagStorages.put(filesystemStorage.getStorageId(), filesystemStorage);
+                    filesystemStorage.start();
+                }
             }
-            catch (Exception e) {
-                myLogger.error("Unable to monitor bag directory for changes.", e);
+            catch (BagStorageConfigException e) {
+                myLogger.error("Error configuring FilesystemBagStorage", e);
             }
         }
 
@@ -153,9 +154,11 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
      * then reinitializes everything.
      */
     public void reset() {
-        if (myWatcher != null) {
-            myWatcher.stop();
+        for (BagStorage storage : myBagStorages.values()) {
+            storage.stop();
         }
+        myBagStorages.clear();
+
         initialize();
     }
 
@@ -364,41 +367,9 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         myExecutor.execute(new FullScanner(forceUpdate, bagDir));
     }
 
-    private boolean presentSpecialCharacters(Path dir){
-        String dirName = dir.toString();
-        Pattern p = Pattern.compile("@.*");
-        Matcher m = p.matcher(dirName);
-        return m.find();
-    }
-
-    private Set<File> getBagFiles(Path dir) {
-        Set<File> bagFiles = Sets.newHashSet();
-        if (!presentSpecialCharacters(dir.getFileName())) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.bag")) {
-                for (Path bagFile : stream) {
-                    myLogger.trace("  Adding: " + bagFile.toString());
-                    bagFiles.add(bagFile.toAbsolutePath().toFile());
-                }
-            } catch (IOException e) {
-                myLogger.error("Error parsing directory:", e);
-                reportStatus(Status.State.ERROR, "Unable to read directory: " + dir.toString());
-            }
-
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, myDirFilter)) {
-                for (Path subdir : stream) {
-                    myLogger.trace("  Checking subdir: " + subdir.toString());
-                    bagFiles.addAll(getBagFiles(subdir));
-                }
-            } catch (IOException e) {
-                myLogger.error("Error parsing subdirectory:", e);
-            }
-        }
-        return bagFiles;
-    }
-
     @Override
-    public void watchEventsOccurred() {
-        myLogger.info("Filesystem change detected.");
+    public void bagStorageChanged(BagStorageChangeEvent event) {
+        myLogger.info("Bag storage change detected.");
         scanDirectory(false);
     }
 

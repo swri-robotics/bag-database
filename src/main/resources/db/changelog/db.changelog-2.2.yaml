@@ -1,0 +1,20 @@
+# With the support for multiple different storage backends, it is necessary
+# to track which bag file was created by which backend.
+databaseChangeLog:
+  - changeSet:
+      id: add-bags-storage-id-column
+      author: preed
+      changes:
+        - addColumn:
+            tableName: 'bags'
+            columns:
+              - column:
+                  name: storageid
+                  type: VARCHAR(255)
+                  defaultValue: 'default'
+        - createIndex:
+            columns:
+              - column:
+                  name: storageid
+            indexName: bags_storageid_idx
+            tableName: bags

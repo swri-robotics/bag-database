@@ -38,6 +38,7 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
+import com.github.swrirobotics.bags.storage.GpsPosition;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.MessageType;
 import com.github.swrirobotics.persistence.*;
@@ -139,18 +140,6 @@ public class BagService extends StatusProvider {
         catch (Exception e) {
             myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadlable", e);
         }
-    }
-
-    private static class GpsPosition {
-        GpsPosition(Float64Type latitudeType, Float64Type longitudeType, TimeType timeType)
-                throws UninitializedFieldException {
-            latitude = latitudeType.getValue();
-            longitude = longitudeType.getValue();
-            stamp = timeType.getValue();
-        }
-        double latitude;
-        double longitude;
-        Timestamp stamp;
     }
 
     @Transactional(readOnly = true)
@@ -1467,7 +1456,7 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    private Map<String, MessageType> addMessageTypesToBag(final BagFile bagFile, final Bag bag) {
+    protected Map<String, MessageType> addMessageTypesToBag(final BagFile bagFile, final Bag bag) {
         myLogger.trace("Adding message types.");
         Multimap<String, String> messageTypes = bagFile.getMessageTypes();
         Map<String, MessageType> dbMessageTypes = new HashMap<>();
@@ -1480,7 +1469,7 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    private void addTopicsToBag(final BagFile bagFile,
+    protected void addTopicsToBag(final BagFile bagFile,
                                 final Bag bag,
                                 final Map<String, MessageType> dbMessageTypes) throws BagReaderException {
         myLogger.trace("Adding topics.");

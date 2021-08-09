@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/db.changelog-2.0.yaml
   - include:
       file: db/changelog/db.changelog-2.1.yaml
+  - include:
+      file: db/changelog/db.changelog-2.2.yaml
