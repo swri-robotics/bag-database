@@ -40,19 +40,91 @@ import java.util.List;
  * Represents a mechanism for storing and retrieving information about bag files.
  */
 public interface BagStorage {
+    /**
+     * Registers a listener that will be notified whenever bag files are changed.
+     * @param listener The listener that will be notified.
+     */
     void addChangeListener(BagStorageChangeListener listener);
+
+    /**
+     * Returns true if a bag exists at the given path within this storage system.
+     * @param path The path to test.
+     * @return True if the bag exists, false otherwise.
+     */
     boolean bagExists(String path);
+
+    /**
+     * Checks whether all of this backend's bags exist in storage and updates their
+     * "Missing" column appropriately.
+     */
     void updateBagExistence();
+
+    /**
+     * Scans for new bags and adds them to the database.
+     * @param forceUpdate True to re-examine existing bags and update their details in the database.
+     */
     void updateBags(boolean forceUpdate);
+
+    /**
+     * Returns a unique identifier that represents this storage backend.
+     * @return This backend's unique identifier.
+     */
     String getStorageId();
+
+    /**
+     * Returns a string indicating the type of this backend.  Should be common between all backends of this type.
+     * @return The backend's type.
+     */
     String getType();
+
+    /**
+     * Creates a wrapper for performing operations on a bag file.
+     * @param path The absolute path to the bag file in the storage backend.
+     * @return A wrapper representing that bag file or null if no bag file is present at that path.
+     */
     BagWrapper getBagWrapper(String path);
+
+    /**
+     * Returns a list of bag wrappers for every bag file in the storage backend.
+     * @return A list of bag wrappers for every bag file in the storage backend.
+     */
     List<BagWrapper> listBags();
+
+    /**
+     * Loads the backend's configuration.  This will be parsed from the bag database's YAML configuration.
+     * @param config The config object.
+     * @throws BagStorageConfigException If the config object is invalid.
+     */
     void loadConfig(BagStorageConfiguration config) throws BagStorageConfigException;
-    void loadConfig(String config) throws BagStorageConfigException;
+
+    /**
+     * Removes a previous-registered change listener.
+     * @param listener The listener to remove.
+     */
     void removeChangeListener(BagStorageChangeListener listener);
+
+    /**
+     * Provides the storage backend with a reference to the BagService so that it can use it to perform operations
+     * on the database.  This is not passed in through the constructor in order to avoid a circular dependency.
+     * @param bagService The BagService service.
+     */
     void setBagService(BagService bagService);
+
+    /**
+     * Starts any background threads or connections required by this storage backend.
+     */
     void start();
+
+    /**
+     * Stops any background threads or connections required by this storage backend.
+     */
     void stop();
+
+    /**
+     * Uploads a new file to the storage backend.
+     * @param file The file to upload.
+     * @param targetDirectory The path to store the file.
+     * @throws IOException If there is an error uploading the file.
+     */
     void uploadBag(MultipartFile file, String targetDirectory) throws IOException;
 }

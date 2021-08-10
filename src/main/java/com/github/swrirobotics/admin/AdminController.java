@@ -33,7 +33,7 @@ package com.github.swrirobotics.admin;
 import com.github.swrirobotics.account.Account;
 import com.github.swrirobotics.account.AccountRepository;
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.BagScanner;
+import com.github.swrirobotics.bags.storage.BagScanner;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.support.web.Configuration;
 import org.apache.commons.lang3.RandomStringUtils;

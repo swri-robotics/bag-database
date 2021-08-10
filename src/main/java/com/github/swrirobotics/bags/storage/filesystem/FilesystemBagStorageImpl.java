@@ -30,13 +30,11 @@
 
 package com.github.swrirobotics.bags.storage.filesystem;
 
-import com.esotericsoftware.yamlbeans.YamlException;
-import com.esotericsoftware.yamlbeans.YamlReader;
 import com.esotericsoftware.yamlbeans.YamlWriter;
 import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.DefaultRecursiveWatcher;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.BagRepository;
@@ -55,10 +53,11 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.*;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -237,31 +236,6 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
         myConfig = (FilesystemBagStorageConfigImpl) config;
     }
 
-
-    @Override
-    public void loadConfig(String config) throws BagStorageConfigException {
-        YamlReader reader = null;
-        try {
-            reader = new YamlReader(new StringReader(config));
-
-            myConfig = reader.read(FilesystemBagStorageConfigImpl.class);
-        }
-        catch (YamlException e) {
-            myLogger.error("Error loading FilesystemBagWrapperConfig:", e);
-            throw new BagStorageConfigException(e);
-        }
-        finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                }
-                catch (IOException e) {
-                    // No need to do anything
-                }
-            }
-        }
-    }
-
     @Override
     public void removeChangeListener(BagStorageChangeListener listener) {
         myChangeListeners.remove(listener);
@@ -294,7 +268,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     public void uploadBag(MultipartFile file, String targetDirectory) throws IOException {
         java.nio.file.Path inputPath = Paths.get(targetDirectory).normalize();
 
-        File path = new File(configService.getConfiguration().getBagPath() + "/" + inputPath.toString());
+        File path = new File(myConfig.basePath + "/" + inputPath);
         myLogger.debug("Checking path: " + path.getAbsolutePath());
 
         if (path.exists()) {
@@ -338,7 +312,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
                 }
             } catch (IOException e) {
                 myLogger.error("Error parsing directory:", e);
-                reportStatus(Status.State.ERROR, "Unable to read directory: " + dir.toString());
+                reportStatus(Status.State.ERROR, "Unable to read directory: " + dir);
             }
 
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, myDirFilter)) {

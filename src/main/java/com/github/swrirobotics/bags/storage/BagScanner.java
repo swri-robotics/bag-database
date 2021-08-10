@@ -28,7 +28,7 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.filesystem;
+package com.github.swrirobotics.bags.storage;
 
 
 import com.github.swrirobotics.bags.BagService;
@@ -38,9 +38,6 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
-import com.github.swrirobotics.bags.storage.*;
-import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageConfigImpl;
-import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageImpl;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.remote.GeocodingService;
@@ -49,7 +46,6 @@ import com.github.swrirobotics.status.StatusProvider;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;

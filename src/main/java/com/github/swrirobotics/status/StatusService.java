@@ -39,7 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.BagScanner;
+import com.github.swrirobotics.bags.storage.BagScanner;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;

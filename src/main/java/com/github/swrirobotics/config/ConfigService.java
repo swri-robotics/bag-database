@@ -33,7 +33,7 @@ package com.github.swrirobotics.config;
 import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.esotericsoftware.yamlbeans.YamlWriter;
-import com.github.swrirobotics.bags.filesystem.BagScanner;
+import com.github.swrirobotics.bags.storage.BagScanner;
 import com.github.swrirobotics.support.web.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
