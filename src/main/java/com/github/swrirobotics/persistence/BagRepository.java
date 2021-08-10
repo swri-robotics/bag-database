@@ -36,6 +36,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 @Repository
 public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificationExecutor<Bag> {
@@ -43,6 +44,8 @@ public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificatio
     List<Bag> findByPathAndFilename(String path, String filename);
     List<Bag> findByPath(String path);
     List<Bag> findByMissing(boolean isMissing);
+    Stream<Bag> findByStorageId(String storageId);
+    Stream<Bag> findByStorageIdAndMissing(String storageId, boolean isMissing);
     Bag findByMd5sum(String md5sum);
     @Query("select distinct b.path from Bag b")
     List<String> getDisinctPaths();

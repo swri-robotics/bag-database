@@ -320,6 +320,8 @@ Ext.define('BagDatabase.views.BagGrid', {
     columns: [{
         text: 'Id', dataIndex: 'id', hidden: true, flex: 1, filter: { type: 'number' }
     }, {
+        text: 'Storage Id', dataIndex: 'storageId', hidden: true, flex: 1, filter: { type: 'string' }
+    },{
         text: 'Path', dataIndex: 'path', hidden: true, flex: 2, filter: { type: 'string' }
     }, {
         text: 'File Name', dataIndex: 'filename', flex: 2, filter: { type: 'string' }

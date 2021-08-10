@@ -32,14 +32,24 @@ package com.github.swrirobotics.bags.storage.filesystem;
 
 import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
+import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.filesystem.watcher.DefaultRecursiveWatcher;
 import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
 import com.github.swrirobotics.bags.storage.*;
+import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.persistence.Bag;
+import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.google.common.collect.Sets;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -47,14 +57,28 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+@Service
+@Scope("prototype")
 public class FilesystemBagStorageImpl extends StatusProvider implements BagStorage, RecursiveWatcher.WatchListener {
+    private final ApplicationContext applicationContext;
+    private final BagRepository bagRepository;
+    private final BagService bagService;
+    private final ConfigService configService;
+
+    public FilesystemBagStorageImpl(ApplicationContext applicationContext, BagRepository bagRepository,
+                                    BagService bagService, ConfigService configService) {
+        this.applicationContext = applicationContext;
+        this.bagRepository = bagRepository;
+        this.bagService = bagService;
+        this.configService = configService;
+    }
+
     @Override
     protected String getStatusProviderName() {
         return "FilesystemBagStorage";
@@ -62,6 +86,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
 
     @Override
     public void watchEventsOccurred() {
+        myLogger.info("Storage[" + myConfig.storageId + "]: watchEventsOccurred");
         BagStorageChangeEvent event = new BagStorageChangeEvent(this);
         for (BagStorageChangeListener listener : myChangeListeners) {
             listener.bagStorageChanged(event);
@@ -70,7 +95,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
 
     private FilesystemBagStorageConfigImpl myConfig = null;
 
-    private static final Logger myLogger = LoggerFactory.getLogger(FilesystemBagWrapperImpl.class);
+    private static final Logger myLogger = LoggerFactory.getLogger(FilesystemBagStorageImpl.class);
 
     public static final String type = "filesystem";
 
@@ -89,6 +114,79 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     public boolean bagExists(String path) {
         File testFile = new File(path);
         return testFile.exists();
+    }
+
+    @Override
+    @Transactional
+    public void updateBagExistence() {
+        myLogger.info("Storage[" + getStorageId() + "]: updateBagExistence");
+        Stream<Bag> bags = bagRepository.findByStorageId(myConfig.storageId);
+
+        bags.forEach(bag -> {
+            String fullPath = bag.getPath() + bag.getFilename();
+            boolean isMissing = !bagExists(fullPath);
+            myLogger.info("Is " + fullPath + " missing? " + isMissing);
+            if (isMissing ^ bag.getMissing()) {
+                myLogger.info("Bag at " + fullPath + " has " + (isMissing ? "gone missing." : "been found!"));
+                bag.setMissing(isMissing);
+                bagRepository.save(bag);
+            }
+        });
+    }
+
+    @Override
+    @Transactional
+    public void updateBags(boolean forceUpdate) {
+        myLogger.info("Storage[" + myConfig.storageId + "]: updateBags");
+        final Stream<Bag> missingBags = bagRepository.findByStorageIdAndMissing(myConfig.storageId, true);
+        final Stream<Bag> existingBags = bagRepository.findByStorageIdAndMissing(myConfig.storageId, false);
+
+        final Map<String, Long> missingBagMd5sums = missingBags.collect(Collectors.toMap(Bag::getMd5sum, Bag::getId));
+        final Map<String, Long> existingBagPaths = existingBags
+            .collect(Collectors.toMap(bag -> bag.getPath() + bag.getFilename(), Bag::getId));
+
+        Set<File> fsBags = getBagFiles(FileSystems.getDefault().getPath(myConfig.basePath));
+        fsBags.forEach(bag -> {
+            if (existingBagPaths.get(bag.getPath()) != null) {
+                if (forceUpdate) {
+                    myLogger.debug("Bag already exists in database; update forced.");
+                }
+                else {
+                    myLogger.trace("Bag exists in database; skipping.");
+                    return;
+                }
+            }
+
+            try {
+                bagService.updateBagFile(bag, getStorageId(), missingBagMd5sums);
+            }
+            catch (ConstraintViolationException e) {
+                // Constraint name is hard-coded in db.changelog-1.0.yaml
+                if ("uk_a2r00kd2qd94dohkimsp5rdgn".equals(e.getConstraintName())) {
+                    String message = "The data in " + bag.getName() + " seems to be a duplicate " +
+                        "of an existing bag file.  If you believe this is incorrect, please " +
+                        "report it as a bug.";
+                    reportStatus(Status.State.ERROR, message);
+                    myLogger.warn(message);
+                    myLogger.warn(e.getLocalizedMessage());
+                }
+                else {
+                    String message = e.getLocalizedMessage();
+                    reportStatus(Status.State.ERROR,"Error checking bag file: " + message);
+                    myLogger.error("Unexpected error updating bag file:", e);
+                }
+            }
+            catch (RuntimeException e) {
+                reportStatus(Status.State.ERROR,
+                    "Error checking bag file: " + e.getLocalizedMessage());
+                myLogger.error("Unexpected error updating bag file:", e);
+            }
+
+        });
+
+        if (configService.getConfiguration().getRemoveOnDeletion()) {
+            bagService.removeMissingBags();
+        }
     }
 
     @Override
@@ -160,8 +258,11 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     public void start() {
         if (myConfig != null && myConfig.basePath != null && !myConfig.basePath.isEmpty()) {
             Path path = FileSystems.getDefault().getPath(myConfig.basePath);
-            myWatcher = RecursiveWatcher.createRecursiveWatcher(
-                path, new ArrayList<>(), 3000, this);
+            myWatcher = applicationContext.getBean(DefaultRecursiveWatcher.class);
+            myWatcher.setRoot(path);
+            myWatcher.setSettleDelay(3000);
+            myWatcher.setListener(this);
+
             try {
                 myWatcher.start();
             }

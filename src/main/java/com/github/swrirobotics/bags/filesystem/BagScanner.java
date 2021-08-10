@@ -47,29 +47,24 @@ import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import java.io.File;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @Profile("default")
@@ -77,29 +72,37 @@ import java.util.concurrent.TimeUnit;
 // bean to ensure the database is configured before our @PostContruct runs.
 @DependsOn("liquibase")
 public class BagScanner extends StatusProvider implements BagStorageChangeListener {
-    @Autowired
-    private ConfigService myConfigService;
-    @Autowired
-    private BagRepository myBagRepo;
-    @Autowired
-    private MessageTypeRepository myMTRepo;
-    @Autowired
-    private TopicRepository myTopicRepo;
-    @Autowired
-    private TagRepository myTagRepository;
-    @Autowired
-    private BagService myBagService;
-    @Autowired
-    private GeocodingService myGeocodingService;
+    private final ConfigService myConfigService;
+    private final BagRepository myBagRepo;
+    private final MessageTypeRepository myMTRepo;
+    private final TopicRepository myTopicRepo;
+    private final TagRepository myTagRepository;
+    private final BagService myBagService;
+    private final GeocodingService myGeocodingService;
+    private final TransactionTemplate transactionTemplate;
 
-    @PersistenceContext
-    private EntityManager myEM;
+    private final ApplicationContext myAC;
 
     private final ExecutorService myExecutor = Executors.newSingleThreadExecutor();
 
     private final Logger myLogger = LoggerFactory.getLogger(BagScanner.class);
 
     private final Map<String, BagStorage> myBagStorages = Maps.newHashMap();
+
+    public BagScanner(ConfigService myConfigService, BagRepository myBagRepo, MessageTypeRepository myMTRepo,
+                      TopicRepository myTopicRepo, TagRepository myTagRepository, BagService myBagService,
+                      GeocodingService myGeocodingService, ApplicationContext myAC,
+                      PlatformTransactionManager transactionManager) {
+        this.myConfigService = myConfigService;
+        this.myBagRepo = myBagRepo;
+        this.myMTRepo = myMTRepo;
+        this.myTopicRepo = myTopicRepo;
+        this.myTagRepository = myTagRepository;
+        this.myBagService = myBagService;
+        this.myGeocodingService = myGeocodingService;
+        this.myAC = myAC;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
 
     @PostConstruct
     public void initialize() {
@@ -128,25 +131,33 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
             myLogger.info("No storage configs explicitly defined; creating default filesystem storage.");
             FilesystemBagStorageConfigImpl fsConfig = new FilesystemBagStorageConfigImpl();
             fsConfig.basePath = myConfigService.getConfiguration().getBagPath();
-            fsConfig.name = "Default Filesystem";
             storageConfigs.add(fsConfig);
         }
 
         for (BagStorageConfiguration config : storageConfigs) {
             try {
+                BagStorage storage;
                 if (config instanceof FilesystemBagStorageConfigImpl) {
-                    FilesystemBagStorageImpl filesystemStorage = new FilesystemBagStorageImpl();
-                    filesystemStorage.loadConfig(config);
-                    myBagStorages.put(filesystemStorage.getStorageId(), filesystemStorage);
-                    filesystemStorage.start();
+                    myLogger.info("Creating FilesystemBagStorageImpl.");
+                    storage = myAC.getBean(FilesystemBagStorageImpl.class);
                 }
+                else {
+                    myLogger.warn("Unexpected storage config type: " + config.getClass().toString());
+                    continue;
+                }
+                storage.loadConfig(config);
+                storage.addChangeListener(this);
+                myBagStorages.put(storage.getStorageId(), storage);
+                storage.start();
             }
             catch (BagStorageConfigException e) {
-                myLogger.error("Error configuring FilesystemBagStorage", e);
+                myLogger.error("Error configuring BagStorage", e);
             }
         }
 
-        scanDirectory(false);
+        for (BagStorage storage : myBagStorages.values()) {
+            scanStorage(storage, false);
+        }
     }
 
     /**
@@ -156,6 +167,7 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
     public void reset() {
         for (BagStorage storage : myBagStorages.values()) {
             storage.stop();
+            storage.removeChangeListener(this);
         }
         myBagStorages.clear();
 
@@ -355,22 +367,16 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
         myExecutor.execute(new TagUpdater());
     }
 
-    public void scanDirectory(boolean forceUpdate) {
-        String bagDir = myConfigService.getConfiguration().getBagPath();
-        if (bagDir == null || bagDir.isEmpty()) {
-            myLogger.info("No bag directory set; not scanning.");
-            reportStatus(Status.State.ERROR, "No bag directory set; please configure the server.");
-            return;
+    public void scanAllStorages(boolean forceUpdate) {
+        for (BagStorage storage : myBagStorages.values()) {
+            scanStorage(storage, forceUpdate);
         }
-
-        myLogger.info("Scheduling a " + (forceUpdate ? "full" : "quick") + " directory scan.");
-        myExecutor.execute(new FullScanner(forceUpdate, bagDir));
     }
 
     @Override
     public void bagStorageChanged(BagStorageChangeEvent event) {
         myLogger.info("Bag storage change detected.");
-        scanDirectory(false);
+        scanStorage(event.getStorage(), false);
     }
 
     @Override
@@ -378,96 +384,125 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
         return "Bag Scanner";
     }
 
+    public void scanStorage(BagStorage storage, boolean forceUpdate) {
+        String msg = "Scanning for new bag files for storage [" + storage.getStorageId() + "]";
+        reportStatus(Status.State.WORKING, msg);
+        myLogger.info(msg);
+        try {
+            myExecutor.execute(() -> {
+                transactionTemplate.execute(new TransactionCallback() {
+                    @Override
+                    public Object doInTransaction(TransactionStatus transactionStatus) {
+                        storage.updateBagExistence();
+                        storage.updateBags(forceUpdate);
+                        return null;
+                    }
+                });
+            });
+        }
+        catch (RuntimeException e) {
+            String error = "Unexpected exception when checking bag files: ";
+            myLogger.warn(error, e);
+            reportStatus(Status.State.ERROR, error + e.getLocalizedMessage());
+        }
+
+        myLogger.debug("Done checking bag files.");
+        reportStatus(Status.State.IDLE, "Done checking bag files.");
+    }
+
+    /*
     private class FullScanner implements Runnable {
         final private boolean forceUpdate;
-        private final String myBagDirectory;
+        final private BagStorage storage;
 
-        private final ExecutorService bagService = Executors.newFixedThreadPool(
-                Runtime.getRuntime().availableProcessors());
+//        private final ExecutorService executorService = Executors.newFixedThreadPool(
+//                Runtime.getRuntime().availableProcessors());
 
-        public FullScanner(boolean forceUpdate, String bagPath) {
-            this.myBagDirectory = bagPath;
+        public FullScanner(BagStorage storage, boolean forceUpdate) {
+            this.storage = storage;
             this.forceUpdate = forceUpdate;
         }
 
         @Override
         public void run() {
-            String msg = "Scanning for new bag files in " + myBagDirectory + ".";
+            String msg = "Scanning for new bag files for storage [" + this.storage + "]";
             reportStatus(Status.State.WORKING, msg);
             myLogger.info(msg);
             try {
-                Path bagDir = FileSystems.getDefault().getPath(myBagDirectory);
-                Set<File> bagFiles = getBagFiles(bagDir);
-
-                myLogger.debug("Found " + bagFiles.size() + " bag files on disk.");
-
-                final Map<String, Long> existingBagPaths = Maps.newHashMap();
-                final Map<String, Long> missingBagMd5sums = Maps.newHashMap();
-
-                // First, scan over all of the existing entries in the DB and see if
-                // any of them are missing from the filesystem.  This will also
-                // mark any that are missing or have reappeared and are no longer
-                // missing.
-                myBagService.scanDatabaseBags(existingBagPaths, missingBagMd5sums);
-                myLogger.debug(existingBagPaths.size() + " bags exist in the database and are not missing.");
-                myLogger.debug(missingBagMd5sums.size() + " in the DB are missing on disk.");
-
-                // Next, go over all the files on the filesystem.  Calculating individual
-                // md5sums is CPU-intensive, so we might as well do multiple bags in parallel.
-                for (final File file : bagFiles) {
-                    bagService.execute(() -> {
-                        try {
-                            myBagService.updateBagFile(file,
-                                                       existingBagPaths,
-                                                       missingBagMd5sums,
-                                                       forceUpdate);
-                        }
-                        catch (ConstraintViolationException e) {
-                            // Constraint name is hard-coded in db.changelog-1.0.yaml
-                            if ("uk_a2r00kd2qd94dohkimsp5rdgn".equals(e.getConstraintName())) {
-                                String message = "The data in " + file.getName() + " seems to be a duplicate " +
-                                        "of an existing bag file.  If you believe this is incorrect, please " +
-                                        "report it as a bug.";
-                                reportStatus(Status.State.ERROR, message);
-                                myLogger.warn(message);
-                                myLogger.warn(e.getLocalizedMessage());
-                            }
-                            else {
-                                String message = e.getLocalizedMessage();
-                                reportStatus(Status.State.ERROR,"Error checking bag file: " + message);
-                                myLogger.error("Unexpected error updating bag file:", e);
-                            }
-                        }
-                        catch (RuntimeException e) {
-                            reportStatus(Status.State.ERROR,
-                                         "Error checking bag file: " + e.getLocalizedMessage());
-                            myLogger.error("Unexpected error updating bag file:", e);
-                        }
-                    });
-                }
-                bagService.shutdown();
-                bagService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-
-                myBagService.markMissingBags(missingBagMd5sums.values());
-
-                if (myConfigService.getConfiguration().getRemoveOnDeletion()) {
-                    myBagService.removeMissingBags();
-                }
+                    storage.updateBags(forceUpdate);
+//                Path bagDir = FileSystems.getDefault().getPath(myBagDirectory);
+//                Set<File> bagFiles = getBagFiles(bagDir);
+//
+//                myLogger.debug("Found " + bagFiles.size() + " bag files on disk.");
+//
+//                final Map<String, Long> existingBagPaths = Maps.newHashMap();
+//                final Map<String, Long> missingBagMd5sums = Maps.newHashMap();
+//
+//                // First, scan over all of the existing entries in the DB and see if
+//                // any of them are missing from the filesystem.  This will also
+//                // mark any that are missing or have reappeared and are no longer
+//                // missing.
+//                myBagService.scanDatabaseBags(existingBagPaths, missingBagMd5sums);
+//                myLogger.debug(existingBagPaths.size() + " bags exist in the database and are not missing.");
+//                myLogger.debug(missingBagMd5sums.size() + " in the DB are missing on disk.");
+//
+//                // Next, go over all the files on the filesystem.  Calculating individual
+//                // md5sums is CPU-intensive, so we might as well do multiple bags in parallel.
+//                for (final File file : bagFiles) {
+//                    bagService.execute(() -> {
+//                        try {
+//                            myBagService.updateBagFile(file,
+//                                                       existingBagPaths,
+//                                                       missingBagMd5sums,
+//                                                       forceUpdate);
+//                        }
+//                        catch (ConstraintViolationException e) {
+//                            // Constraint name is hard-coded in db.changelog-1.0.yaml
+//                            if ("uk_a2r00kd2qd94dohkimsp5rdgn".equals(e.getConstraintName())) {
+//                                String message = "The data in " + file.getName() + " seems to be a duplicate " +
+//                                        "of an existing bag file.  If you believe this is incorrect, please " +
+//                                        "report it as a bug.";
+//                                reportStatus(Status.State.ERROR, message);
+//                                myLogger.warn(message);
+//                                myLogger.warn(e.getLocalizedMessage());
+//                            }
+//                            else {
+//                                String message = e.getLocalizedMessage();
+//                                reportStatus(Status.State.ERROR,"Error checking bag file: " + message);
+//                                myLogger.error("Unexpected error updating bag file:", e);
+//                            }
+//                        }
+//                        catch (RuntimeException e) {
+//                            reportStatus(Status.State.ERROR,
+//                                         "Error checking bag file: " + e.getLocalizedMessage());
+//                            myLogger.error("Unexpected error updating bag file:", e);
+//                        }
+//                    });
+//                }
+//                executorService.shutdown();
+//                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+//
+//                myBagService.markMissingBags(missingBagMd5sums.values());
+//
+//                if (myConfigService.getConfiguration().getRemoveOnDeletion()) {
+//                    myBagService.removeMissingBags();
+//                }
             }
             catch (RuntimeException e) {
                 String error = "Unexpected exception when checking bag files: ";
                 myLogger.warn(error, e);
                 reportStatus(Status.State.ERROR, error + e.getLocalizedMessage());
             }
-            catch (InterruptedException e) {
-                bagService.shutdownNow();
-                String error = "Interrupted while waiting for bag updates to complete.";
-                myLogger.warn(error, e);
-                reportStatus(Status.State.ERROR, error);
-            }
+//            catch (InterruptedException e) {
+//                executorService.shutdownNow();
+//                String error = "Interrupted while waiting for bag updates to complete.";
+//                myLogger.warn(error, e);
+//                reportStatus(Status.State.ERROR, error);
+//            }
 
             myLogger.debug("Done checking bag files.");
             reportStatus(Status.State.IDLE, "Done checking bag files.");
         }
     }
+    */
 }

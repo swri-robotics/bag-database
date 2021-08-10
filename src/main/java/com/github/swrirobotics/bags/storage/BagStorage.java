@@ -38,6 +38,8 @@ import java.util.List;
 public interface BagStorage {
     void addChangeListener(BagStorageChangeListener listener);
     boolean bagExists(String path);
+    void updateBagExistence();
+    void updateBags(boolean forceUpdate);
     String getName();
     String getStorageId();
     String getType();

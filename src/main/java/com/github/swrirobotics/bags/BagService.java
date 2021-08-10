@@ -1405,7 +1405,8 @@ public class BagService extends StatusProvider {
     public Bag insertNewBag(final BagFile bagFile,
                             final String md5sum,
                             final String locationName,
-                            final List<GpsPosition> gpsPositions) throws BagReaderException, DuplicateBagException {
+                            final List<GpsPosition> gpsPositions,
+                            final String storageId) throws BagReaderException, DuplicateBagException {
         Bag bag = bagRepository.findByMd5sum(md5sum);
 
         // We checked earlier if there were any other bags with this MD5 sum,
@@ -1435,6 +1436,7 @@ public class BagService extends StatusProvider {
         bag.setMessageCount(bagFile.getMessageCount());
         bag.setMissing(false);
         bag.setSize(file.length());
+        bag.setStorageId(storageId);
         bag.setVersion(bagFile.getVersion());
         bag.setVehicle(getVehicleName(bagFile));
         if (!gpsPositions.isEmpty()) {
@@ -1546,24 +1548,23 @@ public class BagService extends StatusProvider {
     }
 
     public void updateBagFile(final File file,
-                              final Map<String, Long> existingBagPaths,
-                              final Map<String, Long> missingBagMd5sums,
-                              boolean forceUpdate) {
+                              final String storageId,
+                              final Map<String, Long> missingBagMd5sums) {
         myLogger.debug("Checking " + file.getPath() + "...");
         reportStatus(Status.State.WORKING, "Processing " + file.getPath() + ".");
 
-        Long bagId = existingBagPaths.get(file.getPath());
-        // If it already exists in the database, don't do anything unless this
-        // is a force update.
-        if (bagId != null) {
-            if (forceUpdate) {
-                myLogger.debug("Bag already exists in database; update forced.");
-            }
-            else {
-                myLogger.trace("Bag exists in database; skipping.");
-                return;
-            }
-        }
+//        Long bagId = existingBagPaths.get(file.getPath());
+//        // If it already exists in the database, don't do anything unless this
+//        // is a force update.
+//        if (bagId != null) {
+//            if (forceUpdate) {
+//                myLogger.debug("Bag already exists in database; update forced.");
+//            }
+//            else {
+//                myLogger.trace("Bag exists in database; skipping.");
+//                return;
+//            }
+//        }
 
         if (!file.canRead()) {
             myLogger.error("Can't read file.");
@@ -1602,15 +1603,11 @@ public class BagService extends StatusProvider {
             timer.cancel();
         }
 
-        // If bag is null at this point, that means that there is not an existing
-        // bag in the database with that path.  There might be a bag that was
-        // previously marked as "missing" with that MD5 sum, so check for it.
-        if (bagId == null) {
-            bagId = missingBagMd5sums.get(md5sum);
-        }
+        // It's possible that this file could already be in the database but is marked as missing because it's
+        // path changed, so check the missing bags list.
+        Long bagId = missingBagMd5sums.get(md5sum);
 
-        // If it's still null, check whether there's an existing bag in the database
-        // with that MD5 sum so we can avoid doing any more work.
+        // If it's still null, it is still possible that this is a duplicate of another bag, so check that, too.
         if (bagId == null) {
             Bag existingBag = bagRepository.findByMd5sum(md5sum);
             if (existingBag != null) {
@@ -1649,7 +1646,8 @@ public class BagService extends StatusProvider {
         Bag newBag = null;
         synchronized (myBagDbLock) {
             try {
-                newBag = updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions);
+                newBag = updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions,
+                    storageId);
                 String msg = "Done processing: " + bagFile.getPath().toFile().toString();
                 myLogger.debug(msg);
                 reportStatus(Status.State.IDLE, msg);
@@ -1704,6 +1702,7 @@ public class BagService extends StatusProvider {
      * @param missingBagMd5sums All of the MD5 sums of any bags that have been marked as missing.
      * @param locationName The friendly name of the bag's location, if available.
      * @param gpsPositions GPS coordinates extracted from the bag.
+     * @param storageId The identifier of the bag's storage backend.
      * @return The bag that was just inserted.
      * @throws DuplicateBagException If this bag already exists in the database
      * @throws BagReaderException If there is an error reading the bag file
@@ -1714,12 +1713,13 @@ public class BagService extends StatusProvider {
                                    final String md5sum,
                                    final Map<String, Long> missingBagMd5sums,
                                    final String locationName,
-                                   final List<GpsPosition> gpsPositions)
+                                   final List<GpsPosition> gpsPositions,
+                                   final String storageId)
             throws DuplicateBagException, BagReaderException {
         Bag bag;
         File file = bagFile.getPath().toFile();
         if (bagId == null) {
-            bag = insertNewBag(bagFile, md5sum, locationName, gpsPositions);
+            bag = insertNewBag(bagFile, md5sum, locationName, gpsPositions, storageId);
         }
         else {
             if (missingBagMd5sums.remove(md5sum) != null) {
@@ -1736,6 +1736,7 @@ public class BagService extends StatusProvider {
             bag.setFilename(file.getName());
             bag.setMissing(false);
             bag.setMd5sum(md5sum);
+            bag.setStorageId(storageId);
             addTagsToBag(bagFile, bag);
         }
         bagRepository.save(bag);
