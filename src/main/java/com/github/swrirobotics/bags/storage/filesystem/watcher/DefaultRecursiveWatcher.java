@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.swrirobotics.bags.filesystem.watcher;
+package com.github.swrirobotics.bags.storage.filesystem.watcher;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;

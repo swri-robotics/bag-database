@@ -30,6 +30,10 @@
 
 package com.github.swrirobotics.bags.storage;
 
+import com.github.swrirobotics.bags.BagService;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -40,7 +44,6 @@ public interface BagStorage {
     boolean bagExists(String path);
     void updateBagExistence();
     void updateBags(boolean forceUpdate);
-    String getName();
     String getStorageId();
     String getType();
     BagWrapper getBagWrapper(String path);
@@ -48,6 +51,8 @@ public interface BagStorage {
     void loadConfig(BagStorageConfiguration config) throws BagStorageConfigException;
     void loadConfig(String config) throws BagStorageConfigException;
     void removeChangeListener(BagStorageChangeListener listener);
+    void setBagService(BagService bagService);
     void start();
     void stop();
+    void uploadBag(MultipartFile file, String targetDirectory) throws IOException;
 }

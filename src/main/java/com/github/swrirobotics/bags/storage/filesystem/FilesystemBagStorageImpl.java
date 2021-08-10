@@ -32,9 +32,10 @@ package com.github.swrirobotics.bags.storage.filesystem;
 
 import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
+import com.esotericsoftware.yamlbeans.YamlWriter;
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.watcher.DefaultRecursiveWatcher;
-import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
+import com.github.swrirobotics.bags.storage.filesystem.watcher.DefaultRecursiveWatcher;
+import com.github.swrirobotics.bags.storage.filesystem.watcher.RecursiveWatcher;
 import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.Bag;
@@ -42,21 +43,21 @@ import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.StringWriter;
+import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -68,15 +69,20 @@ import java.util.stream.Stream;
 public class FilesystemBagStorageImpl extends StatusProvider implements BagStorage, RecursiveWatcher.WatchListener {
     private final ApplicationContext applicationContext;
     private final BagRepository bagRepository;
-    private final BagService bagService;
+    private BagService bagService;
     private final ConfigService configService;
 
     public FilesystemBagStorageImpl(ApplicationContext applicationContext, BagRepository bagRepository,
-                                    BagService bagService, ConfigService configService) {
+                                    ConfigService configService) {
         this.applicationContext = applicationContext;
         this.bagRepository = bagRepository;
-        this.bagService = bagService;
         this.configService = configService;
+    }
+
+    @Override
+    public void setBagService(BagService bagService) {
+        // Need to set this after creation because otherwise there will be a circular dependency between beans
+        this.bagService = bagService;
     }
 
     @Override
@@ -190,11 +196,6 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     }
 
     @Override
-    public String getName() {
-        return myConfig.name;
-    }
-
-    @Override
     public String getStorageId() {
         return myConfig.storageId;
     }
@@ -219,6 +220,18 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     public void loadConfig(BagStorageConfiguration config) throws BagStorageConfigException {
         if (!(config instanceof FilesystemBagStorageConfigImpl)) {
             throw new BagStorageConfigException("Unexpected configuration object class: " + config.getClass().toString());
+        }
+
+        try {
+            StringWriter stringWriter = new StringWriter();
+            YamlWriter writer = new YamlWriter(stringWriter);
+            writer.write(config);
+            writer.close();
+            stringWriter.close();
+            myLogger.info("Loading configuration:\n" + stringWriter);
+        }
+        catch (IOException e) {
+            throw new BagStorageConfigException(e);
         }
 
         myConfig = (FilesystemBagStorageConfigImpl) config;
@@ -275,6 +288,37 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     @Override
     public void stop() {
         myWatcher.stop();
+    }
+
+    @Override
+    public void uploadBag(MultipartFile file, String targetDirectory) throws IOException {
+        java.nio.file.Path inputPath = Paths.get(targetDirectory).normalize();
+
+        File path = new File(configService.getConfiguration().getBagPath() + "/" + inputPath.toString());
+        myLogger.debug("Checking path: " + path.getAbsolutePath());
+
+        if (path.exists()) {
+            if (path.isDirectory()) {
+                if (!path.canWrite()) {
+                    throw new IOException("Target path is not writable.");
+                }
+            }
+            else {
+                throw new IOException("Target is a file, not a directory.");
+            }
+        }
+        else if (!path.mkdirs()) {
+            throw new IOException("Failed to create target directory.  Is the destination writable?");
+        }
+
+        File targetFile = new File(path.getAbsolutePath() + "/" + file.getOriginalFilename());
+
+        if (targetFile.exists()) {
+            throw new IOException("Not overwriting existing file.");
+        }
+
+        myLogger.debug("Writing file to: " + targetFile.getAbsolutePath());
+        FileUtils.copyInputStreamToFile(file.getInputStream(), targetFile);
     }
 
     private boolean presentSpecialCharacters(Path dir){

@@ -72,6 +72,7 @@ public class Configuration implements Serializable {
 
     private List<BagStorageConfiguration> storageConfigurations = Lists.newArrayList();
 
+    @Deprecated
     public String getBagPath() {
         return bagPath;
     }

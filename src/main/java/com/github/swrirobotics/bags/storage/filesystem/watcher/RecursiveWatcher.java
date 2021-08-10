@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.swrirobotics.bags.filesystem.watcher;
+package com.github.swrirobotics.bags.storage.filesystem.watcher;
 
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;

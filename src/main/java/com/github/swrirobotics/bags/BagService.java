@@ -38,7 +38,12 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
+import com.github.swrirobotics.bags.storage.BagStorage;
+import com.github.swrirobotics.bags.storage.BagStorageConfigException;
+import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
 import com.github.swrirobotics.bags.storage.GpsPosition;
+import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageConfigImpl;
+import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageImpl;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.MessageType;
 import com.github.swrirobotics.persistence.*;
@@ -57,7 +62,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -70,7 +74,7 @@ import org.opencv.core.MatOfInt;
 import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -92,7 +96,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -101,24 +104,18 @@ import java.util.stream.Collectors;
 
 @Service
 public class BagService extends StatusProvider {
-    @Autowired
-    private BagRepository bagRepository;
-    @Autowired
-    private BagPositionRepository myBagPositionRepository;
-    @Autowired
-    private MessageTypeRepository myMTRepository;
-    @Autowired
-    private TopicRepository myTopicRepository;
-    @Autowired
-    private TagRepository myTagRepository;
-    @Autowired
-    public ConfigService myConfigService;
-    @Autowired
-    private GeocodingService myGeocodingService;
-    @Autowired
-    private ScriptService myScriptService;
+    private final BagRepository bagRepository;
+    private final BagPositionRepository myBagPositionRepository;
+    private final MessageTypeRepository myMTRepository;
+    private final TopicRepository myTopicRepository;
+    private final TagRepository myTagRepository;
+    public final ConfigService myConfigService;
+    private final GeocodingService myGeocodingService;
+    private final ScriptService myScriptService;
     @PersistenceContext
     private EntityManager myEM;
+
+    private final Map<String, BagStorage> myBagStorages = Maps.newHashMap();
 
     final private Object myBagDbLock = new Object();
 
@@ -142,6 +139,85 @@ public class BagService extends StatusProvider {
         }
     }
 
+    public BagService(BagRepository bagRepository, BagPositionRepository myBagPositionRepository,
+                      MessageTypeRepository myMTRepository, TopicRepository myTopicRepository,
+                      TagRepository myTagRepository, ConfigService myConfigService, GeocodingService myGeocodingService,
+                      ScriptService myScriptService, ApplicationContext applicationContext) {
+        this.bagRepository = bagRepository;
+        this.myBagPositionRepository = myBagPositionRepository;
+        this.myMTRepository = myMTRepository;
+        this.myTopicRepository = myTopicRepository;
+        this.myTagRepository = myTagRepository;
+        this.myConfigService = myConfigService;
+        this.myGeocodingService = myGeocodingService;
+        this.myScriptService = myScriptService;
+
+        // Initialize bag storage configurations
+        List<BagStorageConfiguration> storageConfigs;
+
+        if (myConfigService != null && myConfigService.getConfiguration() != null) {
+            storageConfigs = myConfigService.getConfiguration().getStorageConfigurations();
+        }
+        else {
+            storageConfigs = new ArrayList<>();
+        }
+
+        if (storageConfigs.isEmpty()) {
+            myLogger.info("No storage configs explicitly defined; creating default filesystem storage.");
+            FilesystemBagStorageConfigImpl fsConfig = new FilesystemBagStorageConfigImpl();
+            if (myConfigService != null && myConfigService.getConfiguration() != null) {
+                fsConfig.basePath = myConfigService.getConfiguration().getBagPath();
+            }
+            fsConfig.storageId = "default";
+            storageConfigs.add(fsConfig);
+        }
+
+        for (BagStorageConfiguration config : storageConfigs) {
+            try {
+                BagStorage storage;
+                if (config instanceof FilesystemBagStorageConfigImpl) {
+                    myLogger.info("Creating FilesystemBagStorageImpl.");
+                    storage = applicationContext.getBean(FilesystemBagStorageImpl.class);
+                    storage.setBagService(this);
+                }
+                else {
+                    myLogger.warn("Unexpected storage config type: " + config.getClass().toString());
+                    continue;
+                }
+                storage.loadConfig(config);
+                myBagStorages.put(storage.getStorageId(), storage);
+                storage.start();
+            }
+            catch (BagStorageConfigException e) {
+                myLogger.error("Error configuring BagStorage", e);
+            }
+        }
+    }
+
+    /**
+     * Deletes every bag file in the database that either has a null storageId or a storageId that is not present
+     * in the list of our configured storage backends.
+     */
+    @Transactional
+    public void deleteUnownedBags() {
+        myLogger.trace("deleteUnownedBags");
+        List<String> storageIds = getBagStorageIds();
+        Query query = myEM.createQuery("delete from Bag b where b.storageId not in ?1 or b.storageId is null");
+        query.setParameter(1, storageIds);
+        int numberRemoved = query.executeUpdate();
+        myLogger.info("Removed " + numberRemoved + " bags that were not owned by any configured storage mechanism.");
+    }
+
+    public Collection<BagStorage> getBagStorages() {
+        return this.myBagStorages.values();
+    }
+
+    public List<String> getBagStorageIds() {
+        List<String> storageList = Lists.newArrayList(myBagStorages.keySet());
+        storageList.sort(String::compareToIgnoreCase);
+        return storageList;
+    }
+
     @Transactional(readOnly = true)
     public Bag getBag(Long bagId) throws NonexistentBagException {
         Bag response = bagRepository.findById(bagId).orElseThrow(() ->
@@ -158,6 +234,7 @@ public class BagService extends StatusProvider {
         }
         String fullPath = bag.getPath() + bag.getFilename();
         try {
+            // TODO Update for new storage backend
             BagFile bagFile = BagReader.readFile(fullPath);
 
             myLogger.debug("Reading message #" + index + " from bag " + bagId +
@@ -686,6 +763,7 @@ public class BagService extends StatusProvider {
         if (bag == null) {
             throw new BagReaderException("Bag not found: " + bagId);
         }
+        // TODO Update for new storage backend
         String fullPath = bag.getPath() + bag.getFilename();
         try {
             BagFile bagFile = BagReader.readFile(fullPath);
@@ -947,34 +1025,12 @@ public class BagService extends StatusProvider {
         bagRepository.save(dbBag);
     }
 
-    public void uploadBag(MultipartFile file, String targetDirectory) throws IOException {
-        java.nio.file.Path inputPath = Paths.get(targetDirectory).normalize();
-
-        File path = new File(myConfigService.getConfiguration().getBagPath() + "/" + inputPath.toString());
-        myLogger.debug("Checking path: " + path.getAbsolutePath());
-
-        if (path.exists()) {
-            if (path.isDirectory()) {
-                if (!path.canWrite()) {
-                    throw new IOException("Target path is not writable.");
-                }
-            }
-            else {
-                throw new IOException("Target is a file, not a directory.");
-            }
+    public void uploadBag(MultipartFile file, String targetDirectory, String storageId) throws IOException {
+        BagStorage storage = myBagStorages.get(storageId);
+        if (storage == null) {
+            throw new IOException("Unknown bag storage: " + storageId);
         }
-        else if (!path.mkdirs()) {
-            throw new IOException("Failed to create target directory.  Is the destination writable?");
-        }
-
-        File targetFile = new File(path.getAbsolutePath() + "/" + file.getOriginalFilename());
-
-        if (targetFile.exists()) {
-            throw new IOException("Not overwriting existing file.");
-        }
-
-        myLogger.debug("Writing file to: " + targetFile.getAbsolutePath());
-        FileUtils.copyInputStreamToFile(file.getInputStream(), targetFile);
+        storage.uploadBag(file, targetDirectory);
     }
 
     private Pageable createPageRequest(int page, int size, String dir, String sort) {
@@ -1297,6 +1353,7 @@ public class BagService extends StatusProvider {
     @Transactional
     public void updateGpsPositionsForBagId(long bagId) {
         Bag bag = bagRepository.findById(bagId).orElseThrow();
+        // TODO Update for new storage backend
         String fullPath = bag.getPath() + bag.getFilename();
         try {
             BagFile bagFile = BagReader.readFile(fullPath);
@@ -1336,36 +1393,6 @@ public class BagService extends StatusProvider {
                 bag.getFilename() + ".";
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);
-    }
-
-    @Transactional
-    public void scanDatabaseBags(Map<String, Long> existingBagPaths,
-                                  Map<String, Long> missingBagMd5sums) {
-        List<Bag> bags = bagRepository.findAll();
-
-        // First, scan over all of the existing entries in the DB and see if
-        // any of them are missing from the filesystem.
-        myLogger.debug("Scanning bags already in the database.");
-        for (Bag bag : bags) {
-            String fullPath = bag.getPath() + bag.getFilename();
-            myLogger.trace("Checking whether " + fullPath + "...");
-            File testFile = new File(fullPath);
-            if (testFile.exists()) {
-                existingBagPaths.put(fullPath, bag.getId());
-                if (bag.getMissing()) {
-                    bag.setMissing(false);
-                    bagRepository.save(bag);
-                }
-            }
-            else {
-                myLogger.warn("Bag exists in database but is missing: " + fullPath);
-                missingBagMd5sums.put(bag.getMd5sum(), bag.getId());
-                if (!bag.getMissing()) {
-                    bag.setMissing(true);
-                    bagRepository.save(bag);
-                }
-            }
-        }
     }
 
     @Transactional
@@ -1553,19 +1580,6 @@ public class BagService extends StatusProvider {
         myLogger.debug("Checking " + file.getPath() + "...");
         reportStatus(Status.State.WORKING, "Processing " + file.getPath() + ".");
 
-//        Long bagId = existingBagPaths.get(file.getPath());
-//        // If it already exists in the database, don't do anything unless this
-//        // is a force update.
-//        if (bagId != null) {
-//            if (forceUpdate) {
-//                myLogger.debug("Bag already exists in database; update forced.");
-//            }
-//            else {
-//                myLogger.trace("Bag exists in database; skipping.");
-//                return;
-//            }
-//        }
-
         if (!file.canRead()) {
             myLogger.error("Can't read file.");
             reportStatus(Status.State.ERROR, "Unable to read " + file.getPath() + ".  Check its permissions.");
@@ -1745,19 +1759,6 @@ public class BagService extends StatusProvider {
         reportStatus(Status.State.WORKING, msg);
 
         return bag;
-    }
-
-    @Transactional
-    public void markMissingBags(final Collection<Long> missingBags) {
-        for (Long bagId : missingBags) {
-            Bag bag = bagRepository.findById(bagId).orElseThrow();
-            if (!bag.getMissing()) {
-                myLogger.warn("Bag " + bag.getPath() + bag.getFilename() +
-                                      " was missing and we couldn't find it.");
-                bag.setMissing(true);
-                bagRepository.save(bag);
-            }
-        }
     }
 
     @Transactional(readOnly = true)

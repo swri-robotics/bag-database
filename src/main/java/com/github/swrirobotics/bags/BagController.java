@@ -111,6 +111,11 @@ public class BagController {
         return null;
     }
 
+    @RequestMapping("/get_storage_ids")
+    public StorageIdList getBagStorageIds() {
+        return new StorageIdList(myBagService.getBagStorageIds());
+    }
+
     @RequestMapping("/image")
     public ModelAndView getImage(@RequestParam Long bagId,
                                  @RequestParam String topic,
@@ -187,13 +192,14 @@ public class BagController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public Map<String, Object> uploadBag(@RequestParam("file") MultipartFile file,
-                                         @RequestParam String targetDirectory) {
+                                         @RequestParam String targetDirectory,
+                                         @RequestParam String storageId) {
         myLogger.info("uploadBag: " + file.getName());
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
         response.put("message", "");
         try {
-            myBagService.uploadBag(file, targetDirectory);
+            myBagService.uploadBag(file, targetDirectory, storageId);
             response.put("success", true);
         }
         catch (Exception e) {

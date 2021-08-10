@@ -28,8 +28,12 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.storage;
+package com.github.swrirobotics.support.web;
 
-public interface BagStorageChangeListener {
-    void bagStorageChanged(BagStorageChangeEvent event);
+public class StorageIdDTO {
+    public final String storageId;
+
+    public StorageIdDTO(String storageId) {
+        this.storageId = storageId;
+    }
 }

@@ -34,10 +34,4 @@ import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
 
 public class FilesystemBagStorageConfigImpl extends BagStorageConfiguration {
     public String basePath = "/bags";
-
-    public FilesystemBagStorageConfigImpl() {
-        super();
-        this.name = "default";
-        this.storageId = "default";
-    }
 }

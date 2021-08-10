@@ -28,8 +28,30 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.storage;
+package com.github.swrirobotics.support.web;
 
-public interface BagStorageChangeListener {
-    void bagStorageChanged(BagStorageChangeEvent event);
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class StorageIdList {
+    private List<StorageIdDTO> storageIds = new ArrayList<>();
+    private int totalCount = 0;
+
+    public StorageIdList(List<String> storageIds) {
+        this.setStorageIds(storageIds.stream().map(StorageIdDTO::new).collect(Collectors.toList()));
+    }
+
+    public List<StorageIdDTO> getStorageIds() {
+        return storageIds;
+    }
+
+    public void setStorageIds(List<StorageIdDTO> storageIds) {
+        this.storageIds = storageIds;
+        this.totalCount = storageIds.size();
+    }
+
+    public int getTotalCount() {
+        return totalCount;
+    }
 }

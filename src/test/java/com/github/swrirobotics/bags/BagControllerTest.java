@@ -149,7 +149,8 @@ public class BagControllerTest extends WebAppConfigurationAware {
             fieldWithPath("expanded").description("For internal use only; used for organization in the Folder View"),
             fieldWithPath("leaf").description("For internal use only; used for organization in the Folder View"),
             fieldWithPath("latitudeDeg").description("First latitude coordinate detected in the bag file").type("Number"),
-            fieldWithPath("longitudeDeg").description("First longitude coordinate detected in the bag file").type("Number")
+            fieldWithPath("longitudeDeg").description("First longitude coordinate detected in the bag file").type("Number"),
+            fieldWithPath("storageId").description("ID of the storage backend that hosts the bag file").type("String")
         };
     }
 
@@ -271,9 +272,10 @@ public class BagControllerTest extends WebAppConfigurationAware {
             "<< binary bag data >>".getBytes());
 
         mockMvc.perform(multipart("/bags/upload")
-            .file(bagFile)
-            .with(csrf())
-            .param("targetDirectory", "/"))
+                .file(bagFile)
+                .with(csrf())
+                .param("targetDirectory", "/")
+                .param("storageId", "default"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.message").value(""))
@@ -285,6 +287,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
                 ),
                 requestParameters(
                     parameterWithName("targetDirectory").description("Location to place the bag file on disk"),
+                    parameterWithName("storageId").description("ID of the storage backend that should store the bag file"),
                     parameterWithName("_csrf").description("CSRF token supplied by the Bag Database")
                 )
                 ));
