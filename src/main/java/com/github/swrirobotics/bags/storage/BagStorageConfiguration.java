@@ -33,5 +33,10 @@ package com.github.swrirobotics.bags.storage;
 import java.io.Serializable;
 
 public abstract class BagStorageConfiguration implements Serializable {
+    /** Unique identifier for this storage backend */
     public String storageId;
+    /** true if this backend's files are stored on a local filesystem and can be accessed without copying them */
+    public boolean isLocal = false;
+    /** If isLocal == true, the path that this backend's bags are mounted at inside the Docker-in-Docker container */
+    public String dockerPath = "/bags";
 }

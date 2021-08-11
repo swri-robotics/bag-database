@@ -47,6 +47,7 @@ import org.apache.commons.io.FileUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@Scope("prototype")
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FilesystemBagStorageImpl extends StatusProvider implements BagStorage, RecursiveWatcher.WatchListener {
     private final ApplicationContext applicationContext;
     private final BagRepository bagRepository;
@@ -195,6 +196,11 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     }
 
     @Override
+    public BagStorageConfiguration getConfig() {
+        return myConfig;
+    }
+
+    @Override
     public String getRootPath() {
         return myConfig.basePath;
     }
@@ -276,7 +282,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     public BagWrapper getBagWrapper(long bagId) {
         Bag bag = bagRepository.findById(bagId).orElse(null);
         if (bag != null) {
-            return new FilesystemBagWrapperImpl(bag.getPath() + bag.getFilename());
+            return new FilesystemBagWrapperImpl(bag.getPath() + bag.getFilename(), this);
         }
         return null;
     }
@@ -284,7 +290,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     @Override
     @Transactional
     public BagWrapper getBagWrapper(Bag bag) {
-        return new FilesystemBagWrapperImpl(bag.getPath() + bag.getFilename());
+        return new FilesystemBagWrapperImpl(bag.getPath() + bag.getFilename(), this);
     }
 
     @Override

@@ -34,6 +34,8 @@ import com.amihaiemil.docker.Container;
 import com.amihaiemil.docker.Docker;
 import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagStorage;
+import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
 import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.*;
@@ -74,8 +76,9 @@ public class RunnableScript implements Runnable {
     private Status endStatus;
 
     private final Logger myLogger = LoggerFactory.getLogger(RunnableScript.class);
-    private static final String SCRIPTS_DIR = "/scripts/"; // Should be the volume where scripts are mounted in the docker container
-    private static final String SCRIPT_TMP_NAME = "/script.py";
+    // private static final String BAGS_DIR =  "/bags/"; // Where local bags are mounted in the DinD container
+    private static final String SCRIPTS_DIR = "/scripts/"; // Where scripts are mounted in the DinD container
+    private static final String SCRIPT_TMP_NAME = "/script.py"; // The name of the script inside the script container
 
     public RunnableScript(BagRepository bagRepository, BagService bagService, ConfigService configService,
                           ScriptResultRepository resultRepository, ScriptService scriptService) {
@@ -199,12 +202,25 @@ public class RunnableScript implements Runnable {
             // We should probably set up a temporary directory that is just for storing downloaded bag files,
             // but that will need to be mounted into the DinD container, we'll need to be able to determine when that
             // is necessary, and we'll need to clean them up when we're done.
+            // Alternately, maybe we can detect if bags are in non-local storage and copy them into the container...
             for (Bag bag : bags) {
+                // Currently this will only work for bags that are stored on a local filesystem if their backend's
+                // root path is also mounted inside the DinD container at BAGS_DIR.
                 BagWrapper wrapper = bagService.getBagWrapper(bag);
-                String absolutePath = wrapper.getBagFile().getPath().toAbsolutePath().toString();
-                bindBuilder.add(Joiner.on(':').join(absolutePath,
-                    "/" + absolutePath, ""));
-                command.add("/" + absolutePath);
+                BagStorageConfiguration config = wrapper.getBagStorage().getConfig();
+                String relativeBagPath;
+                if (config.isLocal) {
+                    BagStorage storage = wrapper.getBagStorage();
+                    String baseBagPath = storage.getRootPath();
+                    String dindBagPath = config.dockerPath;
+                    String absolutePath = wrapper.getBagFile().getPath().toAbsolutePath().toString();
+                    relativeBagPath = absolutePath.replaceFirst(baseBagPath, dindBagPath);
+                }
+                else {
+                    throw new IOException("Unable to process non-local bag files.");
+                }
+                bindBuilder.add(Joiner.on(':').join(relativeBagPath, relativeBagPath, ""));
+                command.add("/" + relativeBagPath);
             }
 
             // Pull the Docker image to make sure it's ready

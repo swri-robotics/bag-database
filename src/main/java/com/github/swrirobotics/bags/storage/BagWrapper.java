@@ -34,5 +34,17 @@ import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
 public interface BagWrapper {
+    /**
+     * Gets a BagFile object that can be used to read data from this bag.  For remotely-stored bags, this
+     * may involve copying the bag file to a local filesystem.
+     * @return A BagFile object representing this bag.
+     * @throws BagReaderException If the bag can't be read.
+     */
     BagFile getBagFile() throws BagReaderException;
+
+    /**
+     * Returns the BagStorage backend used to store this bag.
+     * @return The BagStorage backend used to store this bag.
+     */
+    BagStorage getBagStorage();
 }

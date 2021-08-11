@@ -68,6 +68,12 @@ public interface BagStorage {
     void updateBags(boolean forceUpdate);
 
     /**
+     * Returns the configuration for this storage backend.
+     * @return The configuration for this storage backend.
+     */
+    BagStorageConfiguration getConfig();
+
+    /**
      * Returns the path to the root directory of this storage.  This should have a trailing slash.
      * For many storage systems this may just be "/", but for filesystem storage it could be a subdirectory.
      * @return The path to the root directory of this storage.

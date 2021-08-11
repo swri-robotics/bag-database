@@ -33,6 +33,7 @@ package com.github.swrirobotics.bags;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagStorage;
 import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
 import com.github.swrirobotics.persistence.Bag;
@@ -69,6 +70,11 @@ public class BagControllerTest extends WebAppConfigurationAware {
             @Override
             public BagFile getBagFile() throws BagReaderException {
                 return new BagFile("/test.bag");
+            }
+
+            @Override
+            public BagStorage getBagStorage() {
+                return null;
             }
         };
     }

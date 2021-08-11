@@ -33,17 +33,25 @@ package com.github.swrirobotics.bags.storage.filesystem;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagStorage;
 import com.github.swrirobotics.bags.storage.BagWrapper;
 
 public class FilesystemBagWrapperImpl implements BagWrapper {
     private final String myPath;
+    private final BagStorage myBagStorage;
 
-    public FilesystemBagWrapperImpl(String path) {
+    public FilesystemBagWrapperImpl(String path, BagStorage storage) {
         myPath = path;
+        myBagStorage = storage;
     }
 
     @Override
     public BagFile getBagFile() throws BagReaderException {
         return BagReader.readFile(myPath);
+    }
+
+    @Override
+    public BagStorage getBagStorage() {
+        return myBagStorage;
     }
 }

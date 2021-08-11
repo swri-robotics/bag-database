@@ -159,6 +159,7 @@ public class BagService extends StatusProvider {
             FilesystemBagStorageConfigImpl fsConfig = new FilesystemBagStorageConfigImpl();
             if (myConfigService != null && myConfigService.getConfiguration() != null) {
                 fsConfig.basePath = myConfigService.getConfiguration().getBagPath();
+                fsConfig.dockerPath = "/bags";
             }
             fsConfig.storageId = "default";
             storageConfigs.add(fsConfig);
