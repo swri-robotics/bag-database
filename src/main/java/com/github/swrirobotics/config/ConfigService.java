@@ -35,11 +35,12 @@ import com.esotericsoftware.yamlbeans.YamlReader;
 import com.esotericsoftware.yamlbeans.YamlWriter;
 import com.github.swrirobotics.bags.storage.BagScanner;
 import com.github.swrirobotics.support.web.Configuration;
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
@@ -47,11 +48,12 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Set;
 
 @Service
 public class ConfigService {
-    @Autowired
-    private ApplicationContext myAC;
+    private final ApplicationContext myAC;
+    private final Environment myEnvironment;
 
     private BagScanner myBagScanner = null;
 
@@ -60,8 +62,20 @@ public class ConfigService {
 
     private final Logger myLogger = LoggerFactory.getLogger(ConfigService.class);
 
+    public ConfigService(ApplicationContext myAC, Environment myEnvironment) {
+        this.myAC = myAC;
+        this.myEnvironment = myEnvironment;
+    }
+
     public Configuration getConfiguration() {
         Configuration config = new Configuration();
+
+        Set<String> profileSet = Sets.newHashSet(myEnvironment.getActiveProfiles());
+        if (profileSet.contains("test")) {
+            // Don't actually read in the config file if we're in test mode.
+            return config;
+        }
+
         URL fileUrl = null;
         try {
             fileUrl = new URL(filename);

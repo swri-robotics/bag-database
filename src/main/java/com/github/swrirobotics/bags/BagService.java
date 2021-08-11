@@ -41,6 +41,8 @@ import com.github.swrirobotics.bags.reader.records.Connection;
 import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageConfigImpl;
 import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageImpl;
+import com.github.swrirobotics.bags.storage.s3.S3BagStorageConfigImpl;
+import com.github.swrirobotics.bags.storage.s3.S3BagStorageImpl;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.MessageType;
 import com.github.swrirobotics.persistence.*;
@@ -171,6 +173,11 @@ public class BagService extends StatusProvider {
                 if (config instanceof FilesystemBagStorageConfigImpl) {
                     myLogger.info("Creating FilesystemBagStorageImpl.");
                     storage = applicationContext.getBean(FilesystemBagStorageImpl.class);
+                    storage.setBagService(this);
+                }
+                else if (config instanceof S3BagStorageConfigImpl) {
+                    myLogger.info("Creating S3BagStorageImpl.");
+                    storage = applicationContext.getBean(S3BagStorageImpl.class);
                     storage.setBagService(this);
                 }
                 else {

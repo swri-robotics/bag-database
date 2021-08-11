@@ -41,7 +41,6 @@ import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.BagTreeNode;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.hibernate.exception.ConstraintViolationException;
@@ -67,10 +66,20 @@ import java.util.stream.Stream;
 @Service
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FilesystemBagStorageImpl extends StatusProvider implements BagStorage, RecursiveWatcher.WatchListener {
+    public static final String type = "filesystem";
+
+    private static final Logger myLogger = LoggerFactory.getLogger(FilesystemBagStorageImpl.class);
+
     private final ApplicationContext applicationContext;
     private final BagRepository bagRepository;
-    private BagService bagService;
     private final ConfigService configService;
+    private BagService bagService;
+
+    private final DirectoryStream.Filter<Path> myDirFilter = path -> path.toFile().isDirectory();
+    private final Set<BagStorageChangeListener> myChangeListeners = Sets.newHashSet();
+    private FilesystemBagStorageConfigImpl myConfig = null;
+    private RecursiveWatcher myWatcher = null;
+
 
     public FilesystemBagStorageImpl(ApplicationContext applicationContext, BagRepository bagRepository,
                                     ConfigService configService) {
@@ -98,18 +107,6 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
             listener.bagStorageChanged(event);
         }
     }
-
-    private FilesystemBagStorageConfigImpl myConfig = null;
-
-    private static final Logger myLogger = LoggerFactory.getLogger(FilesystemBagStorageImpl.class);
-
-    public static final String type = "filesystem";
-
-    private final DirectoryStream.Filter<Path> myDirFilter = path -> path.toFile().isDirectory();
-
-    private RecursiveWatcher myWatcher = null;
-
-    private final Set<BagStorageChangeListener> myChangeListeners = Sets.newHashSet();
 
     @Override
     public void addChangeListener(BagStorageChangeListener listener) {
