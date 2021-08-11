@@ -206,21 +206,24 @@ public class RunnableScript implements Runnable {
             for (Bag bag : bags) {
                 // Currently this will only work for bags that are stored on a local filesystem if their backend's
                 // root path is also mounted inside the DinD container at BAGS_DIR.
-                BagWrapper wrapper = bagService.getBagWrapper(bag);
-                BagStorageConfiguration config = wrapper.getBagStorage().getConfig();
-                String relativeBagPath;
-                if (config.isLocal) {
-                    BagStorage storage = wrapper.getBagStorage();
-                    String baseBagPath = storage.getRootPath();
-                    String dindBagPath = config.dockerPath;
-                    String absolutePath = wrapper.getBagFile().getPath().toAbsolutePath().toString();
-                    relativeBagPath = absolutePath.replaceFirst(baseBagPath, dindBagPath);
+                try (BagWrapper wrapper = bagService.getBagWrapper(bag)) {
+                    // TODO This probably won't work here because we don't want to close the wrappers
+                    // before the script runs
+                    BagStorageConfiguration config = wrapper.getBagStorage().getConfig();
+                    String relativeBagPath;
+                    if (config.isLocal) {
+                        BagStorage storage = wrapper.getBagStorage();
+                        String baseBagPath = storage.getRootPath();
+                        String dindBagPath = config.dockerPath;
+                        String absolutePath = wrapper.getBagFile().getPath().toAbsolutePath().toString();
+                        relativeBagPath = absolutePath.replaceFirst(baseBagPath, dindBagPath);
+                    }
+                    else {
+                        throw new IOException("Unable to process non-local bag files.");
+                    }
+                    bindBuilder.add(Joiner.on(':').join(relativeBagPath, relativeBagPath, ""));
+                    command.add("/" + relativeBagPath);
                 }
-                else {
-                    throw new IOException("Unable to process non-local bag files.");
-                }
-                bindBuilder.add(Joiner.on(':').join(relativeBagPath, relativeBagPath, ""));
-                command.add("/" + relativeBagPath);
             }
 
             // Pull the Docker image to make sure it's ready

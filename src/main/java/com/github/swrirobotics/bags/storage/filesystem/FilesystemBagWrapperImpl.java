@@ -36,6 +36,8 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.storage.BagStorage;
 import com.github.swrirobotics.bags.storage.BagWrapper;
 
+import java.io.IOException;
+
 public class FilesystemBagWrapperImpl implements BagWrapper {
     private final String myPath;
     private final BagStorage myBagStorage;
@@ -53,5 +55,10 @@ public class FilesystemBagWrapperImpl implements BagWrapper {
     @Override
     public BagStorage getBagStorage() {
         return myBagStorage;
+    }
+
+    @Override
+    public void close() throws IOException {
+        // Don't need to do anything for local files
     }
 }

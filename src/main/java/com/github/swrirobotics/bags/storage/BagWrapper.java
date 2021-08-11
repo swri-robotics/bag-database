@@ -33,7 +33,9 @@ package com.github.swrirobotics.bags.storage;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
-public interface BagWrapper {
+import java.io.Closeable;
+
+public interface BagWrapper extends Closeable {
     /**
      * Gets a BagFile object that can be used to read data from this bag.  For remotely-stored bags, this
      * may involve copying the bag file to a local filesystem.

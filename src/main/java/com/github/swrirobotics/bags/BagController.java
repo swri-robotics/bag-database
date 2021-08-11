@@ -76,28 +76,20 @@ public class BagController {
         long id = Long.parseLong(bagId);
         myLogger.info("downloadBag: " + id);
 
-        BagWrapper bag;
-        try {
-            bag = myBagService.getBagWrapper(id);
-
-            if (bag != null) {
-                BagFile file = bag.getBagFile();
-                response.setHeader("Content-Disposition", "attachment; filename=" + file.getPath().getFileName());
-                response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-                myLogger.info("Found bag: " + file.getPath());
-                return new FileSystemResource(file.getPath().toFile());
-            }
-            else {
-                myLogger.warn("Bag not found.");
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return null;
-            }
+        try (BagWrapper bag = myBagService.getBagWrapper(id)){
+            BagFile file = bag.getBagFile();
+            response.setHeader("Content-Disposition", "attachment; filename=" + file.getPath().getFileName());
+            response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
+            myLogger.info("Found bag: " + file.getPath());
+            return new FileSystemResource(file.getPath().toFile());
         }
         catch (NonexistentBagException e) {
+            myLogger.warn("Bag not found.");
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return null;
         }
         catch (BagReaderException e) {
+            myLogger.warn("Error reading bag.");
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return null;
         }

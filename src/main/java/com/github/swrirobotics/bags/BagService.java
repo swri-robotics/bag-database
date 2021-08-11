@@ -235,8 +235,7 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     public byte[] getImage(Long bagId, String topicName, int index) throws BagReaderException, NonexistentBagException {
-        BagWrapper wrapper = getBagWrapper(bagId);
-        try {
+        try (BagWrapper wrapper = getBagWrapper(bagId)) {
             BagFile bagFile = wrapper.getBagFile();
 
             myLogger.debug("Reading message #" + index + " from bag " + bagId +
@@ -762,8 +761,8 @@ public class BagService extends StatusProvider {
     @Transactional(readOnly = true)
     void writeVideoStream(Long bagId, String topicName, Long frameSkip, OutputStream output) throws BagReaderException,
         NonexistentBagException {
-        BagWrapper wrapper = getBagWrapper(bagId);
-        try {
+
+        try (BagWrapper wrapper = getBagWrapper(bagId)) {
             BagFile bagFile = wrapper.getBagFile();
 
             long messageCount = -1;
@@ -1356,15 +1355,14 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void updateGpsPositionsForBagId(long bagId) throws NonexistentBagException {
-        BagWrapper wrapper = getBagWrapper(bagId);
-        try {
+        try (BagWrapper wrapper = getBagWrapper(bagId)) {
             BagFile bagFile = wrapper.getBagFile();
 
             Bag bag = myBagRepository.getOne(bagId);
             updateGpsPositions(bag, getAllGpsMessages(bagFile));
             myBagRepository.save(bag);
         }
-        catch (BagReaderException e) {
+        catch (BagReaderException | IOException e) {
             reportStatus(Status.State.ERROR,
                          "Unable to get GPS info for bag " + bagId + ": " + e.getLocalizedMessage());
         }

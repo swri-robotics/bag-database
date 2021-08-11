@@ -47,6 +47,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.restdocs.payload.FieldDescriptor;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,6 +68,11 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
     public BagWrapper makeTestBagWrapper() {
         return new BagWrapper() {
+            @Override
+            public void close() throws IOException {
+
+            }
+
             @Override
             public BagFile getBagFile() throws BagReaderException {
                 return new BagFile("/test.bag");
