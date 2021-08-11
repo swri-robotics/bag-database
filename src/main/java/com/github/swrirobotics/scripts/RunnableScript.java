@@ -32,6 +32,9 @@ package com.github.swrirobotics.scripts;
 
 import com.amihaiemil.docker.Container;
 import com.amihaiemil.docker.Docker;
+import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.status.Status;
@@ -39,7 +42,6 @@ import com.google.common.base.Joiner;
 import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -57,14 +59,11 @@ import java.util.stream.Collectors;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class RunnableScript implements Runnable {
-    @Autowired
-    private BagRepository bagRepository;
-    @Autowired
-    private ConfigService configService;
-    @Autowired
-    private ScriptResultRepository resultRepository;
-    @Autowired
-    private ScriptService scriptService;
+    private final BagRepository bagRepository;
+    private final BagService bagService;
+    private final ConfigService configService;
+    private final ScriptResultRepository resultRepository;
+    private final ScriptService scriptService;
 
     final private UUID runUuid;
     private Script script;
@@ -75,10 +74,17 @@ public class RunnableScript implements Runnable {
     private Status endStatus;
 
     private final Logger myLogger = LoggerFactory.getLogger(RunnableScript.class);
+    private static final String SCRIPTS_DIR = "/scripts/"; // Should be the volume where scripts are mounted in the docker container
     private static final String SCRIPT_TMP_NAME = "/script.py";
 
-    public RunnableScript() {
+    public RunnableScript(BagRepository bagRepository, BagService bagService, ConfigService configService,
+                          ScriptResultRepository resultRepository, ScriptService scriptService) {
         this.runUuid = UUID.randomUUID();
+        this.bagRepository = bagRepository;
+        this.bagService = bagService;
+        this.configService = configService;
+        this.resultRepository = resultRepository;
+        this.scriptService = scriptService;
     }
 
     public void initialize(Script script, List<Bag> bags, Docker docker) {
@@ -171,7 +177,7 @@ public class RunnableScript implements Runnable {
             else if (!scriptDir.isDirectory()) {
                 myLogger.error("Script dir is not actually a directory.");
             }
-            scriptFile = File.createTempFile("bagdb", "py", scriptDir);
+            scriptFile = File.createTempFile("bagdb", ".py", scriptDir);
             try (FileWriter writer = new FileWriter(scriptFile)) {
                 writer.write(script.getScript());
             }
@@ -181,11 +187,21 @@ public class RunnableScript implements Runnable {
 
             // Assemble bind configurations for our script and all of the bags it uses
             JsonArrayBuilder bindBuilder = Json.createArrayBuilder();
-            bindBuilder.add(Joiner.on(':').join(scriptFile.getAbsolutePath(), SCRIPT_TMP_NAME));
+            bindBuilder.add(Joiner.on(':').join(SCRIPTS_DIR + scriptFile.getName(), SCRIPT_TMP_NAME));
             List<String> command = new ArrayList<>();
             command.add(SCRIPT_TMP_NAME);
+            // TODO Figure out a good way to load bag files for non-filesystem storage
+            // Currently bag files are accessed through mounting a volume in a docker-in-docker container that
+            // points to the directory on the local filesystem that has bags in it, and then individual bag files
+            // are mounted from that directory into the docker container that runs the scripts.
+            // This won't work for non-local file storage, obviously, so we'll have to download the bags from there
+            // into a temporary location, but how should we handle getting that inside the DinD container?
+            // We should probably set up a temporary directory that is just for storing downloaded bag files,
+            // but that will need to be mounted into the DinD container, we'll need to be able to determine when that
+            // is necessary, and we'll need to clean them up when we're done.
             for (Bag bag : bags) {
-                String absolutePath = bag.getPath() + "/" + bag.getFilename();
+                BagWrapper wrapper = bagService.getBagWrapper(bag);
+                String absolutePath = wrapper.getBagFile().getPath().toAbsolutePath().toString();
                 bindBuilder.add(Joiner.on(':').join(absolutePath,
                     "/" + absolutePath, ""));
                 command.add("/" + absolutePath);
@@ -305,7 +321,7 @@ public class RunnableScript implements Runnable {
             result.setStdout(stdout);
 
         }
-        catch (IOException e) {
+        catch (IOException | BagReaderException e) {
             myLogger.error("IO Exception:", e);
             result.setErrorMessage(e.getLocalizedMessage());
         }

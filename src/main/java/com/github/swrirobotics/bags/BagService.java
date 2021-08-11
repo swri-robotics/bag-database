@@ -96,7 +96,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class BagService extends StatusProvider {
-    private final BagRepository bagRepository;
+    private final BagRepository myBagRepository;
     private final BagPositionRepository myBagPositionRepository;
     private final MessageTypeRepository myMTRepository;
     private final TopicRepository myTopicRepository;
@@ -127,7 +127,7 @@ public class BagService extends StatusProvider {
             myLogger.warn("Library was already loaded.", e);
         }
         catch (Exception e) {
-            myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadlable", e);
+            myLogger.warn("Unable to load OpenCV.  Some image formats will be unreadable", e);
         }
     }
 
@@ -135,7 +135,7 @@ public class BagService extends StatusProvider {
                       MessageTypeRepository myMTRepository, TopicRepository myTopicRepository,
                       TagRepository myTagRepository, ConfigService myConfigService, GeocodingService myGeocodingService,
                       ScriptService myScriptService, ApplicationContext applicationContext) {
-        this.bagRepository = bagRepository;
+        this.myBagRepository = bagRepository;
         this.myBagPositionRepository = myBagPositionRepository;
         this.myMTRepository = myMTRepository;
         this.myTopicRepository = myTopicRepository;
@@ -212,7 +212,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public BagWrapper getBagWrapper(long bagId) throws NonexistentBagException {
-        Bag bag = bagRepository.findById(bagId).orElseThrow(() ->
+        Bag bag = myBagRepository.findById(bagId).orElseThrow(() ->
             new NonexistentBagException("Bag not found: " + bagId));
         BagStorage storage = myBagStorages.get(bag.getStorageId());
         return storage.getBagWrapper(bagId);
@@ -226,7 +226,7 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     public Bag getBag(Long bagId) throws NonexistentBagException {
-        Bag response = bagRepository.findById(bagId).orElseThrow(() ->
+        Bag response = myBagRepository.findById(bagId).orElseThrow(() ->
                 new NonexistentBagException("Bag not found: " + bagId));
         myLogger.debug("Successfully got bag: " + response.getFilename());
         return response;
@@ -970,7 +970,7 @@ public class BagService extends StatusProvider {
         String msg = "Removing duplicate bag files.";
         myLogger.info(msg);
         reportStatus(Status.State.WORKING, msg);
-        List<Bag> bags = bagRepository.findAll();
+        List<Bag> bags = myBagRepository.findAll();
         Map<String, List<Bag>> md5Bags = Maps.newHashMap();
 
         for (Bag bag : bags) {
@@ -990,7 +990,7 @@ public class BagService extends StatusProvider {
                     msg = "Removing bag w/ ID " + dupBag.getMd5sum();
                     myLogger.debug(msg);
                     reportStatus(Status.State.WORKING, msg);
-                    bagRepository.delete(dupBag);
+                    myBagRepository.delete(dupBag);
                 }
             }
         }
@@ -1005,7 +1005,7 @@ public class BagService extends StatusProvider {
 
     @Transactional
     public void updateBag(Bag newBag) {
-        Bag dbBag = bagRepository.findById(newBag.getId()).orElseThrow();
+        Bag dbBag = myBagRepository.findById(newBag.getId()).orElseThrow();
         dbBag.setDescription(newBag.getDescription());
         if (newBag.getLatitudeDeg() != null && newBag.getLongitudeDeg() != null)
         {
@@ -1019,7 +1019,7 @@ public class BagService extends StatusProvider {
         dbBag.setVehicle(newBag.getVehicle());
         dbBag.getTags().addAll(newBag.getTags());
         dbBag.setUpdatedOn(new Timestamp(System.currentTimeMillis()));
-        bagRepository.save(dbBag);
+        myBagRepository.save(dbBag);
     }
 
     public void uploadBag(MultipartFile file, String targetDirectory, String storageId) throws IOException {
@@ -1140,10 +1140,10 @@ public class BagService extends StatusProvider {
 
         if ((text == null || text.trim().isEmpty() || fields == null || fields.length == 0) &&
             (filters == null || filters.length == 0)) {
-            bags = bagRepository.findAll(pageReq);
+            bags = myBagRepository.findAll(pageReq);
         }
         else {
-            bags = bagRepository.findAll((root, query, cb) -> {
+            bags = myBagRepository.findAll((root, query, cb) -> {
                 // We only want one result per bag file, though.
                 query.distinct(true);
 
@@ -1188,7 +1188,7 @@ public class BagService extends StatusProvider {
 
     @Transactional(readOnly = true)
     public List<Long> getAllBagIds() {
-        List<Bag> bags = bagRepository.findAll();
+        List<Bag> bags = myBagRepository.findAll();
         List<Long> bagIds = Lists.newArrayListWithCapacity(bags.size());
 
         bagIds.addAll(bags.parallelStream().map(Bag::getId).collect(Collectors.toList()));
@@ -1312,7 +1312,7 @@ public class BagService extends StatusProvider {
     public List<String> getPaths() {
         Set<String> paths = new HashSet<>();
         for (BagStorage storage : myBagStorages.values()) {
-            List<String> tmpPaths = bagRepository.getDisinctPathsByStorageId(storage.getStorageId());
+            List<String> tmpPaths = myBagRepository.getDisinctPathsByStorageId(storage.getStorageId());
             List<String> filteredPaths = new ArrayList<>();
             for (String path : tmpPaths) {
                 filteredPaths.add(path.replaceFirst(storage.getRootPath(), ""));
@@ -1359,9 +1359,9 @@ public class BagService extends StatusProvider {
         try {
             BagFile bagFile = wrapper.getBagFile();
 
-            Bag bag = bagRepository.getOne(bagId);
+            Bag bag = myBagRepository.getOne(bagId);
             updateGpsPositions(bag, getAllGpsMessages(bagFile));
-            bagRepository.save(bag);
+            myBagRepository.save(bag);
         }
         catch (BagReaderException e) {
             reportStatus(Status.State.ERROR,
@@ -1401,7 +1401,7 @@ public class BagService extends StatusProvider {
     @Transactional
     public void removeTagForBag(Collection<String> tagNames,
                                 final Long bagId) throws NonexistentBagException {
-        if (!bagRepository.existsById(bagId)) {
+        if (!myBagRepository.existsById(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
@@ -1412,7 +1412,7 @@ public class BagService extends StatusProvider {
     public void setTagForBag(String tagName,
                              final String value,
                              final Long bagId) throws NonexistentBagException {
-        if (!bagRepository.existsById(bagId)) {
+        if (!myBagRepository.existsById(bagId)) {
             throw new NonexistentBagException("No bag found with ID: " + bagId);
         }
 
@@ -1437,14 +1437,15 @@ public class BagService extends StatusProvider {
                             final String locationName,
                             final List<GpsPosition> gpsPositions,
                             final String storageId) throws BagReaderException, DuplicateBagException {
-        Bag bag = bagRepository.findByMd5sum(md5sum);
+        Bag bag = myBagRepository.findByMd5sum(md5sum);
 
         // We checked earlier if there were any other bags with this MD5 sum,
         // but that was before we entered the synchronized area, so we need
         // to check again just in case somebody managed to insert one before we
         // got the lock.
         if (bag != null) {
-            throw new DuplicateBagException("Duplicate of: " + bag.getPath() + bag.getFilename());
+            throw new DuplicateBagException("Duplicate of: " + bag.getStorageId() + ":" +
+                bag.getPath() + bag.getFilename());
         }
 
         bag = new Bag();
@@ -1474,7 +1475,7 @@ public class BagService extends StatusProvider {
             bag.setCoordinate(makePoint(pos.latitude, pos.longitude));
         }
         bag.setLocation(locationName);
-        bag = bagRepository.save(bag);
+        bag = myBagRepository.save(bag);
         myLogger.trace("Initial bag save for " + file.getAbsolutePath());
 
         Map<String, MessageType> dbMessageTypes = addMessageTypesToBag(bagFile, bag);
@@ -1626,10 +1627,10 @@ public class BagService extends StatusProvider {
 
         // If it's still null, it is still possible that this is a duplicate of another bag, so check that, too.
         if (bagId == null) {
-            Bag existingBag = bagRepository.findByMd5sum(md5sum);
+            Bag existingBag = myBagRepository.findByMd5sum(md5sum);
             if (existingBag != null) {
                 String msg = "File " + file.getAbsolutePath() + " is a duplicate of " +
-                             existingBag.getPath() + existingBag.getFilename() + ".";
+                             existingBag.getStorageId() + ":" + existingBag.getPath() + existingBag.getFilename() + ".";
                 reportStatus(Status.State.ERROR, msg);
                 myLogger.warn(msg);
                 return;
@@ -1748,7 +1749,7 @@ public class BagService extends StatusProvider {
             // If we found a missing one, remove it from the list and update
             // its path.
             String path = file.getPath().replace(file.getName(), "");
-            bag = bagRepository.findById(bagId).orElseThrow();
+            bag = myBagRepository.findById(bagId).orElseThrow();
             bag.setPath(path);
             bag.setFilename(file.getName());
             bag.setMissing(false);
@@ -1756,7 +1757,7 @@ public class BagService extends StatusProvider {
             bag.setStorageId(storageId);
             addTagsToBag(bagFile, bag);
         }
-        bagRepository.save(bag);
+        myBagRepository.save(bag);
         String msg = "Committing: " + file.getAbsolutePath();
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);

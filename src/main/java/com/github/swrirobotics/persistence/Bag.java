@@ -121,7 +121,7 @@ public class Bag implements Serializable {
         this.filename = filename;
     }
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     public String getPath() {
         return path;
     }

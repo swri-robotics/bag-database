@@ -31,16 +31,17 @@
 package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.swrirobotics.bags.reader.BagFile;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.BagCount;
 import com.github.swrirobotics.persistence.Tag;
-import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -72,18 +73,19 @@ public class BagController {
     public FileSystemResource downloadBag(
             @RequestParam String bagId,
             HttpServletResponse response) throws IOException {
-        Long id = Long.valueOf(bagId);
+        long id = Long.parseLong(bagId);
         myLogger.info("downloadBag: " + id);
 
-        Bag bag;
+        BagWrapper bag;
         try {
-            bag = myBagService.getBag(id);
+            bag = myBagService.getBagWrapper(id);
 
             if (bag != null) {
-                response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
+                BagFile file = bag.getBagFile();
+                response.setHeader("Content-Disposition", "attachment; filename=" + file.getPath().getFileName());
                 response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-                myLogger.info("Found bag: " + bag.getPath() + bag.getFilename());
-                return new FileSystemResource(bag.getPath() + bag.getFilename());
+                myLogger.info("Found bag: " + file.getPath());
+                return new FileSystemResource(file.getPath().toFile());
             }
             else {
                 myLogger.warn("Bag not found.");
@@ -93,6 +95,10 @@ public class BagController {
         }
         catch (NonexistentBagException e) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return null;
+        }
+        catch (BagReaderException e) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return null;
         }
     }

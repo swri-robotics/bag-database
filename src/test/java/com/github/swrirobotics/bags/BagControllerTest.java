@@ -31,6 +31,9 @@
 package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.swrirobotics.bags.reader.BagFile;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.MessageType;
@@ -61,10 +64,20 @@ public class BagControllerTest extends WebAppConfigurationAware {
     @MockBean
     private BagService bagService;
 
+    public BagWrapper makeTestBagWrapper() {
+        return new BagWrapper() {
+            @Override
+            public BagFile getBagFile() throws BagReaderException {
+                return new BagFile("/test.bag");
+            }
+        };
+    }
+
     public Bag makeTestBag() {
         Bag bag = new Bag();
 
         bag.setVehicle("Test Vehicle");
+        bag.setStorageId("default");
         bag.setLocation("Test Location");
         bag.setDescription("Test Description");
         bag.setCompressed(false);
@@ -229,7 +242,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
     @Test
     public void downloadBag() throws Exception {
-        when(bagService.getBag(1L)).thenReturn(makeTestBag());
+        when(bagService.getBagWrapper(1L)).thenReturn(makeTestBagWrapper());
         mockMvc.perform(get("/bags/download").param("bagId", "1"))
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Disposition", "attachment; filename=test.bag"))
