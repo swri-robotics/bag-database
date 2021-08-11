@@ -45,11 +45,11 @@ import java.util.stream.Stream;
 public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificationExecutor<Bag> {
     Long countByPathStartsWith(String path);
     List<Bag> findByPathAndFilename(String path, String filename);
-    List<Bag> findByPath(String path);
+    List<Bag> findByPathAndStorageId(String path, String storageId);
     List<Bag> findByMissing(boolean isMissing);
     Stream<Bag> findByStorageId(String storageId);
     Stream<Bag> findByStorageIdAndMissing(String storageId, boolean isMissing);
     Bag findByMd5sum(String md5sum);
-    @Query("select distinct b.path from Bag b")
-    List<String> getDisinctPaths();
+    @Query("select distinct b.path from Bag b where b.storageId = ?1")
+    List<String> getDisinctPathsByStorageId(String storageId);
 }

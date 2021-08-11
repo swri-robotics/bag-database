@@ -38,10 +38,7 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.*;
 import com.github.swrirobotics.bags.reader.records.Connection;
-import com.github.swrirobotics.bags.storage.BagStorage;
-import com.github.swrirobotics.bags.storage.BagStorageConfigException;
-import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
-import com.github.swrirobotics.bags.storage.GpsPosition;
+import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageConfigImpl;
 import com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageImpl;
 import com.github.swrirobotics.config.ConfigService;
@@ -93,13 +90,8 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -218,6 +210,20 @@ public class BagService extends StatusProvider {
         return storageList;
     }
 
+    @Transactional
+    public BagWrapper getBagWrapper(long bagId) throws NonexistentBagException {
+        Bag bag = bagRepository.findById(bagId).orElseThrow(() ->
+            new NonexistentBagException("Bag not found: " + bagId));
+        BagStorage storage = myBagStorages.get(bag.getStorageId());
+        return storage.getBagWrapper(bagId);
+    }
+
+    @Transactional
+    public BagWrapper getBagWrapper(Bag bag) {
+        BagStorage storage = myBagStorages.get(bag.getStorageId());
+        return storage.getBagWrapper(bag);
+    }
+
     @Transactional(readOnly = true)
     public Bag getBag(Long bagId) throws NonexistentBagException {
         Bag response = bagRepository.findById(bagId).orElseThrow(() ->
@@ -227,15 +233,10 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional(readOnly = true)
-    public byte[] getImage(Long bagId, String topicName, int index) throws BagReaderException {
-        Bag bag = bagRepository.findById(bagId).orElse(null);
-        if (bag == null) {
-            throw new BagReaderException("Bag not found: " + bagId);
-        }
-        String fullPath = bag.getPath() + bag.getFilename();
+    public byte[] getImage(Long bagId, String topicName, int index) throws BagReaderException, NonexistentBagException {
+        BagWrapper wrapper = getBagWrapper(bagId);
         try {
-            // TODO Update for new storage backend
-            BagFile bagFile = BagReader.readFile(fullPath);
+            BagFile bagFile = wrapper.getBagFile();
 
             myLogger.debug("Reading message #" + index + " from bag " + bagId +
                            " on topic [" + topicName + "]");
@@ -267,7 +268,7 @@ public class BagService extends StatusProvider {
 
         }
         catch (BagReaderException | UninitializedFieldException | IOException e) {
-            String msg = "Unable to read image for " + fullPath + ": " + e.getLocalizedMessage();
+            String msg = "Unable to read image for bag " + bagId + ": " + e.getLocalizedMessage();
             myLogger.error(msg, e);
             throw new BagReaderException(e);
         }
@@ -758,15 +759,11 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional(readOnly = true)
-    void writeVideoStream(Long bagId, String topicName, Long frameSkip, OutputStream output) throws BagReaderException {
-        Bag bag = bagRepository.findById(bagId).orElse(null);
-        if (bag == null) {
-            throw new BagReaderException("Bag not found: " + bagId);
-        }
-        // TODO Update for new storage backend
-        String fullPath = bag.getPath() + bag.getFilename();
+    void writeVideoStream(Long bagId, String topicName, Long frameSkip, OutputStream output) throws BagReaderException,
+        NonexistentBagException {
+        BagWrapper wrapper = getBagWrapper(bagId);
         try {
-            BagFile bagFile = BagReader.readFile(fullPath);
+            BagFile bagFile = wrapper.getBagFile();
 
             long messageCount = -1;
             for (TopicInfo topic : bagFile.getTopics()) {
@@ -794,7 +791,7 @@ public class BagService extends StatusProvider {
             handler.finish();
         }
         catch (BagReaderException e) {
-            String msg = "Unable to read image for " + fullPath + ": " + e.getLocalizedMessage();
+            String msg = "Unable to read image for bag " + bagId + ": " + e.getLocalizedMessage();
             myLogger.error(msg, e);
             throw new BagReaderException(e);
         }
@@ -1313,12 +1310,18 @@ public class BagService extends StatusProvider {
      * @return All known bag paths.
      */
     public List<String> getPaths() {
-        List<String> tmpPaths = bagRepository.getDisinctPaths();
-        List<String> filteredPaths = new ArrayList<>();
-        for (String path : tmpPaths) {
-            filteredPaths.add(path.replaceFirst(myConfigService.getConfiguration().getBagPath(), ""));
+        Set<String> paths = new HashSet<>();
+        for (BagStorage storage : myBagStorages.values()) {
+            List<String> tmpPaths = bagRepository.getDisinctPathsByStorageId(storage.getStorageId());
+            List<String> filteredPaths = new ArrayList<>();
+            for (String path : tmpPaths) {
+                filteredPaths.add(path.replaceFirst(storage.getRootPath(), ""));
+            }
+            paths.addAll(filteredPaths);
         }
-        return filteredPaths;
+        List<String> sortedPaths = Lists.newArrayList(paths);
+        sortedPaths.sort(String::compareToIgnoreCase);
+        return sortedPaths;
     }
 
     /**
@@ -1351,18 +1354,18 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    public void updateGpsPositionsForBagId(long bagId) {
-        Bag bag = bagRepository.findById(bagId).orElseThrow();
-        // TODO Update for new storage backend
-        String fullPath = bag.getPath() + bag.getFilename();
+    public void updateGpsPositionsForBagId(long bagId) throws NonexistentBagException {
+        BagWrapper wrapper = getBagWrapper(bagId);
         try {
-            BagFile bagFile = BagReader.readFile(fullPath);
+            BagFile bagFile = wrapper.getBagFile();
+
+            Bag bag = bagRepository.getOne(bagId);
             updateGpsPositions(bag, getAllGpsMessages(bagFile));
             bagRepository.save(bag);
         }
         catch (BagReaderException e) {
             reportStatus(Status.State.ERROR,
-                         "Unable to get GPS info for " + fullPath + ": " + e.getLocalizedMessage());
+                         "Unable to get GPS info for bag " + bagId + ": " + e.getLocalizedMessage());
         }
     }
 
@@ -1662,7 +1665,7 @@ public class BagService extends StatusProvider {
             try {
                 newBag = updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions,
                     storageId);
-                String msg = "Done processing: " + bagFile.getPath().toFile().toString();
+                String msg = "Done processing: " + bagFile.getPath().toFile();
                 myLogger.debug(msg);
                 reportStatus(Status.State.IDLE, msg);
             }
@@ -1764,59 +1767,9 @@ public class BagService extends StatusProvider {
     @Transactional(readOnly = true)
     public List<BagTreeNode> getTreePath(String targetPath) throws IOException {
         List<BagTreeNode> nodes = Lists.newArrayList();
-        String basePath = myConfigService.getConfiguration().getBagPath();
-        if (targetPath.equals("root")) {
-            targetPath = basePath;
-        }
-        String bagDir = targetPath;
 
-
-        java.nio.file.Path path = FileSystems.getDefault().getPath(bagDir);
-        String parentId = path.toFile().getCanonicalPath() + "/";
-
-        if (!parentId.startsWith(basePath)) {
-            // Don't allow somebody to list paths outside of the bag path.
-            return nodes;
-        }
-
-        // First, add any child directories to the node list.
-        try (DirectoryStream<java.nio.file.Path> dirStream = Files.newDirectoryStream(path)) {
-            for (java.nio.file.Path child : dirStream) {
-                File childFile = child.toFile();
-                if (!childFile.isDirectory()) {
-                    continue;
-                }
-                String filename = childFile.getName();
-                Pattern p = Pattern.compile("@.*");
-                Matcher m = p.matcher(filename);
-                if(m.find()){
-                    continue;
-                }
-                BagTreeNode childNode = new BagTreeNode();
-                childNode.filename = filename;
-                childNode.parentId = parentId;
-                childNode.leaf = false;
-                childNode.id = parentId + filename;
-                java.nio.file.Path subdirPath = FileSystems.getDefault().getPath(childNode.id);
-                try (DirectoryStream<java.nio.file.Path> subdirStream = Files.newDirectoryStream(subdirPath)) {
-                    Iterator<java.nio.file.Path> iter = subdirStream.iterator();
-                    childNode.expanded = !iter.hasNext();
-                }
-                childNode.bagCount = bagRepository.countByPathStartsWith(childNode.id);
-                nodes.add(childNode);
-            }
-        }
-
-        // Next, get all the bags in that directory and add them.
-        List<Bag> bags = bagRepository.findByPath(parentId);
-        for (Bag bag : bags) {
-            BagTreeNode childNode = new BagTreeNode();
-            childNode.filename = bag.getFilename();
-            childNode.parentId = parentId;
-            childNode.leaf = true;
-            childNode.id = parentId + bag.getFilename();
-            childNode.bag = bag;
-            nodes.add(childNode);
+        for (BagStorage storage : myBagStorages.values()) {
+            nodes.addAll(storage.getTreeNodes(targetPath));
         }
 
         return nodes;

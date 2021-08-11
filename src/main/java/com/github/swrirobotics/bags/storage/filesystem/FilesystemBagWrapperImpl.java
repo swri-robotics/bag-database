@@ -34,36 +34,16 @@ import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.storage.BagWrapper;
-import com.github.swrirobotics.bags.storage.GpsPosition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class FilesystemBagWrapperImpl implements BagWrapper {
-    private static final Logger myLogger = LoggerFactory.getLogger(FilesystemBagWrapperImpl.class);
-
     private final String myPath;
 
-    private final FilesystemBagStorageConfigImpl myConfig;
-
-    public FilesystemBagWrapperImpl(String path, FilesystemBagStorageConfigImpl config) {
+    public FilesystemBagWrapperImpl(String path) {
         myPath = path;
-        myConfig = config;
-    }
-
-    @Override
-    public String getType() {
-        return FilesystemBagStorageImpl.type;
     }
 
     @Override
     public BagFile getBagFile() throws BagReaderException {
         return BagReader.readFile(myPath);
-    }
-
-    @Override
-    public List<GpsPosition> getGpsMessages() {
-        return null;
     }
 }

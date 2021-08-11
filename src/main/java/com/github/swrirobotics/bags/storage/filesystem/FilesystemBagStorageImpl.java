@@ -40,6 +40,8 @@ import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
+import com.github.swrirobotics.support.web.BagTreeNode;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.hibernate.exception.ConstraintViolationException;
@@ -48,16 +50,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -177,7 +177,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
                 }
                 else {
                     String message = e.getLocalizedMessage();
-                    reportStatus(Status.State.ERROR,"Error checking bag file: " + message);
+                    reportStatus(Status.State.ERROR, "Error checking bag file: " + message);
                     myLogger.error("Unexpected error updating bag file:", e);
                 }
             }
@@ -195,8 +195,75 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     }
 
     @Override
+    public String getRootPath() {
+        return myConfig.basePath;
+    }
+
+    @Override
     public String getStorageId() {
         return myConfig.storageId;
+    }
+
+    @Override
+    public List<BagTreeNode> getTreeNodes(String targetPath) throws IOException {
+        List<BagTreeNode> nodes = new ArrayList<>();
+        String basePath = myConfig.basePath;
+        String bagDir = targetPath;
+        if (targetPath.equals("root")) {
+            bagDir = basePath;
+        }
+
+        java.nio.file.Path path = FileSystems.getDefault().getPath(bagDir);
+        String parentId = path.toFile().getCanonicalPath() + "/";
+
+        if (!parentId.startsWith(basePath)) {
+            // Don't allow somebody to list paths outside of the bag path.
+            return nodes;
+        }
+
+        // First, add any child directories to the node list.
+        try (DirectoryStream<java.nio.file.Path> dirStream = Files.newDirectoryStream(path)) {
+            for (java.nio.file.Path child : dirStream) {
+                File childFile = child.toFile();
+                if (!childFile.isDirectory()) {
+                    continue;
+                }
+                String filename = childFile.getName();
+                Pattern p = Pattern.compile("@.*");
+                Matcher m = p.matcher(filename);
+                if(m.find()){
+                    continue;
+                }
+                BagTreeNode childNode = new BagTreeNode();
+                childNode.filename = filename;
+                childNode.parentId = parentId;
+                childNode.leaf = false;
+                childNode.storageId = getStorageId();
+                childNode.id = parentId + filename;
+                java.nio.file.Path subdirPath = FileSystems.getDefault().getPath(childNode.id);
+                try (DirectoryStream<java.nio.file.Path> subdirStream = Files.newDirectoryStream(subdirPath)) {
+                    Iterator<Path> iter = subdirStream.iterator();
+                    childNode.expanded = !iter.hasNext();
+                }
+                childNode.bagCount = bagRepository.countByPathStartsWith(childNode.id);
+                nodes.add(childNode);
+            }
+        }
+
+        // Next, get all the bags in that directory and add them.
+        List<Bag> bags = bagRepository.findByPathAndStorageId(parentId, getStorageId());
+        for (Bag bag : bags) {
+            BagTreeNode childNode = new BagTreeNode();
+            childNode.filename = bag.getFilename();
+            childNode.parentId = parentId;
+            childNode.storageId = getStorageId();
+            childNode.leaf = true;
+            childNode.id = parentId + bag.getFilename();
+            childNode.bag = bag;
+            nodes.add(childNode);
+        }
+
+        return nodes;
     }
 
     @Override
@@ -205,14 +272,19 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     }
 
     @Override
-    public BagWrapper getBagWrapper(String path) {
-        return new FilesystemBagWrapperImpl(path, myConfig);
+    @Transactional
+    public BagWrapper getBagWrapper(long bagId) {
+        Bag bag = bagRepository.findById(bagId).orElse(null);
+        if (bag != null) {
+            return new FilesystemBagWrapperImpl(bag.getPath() + bag.getFilename());
+        }
+        return null;
     }
 
     @Override
-    public List<BagWrapper> listBags() {
-        return getBagFiles(FileSystems.getDefault().getPath(myConfig.basePath)).stream().map(path ->
-            new FilesystemBagWrapperImpl(path.getPath(), myConfig)).collect(Collectors.toList());
+    @Transactional
+    public BagWrapper getBagWrapper(Bag bag) {
+        return new FilesystemBagWrapperImpl(bag.getPath() + bag.getFilename());
     }
 
     @Override
@@ -295,7 +367,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
         FileUtils.copyInputStreamToFile(file.getInputStream(), targetFile);
     }
 
-    private boolean presentSpecialCharacters(Path dir){
+    private boolean presentSpecialCharacters(Path dir) {
         String dirName = dir.toString();
         Pattern p = Pattern.compile("@.*");
         Matcher m = p.matcher(dirName);
@@ -310,7 +382,8 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
                     myLogger.trace("  Adding: " + bagFile.toString());
                     bagFiles.add(bagFile.toAbsolutePath().toFile());
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 myLogger.error("Error parsing directory:", e);
                 reportStatus(Status.State.ERROR, "Unable to read directory: " + dir);
             }
@@ -320,7 +393,8 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
                     myLogger.trace("  Checking subdir: " + subdir.toString());
                     bagFiles.addAll(getBagFiles(subdir));
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 myLogger.error("Error parsing subdirectory:", e);
             }
         }

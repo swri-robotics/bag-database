@@ -60,10 +60,13 @@ import java.util.*;
 @RequestMapping("bags")
 @ControllerAdvice
 public class BagController {
-    @Autowired
-    private BagService myBagService;
+    private final BagService myBagService;
 
     private final Logger myLogger = LoggerFactory.getLogger(BagController.class);
+
+    public BagController(BagService myBagService) {
+        this.myBagService = myBagService;
+    }
 
     @RequestMapping(value="/download", produces="application/x-bag")
     public FileSystemResource downloadBag(
@@ -127,7 +130,7 @@ public class BagController {
             String imageString = "data:image/jpeg;base64," + Base64.getMimeEncoder().encodeToString(imageData);
             mav.getModel().put("imageData", imageString);
         }
-        catch (BagReaderException e) {
+        catch (BagReaderException | NonexistentBagException e) {
             mav.getModel().put("errorMessage", "Error retrieving image:<br>" + e.getLocalizedMessage());
         }
         return mav;
@@ -146,7 +149,7 @@ public class BagController {
                 try {
                     myBagService.writeVideoStream(bagId, topic, frameSkip, output);
                 }
-                catch (BagReaderException e) {
+                catch (BagReaderException | NonexistentBagException e) {
                     myLogger.error("Error reading bag file:", e);
                 }
             };

@@ -31,6 +31,8 @@
 package com.github.swrirobotics.bags.storage;
 
 import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.persistence.Bag;
+import com.github.swrirobotics.support.web.BagTreeNode;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -66,10 +68,26 @@ public interface BagStorage {
     void updateBags(boolean forceUpdate);
 
     /**
+     * Returns the path to the root directory of this storage.  This should have a trailing slash.
+     * For many storage systems this may just be "/", but for filesystem storage it could be a subdirectory.
+     * @return The path to the root directory of this storage.
+     */
+    String getRootPath();
+
+    /**
      * Returns a unique identifier that represents this storage backend.
      * @return This backend's unique identifier.
      */
     String getStorageId();
+
+    /**
+     * Returns a list of tree nodes representing the contents of this storage backend at the specified path.
+     * This should include both leaves (bag files) and branches (directories) at the target path; note that it is
+     * not recursive, and only elements directly at the specified path should be returned.
+     * @param targetPath The target path, or "root", which means the base path of this storage.
+     * @return All the tree nodes at that path.
+     */
+    List<BagTreeNode> getTreeNodes(String targetPath) throws IOException;
 
     /**
      * Returns a string indicating the type of this backend.  Should be common between all backends of this type.
@@ -79,16 +97,17 @@ public interface BagStorage {
 
     /**
      * Creates a wrapper for performing operations on a bag file.
-     * @param path The absolute path to the bag file in the storage backend.
+     * @param bagId The database ID of the bag to retrieve.
      * @return A wrapper representing that bag file or null if no bag file is present at that path.
      */
-    BagWrapper getBagWrapper(String path);
+    BagWrapper getBagWrapper(long bagId);
 
     /**
-     * Returns a list of bag wrappers for every bag file in the storage backend.
-     * @return A list of bag wrappers for every bag file in the storage backend.
+     * Creates a wrapper for performing operations on a bag file.
+     * @param bag A bag persistence object.
+     * @return A wrapper representing that bag file or null if no bag file is present at that path.
      */
-    List<BagWrapper> listBags();
+    BagWrapper getBagWrapper(Bag bag);
 
     /**
      * Loads the backend's configuration.  This will be parsed from the bag database's YAML configuration.

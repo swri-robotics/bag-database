@@ -33,10 +33,6 @@ package com.github.swrirobotics.bags.storage;
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
-import java.util.List;
-
 public interface BagWrapper {
-    String getType();
     BagFile getBagFile() throws BagReaderException;
-    List<GpsPosition> getGpsMessages();
 }

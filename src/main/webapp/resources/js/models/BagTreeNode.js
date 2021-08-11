@@ -118,6 +118,8 @@ Ext.define('BagDatabase.models.BagTreeNode', {
     }, {
         name: 'startTime', mapping: 'bag.startTime', type: 'date', dateFormat: 'time'
     }, {
+        name: 'storageId', mapping: 'bag.storageId'
+    }, {
         name: 'updatedOn', mapping: 'bag.updatedOn', type: 'date', dateFormat: 'time'
     }, {
         name: 'vehicle', mapping: 'bag.vehicle', sortType: function(value) {

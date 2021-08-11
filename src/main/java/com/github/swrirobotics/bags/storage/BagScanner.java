@@ -32,8 +32,8 @@ package com.github.swrirobotics.bags.storage;
 
 
 import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.bags.reader.BagFile;
-import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
@@ -50,7 +50,6 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -206,13 +205,13 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
 
             Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if (bag.getVehicle() == null || bag.getVehicle().isEmpty()) {
-                String fullPath = bag.getPath() + bag.getFilename();
+                BagWrapper wrapper = myBagService.getBagWrapper(bag);
                 try {
-                    BagFile bagFile = BagReader.readFile(fullPath);
+                    BagFile bagFile = wrapper.getBagFile();
                     String name = myBagService.getVehicleName(bagFile);
                     if (name != null) {
                         myLogger.debug("Setting vehicle name for " +
-                                       fullPath + " to " + name);
+                                       bag.getFilename() + " to " + name);
                         bag.setVehicle(name);
                         myBagRepo.save(bag);
                     }
@@ -220,7 +219,7 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
                 catch (BagReaderException e) {
                     reportStatus(Status.State.ERROR,
                                  "Unable to get vehicle name from bag file " +
-                                 fullPath + ": " + e.getLocalizedMessage());
+                                 bag.getFilename() + ": " + e.getLocalizedMessage());
                     reportStatus(Status.State.WORKING,
                                  "Updating vehicle names for all bag files.");
                 }
@@ -238,14 +237,19 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
         @Transactional
         public void updateBag(Long bagId) {
             Bag bag = myBagRepo.findById(bagId).orElseThrow();
-            String fullPath = bag.getPath() + bag.getFilename();
+            BagWrapper wrapper = myBagService.getBagWrapper(bag);
+            if (wrapper == null) {
+                reportStatus(Status.State.ERROR, "Unable to find bag " + bagId);
+                return;
+            }
             try {
-                BagFile bagFile = BagReader.readFile(fullPath);
+                BagFile bagFile = wrapper.getBagFile();
                 myBagService.addTagsToBag(bagFile,bag);
-            } catch (BagReaderException e) {
+            }
+            catch (BagReaderException e) {
                 reportStatus(Status.State.ERROR,
                         "Unable to get tags from bag file " +
-                                fullPath + ": " + e.getLocalizedMessage());
+                                bag.getFilename() + ": " + e.getLocalizedMessage());
                 reportStatus(Status.State.WORKING,
                         "Updating tags for all bag files.");
             }
@@ -261,7 +265,14 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            myBagService.updateGpsPositionsForBagId(bagId);
+            try {
+                myBagService.updateGpsPositionsForBagId(bagId);
+            }
+            catch (NonexistentBagException e) {
+                reportStatus(Status.State.ERROR,
+                    "Unable to get GPS coordinates from bag " +
+                        bagId + ": " + e.getLocalizedMessage());
+            }
         }
     }
 
@@ -280,9 +291,9 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
                     bag.getLongitudeDeg() == null ||
                     (Math.abs(bag.getLatitudeDeg()) < 0.0001 &&
                             Math.abs(bag.getLongitudeDeg()) < 0.0001)) {
-                String fullPath = bag.getPath() + bag.getFilename();
+                BagWrapper wrapper = myBagService.getBagWrapper(bag);
                 try {
-                    BagFile bagFile = BagReader.readFile(fullPath);
+                    BagFile bagFile = wrapper.getBagFile();
                     MessageType mt = bagFile.getFirstMessageOfType("gps_common/GPSFix");
                     if (mt == null) {
                         mt = bagFile.getFirstMessageOfType("sensor_msgs/NavSatFix");
@@ -291,20 +302,21 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
                         mt = bagFile.getFirstMessageOfType("marti_gps_common/GPSFix");
                     }
                     if (mt == null) {
-                        myLogger.debug("No GPSFix or NavSatFix message found in bag " + fullPath + ".");
+                        myLogger.debug("No GPSFix or NavSatFix message found in bag " + bag.getFilename() + ".");
                     }
                     else {
                         bag.setCoordinate(myBagService.makePoint(
                                 mt.<Float64Type>getField("latitude").getValue(),
                                 mt.<Float64Type>getField("longitude").getValue()));
-                        myLogger.debug("Setting lat/lon for " + fullPath + " to: " +
+                        myLogger.debug("Setting lat/lon for " + bag.getFilename() + " to: " +
                                                bag.getLatitudeDeg() + " / " + bag.getLongitudeDeg());
                         myBagRepo.save(bag);
                     }
                 }
                 catch (BagReaderException | UninitializedFieldException e) {
                     reportStatus(Status.State.ERROR,
-                                 "Unable to get GPS info from bag file " + fullPath + ": " + e.getLocalizedMessage());
+                                 "Unable to get GPS info from bag file " + bag.getFilename() + ": "
+                                     + e.getLocalizedMessage());
                     reportStatus(Status.State.WORKING, "Updating GPS info for all bag files.");
                 }
             }
@@ -359,14 +371,12 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
         myLogger.info(msg);
         try {
             myExecutor.execute(() -> {
-                transactionTemplate.execute(new TransactionCallback() {
-                    @Override
-                    public Object doInTransaction(TransactionStatus transactionStatus) {
-                        storage.updateBagExistence();
-                        storage.updateBags(forceUpdate);
-                        return null;
-                    }
-                });
+                TransactionCallback<Object> cb = transactionStatus -> {
+                    storage.updateBagExistence();
+                    storage.updateBags(forceUpdate);
+                    return null;
+                };
+                transactionTemplate.execute(cb);
             });
         }
         catch (RuntimeException e) {
