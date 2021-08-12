@@ -42,6 +42,7 @@ import com.github.swrirobotics.persistence.Tag;
 import com.github.swrirobotics.persistence.Topic;
 import com.github.swrirobotics.support.web.BagList;
 import com.github.swrirobotics.support.web.ExtJsFilter;
+import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockMultipartFile;
@@ -288,6 +289,25 @@ public class BagControllerTest extends WebAppConfigurationAware {
             requestParameters(
                 parameterWithName("bagId").description("The database ID of the bag file to download")
             )));
+    }
+
+    @Test
+    public void getBagStorageIds() throws Exception {
+        when(bagService.getBagStorageIds()).thenReturn(Lists.newArrayList("default"));
+        mockMvc.perform(get("/bags/get_storage_ids"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalCount").value(1))
+            .andExpect(jsonPath("$.storageIds").isArray())
+            .andDo(document("bags/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                responseFields(
+                    fieldWithPath("totalCount").description("Total number of storage backends"),
+                    fieldWithPath("storageIds").description("A list of valid storage backend identifiers")
+                )
+                    .andWithPrefix("storageIds[].",
+                        fieldWithPath("storageId").description("Unique identifier of storage backend"))
+                ));
     }
 
     @Test
