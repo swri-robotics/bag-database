@@ -165,7 +165,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
     }
 
     public void checkForUpdates() {
-        myLogger.debug(getStorageId() + ": checkForUpdates");
+        myLogger.trace(getStorageId() + ": checkForUpdates");
         var response = listObjects();
         if (updateKeyCache(response)) {
             updateListeners();

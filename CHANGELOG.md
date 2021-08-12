@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+3.3.0
+- Refactor bag storage to allow multiple backends with different sources
+- Add S3 storage backend implementation
+
 3.2.0
 
 - Fix running scripts with multiple bags with the same name

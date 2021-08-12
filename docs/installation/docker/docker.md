@@ -30,6 +30,11 @@ volumes and parameters that can be used to configure the Docker container.
 
 ### Environment Variables
 
+With the exception of `BAGDB_PATH`, all of these variables are used in the Bag Database container's
+`entrypoint.sh` script to generate a file at `${HOME}/.ros-bag-database/settings.yml` that configures
+the Bag Database.  You can generate this file yourself if you have more complex configuration needs;
+see [Storage](../../configuration/storage.md) for an example.
+
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `ADMIN_PASSWORD` | The default password for administrative access.  If this is not set, one will be randomly generated and printed to the log file on initial startup. | |
