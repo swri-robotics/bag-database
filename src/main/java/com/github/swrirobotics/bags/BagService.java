@@ -223,7 +223,7 @@ public class BagService extends StatusProvider {
         Bag bag = myBagRepository.findById(bagId).orElseThrow(() ->
             new NonexistentBagException("Bag not found: " + bagId));
         BagStorage storage = myBagStorages.get(bag.getStorageId());
-        return storage.getBagWrapper(bagId);
+        return storage.getBagWrapper(bag);
     }
 
     @Transactional
@@ -1438,7 +1438,7 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
-    public Bag insertNewBag(final BagFile bagFile,
+    public Bag insertNewBag(final BagWrapper wrapper,
                             final String md5sum,
                             final String locationName,
                             final List<GpsPosition> gpsPositions,
@@ -1456,14 +1456,14 @@ public class BagService extends StatusProvider {
 
         bag = new Bag();
 
-        File file = bagFile.getPath().toFile();
-        String path = file.getPath().replace(file.getName(), "");
+        BagFile bagFile = wrapper.getBagFile();
+        String absPath = wrapper.getPath() + wrapper.getFilename();
 
-        myLogger.info("Adding new bag: " + file.getPath());
+        myLogger.info("Adding new bag: " + absPath);
         // If it doesn't exist in the DB, create a new entry.
         bag.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-        bag.setPath(path);
-        bag.setFilename(file.getName());
+        bag.setPath(wrapper.getPath());
+        bag.setFilename(wrapper.getFilename());
         bag.setMd5sum(md5sum);
         bag.setCompressed(false);
         bag.setDuration(bagFile.getDurationS());
@@ -1472,7 +1472,7 @@ public class BagService extends StatusProvider {
         bag.setIndexed(bagFile.isIndexed());
         bag.setMessageCount(bagFile.getMessageCount());
         bag.setMissing(false);
-        bag.setSize(file.length());
+        bag.setSize(bagFile.getPath().toFile().length());
         bag.setStorageId(storageId);
         bag.setVersion(bagFile.getVersion());
         bag.setVehicle(getVehicleName(bagFile));
@@ -1482,7 +1482,7 @@ public class BagService extends StatusProvider {
         }
         bag.setLocation(locationName);
         bag = myBagRepository.save(bag);
-        myLogger.trace("Initial bag save for " + file.getAbsolutePath());
+        myLogger.trace("Initial bag save for " + absPath);
 
         Map<String, MessageType> dbMessageTypes = addMessageTypesToBag(bagFile, bag);
 
@@ -1584,15 +1584,26 @@ public class BagService extends StatusProvider {
         }
     }
 
-    public void updateBagFile(final File file,
+    public void updateBagFile(final BagWrapper wrapper,
                               final String storageId,
                               final Map<String, Long> missingBagMd5sums) {
-        myLogger.debug("Checking " + file.getPath() + "...");
-        reportStatus(Status.State.WORKING, "Processing " + file.getPath() + ".");
+        String absPath = wrapper.getPath() + wrapper.getFilename();
+        myLogger.debug("Checking " + absPath + "...");
+        reportStatus(Status.State.WORKING, "Processing " + absPath + ".");
 
-        if (!file.canRead()) {
+        BagFile bagFile;
+        try {
+            bagFile = wrapper.getBagFile();
+        }
+        catch (BagReaderException e) {
+            myLogger.error("Error reading bag file.", e);
+            reportStatus(Status.State.ERROR, "Unable to read " + absPath + ".  Check its permissions.");
+            return;
+        }
+
+        if (!bagFile.getPath().toFile().canRead()) {
             myLogger.error("Can't read file.");
-            reportStatus(Status.State.ERROR, "Unable to read " + file.getPath() + ".  Check its permissions.");
+            reportStatus(Status.State.ERROR, "Unable to read " + absPath + ".  Check its permissions.");
             return;
         }
 
@@ -1601,14 +1612,11 @@ public class BagService extends StatusProvider {
         try {
             // First, get the MD5 sum so we can see if this bag exists but
             // has been moved.
-            BagFile bagFile = new BagFile(file.getPath());
-            //InputStream inputStream = new BufferedInputStream(new FileInputStream(file));
-
             TimerTask updateTask = new TimerTask() {
                 @Override
                 public void run() {
                     reportStatus(Status.State.WORKING,
-                                 "Calculating MD5 Sum for " + file.getName() + "...");
+                                 "Calculating MD5 Sum for " + absPath + "...");
                 }
             };
             // Periodically notify the front end if we're still calculating MD5 sums.
@@ -1620,7 +1628,7 @@ public class BagService extends StatusProvider {
             myLogger.debug("Calculated bag md5sum: " + md5sum);
         }
         catch (BagReaderException e) {
-            myLogger.error("Unable to calculate MD5 sum for bag " + file.getPath(), e);
+            myLogger.error("Unable to calculate MD5 sum for bag " + absPath, e);
             return;
         }
         finally {
@@ -1635,7 +1643,7 @@ public class BagService extends StatusProvider {
         if (bagId == null) {
             Bag existingBag = myBagRepository.findByMd5sum(md5sum);
             if (existingBag != null) {
-                String msg = "File " + file.getAbsolutePath() + " is a duplicate of " +
+                String msg = "File " + absPath + " is a duplicate of " +
                              existingBag.getStorageId() + ":" + existingBag.getPath() + existingBag.getFilename() + ".";
                 reportStatus(Status.State.ERROR, msg);
                 myLogger.warn(msg);
@@ -1646,11 +1654,10 @@ public class BagService extends StatusProvider {
         // Getting the list of GPS positions is a bit expensive, and getting the location
         // name can block while waiting for a network response, so let's do those
         // before locking on the mutex.
-        BagFile bagFile;
         String locationName = null;
         List<GpsPosition> gpsPositions;
         try {
-            bagFile = BagReader.readFile(file);
+            bagFile = wrapper.getBagFile();
 
             gpsPositions = getAllGpsMessages(bagFile);
             if (!gpsPositions.isEmpty()) {
@@ -1670,7 +1677,7 @@ public class BagService extends StatusProvider {
         Bag newBag = null;
         synchronized (myBagDbLock) {
             try {
-                newBag = updateBagInDatabase(bagId, bagFile, md5sum, missingBagMd5sums, locationName, gpsPositions,
+                newBag = updateBagInDatabase(bagId, wrapper, md5sum, missingBagMd5sums, locationName, gpsPositions,
                     storageId);
                 String msg = "Done processing: " + bagFile.getPath().toFile();
                 myLogger.debug(msg);
@@ -1678,8 +1685,8 @@ public class BagService extends StatusProvider {
             }
             catch (BagReaderException | DuplicateBagException e) {
                 reportStatus(Status.State.ERROR, "Error reading " +
-                             file.getAbsolutePath() + ": " + e.getLocalizedMessage());
-                myLogger.error("Error reading bag file: " + file.getAbsolutePath(), e);
+                             absPath + ": " + e.getLocalizedMessage());
+                myLogger.error("Error reading bag file: " + absPath, e);
             }
         }
 
@@ -1721,7 +1728,7 @@ public class BagService extends StatusProvider {
     /***
      * Inserts a new bag or updates an existing bag in the database.
      * @param bagId The database ID of the bag to update; if null, inserts a new bag.
-     * @param bagFile The bag to insert.
+     * @param wrapper The bag to insert.
      * @param md5sum Our calculated MD5 sum of the bag's contents.
      * @param missingBagMd5sums All of the MD5 sums of any bags that have been marked as missing.
      * @param locationName The friendly name of the bag's location, if available.
@@ -1733,7 +1740,7 @@ public class BagService extends StatusProvider {
      */
     @Transactional
     public Bag updateBagInDatabase(Long bagId,
-                                   final BagFile bagFile,
+                                   final BagWrapper wrapper,
                                    final String md5sum,
                                    final Map<String, Long> missingBagMd5sums,
                                    final String locationName,
@@ -1741,9 +1748,8 @@ public class BagService extends StatusProvider {
                                    final String storageId)
             throws DuplicateBagException, BagReaderException {
         Bag bag;
-        File file = bagFile.getPath().toFile();
         if (bagId == null) {
-            bag = insertNewBag(bagFile, md5sum, locationName, gpsPositions, storageId);
+            bag = insertNewBag(wrapper, md5sum, locationName, gpsPositions, storageId);
         }
         else {
             if (missingBagMd5sums.remove(md5sum) != null) {
@@ -1754,17 +1760,16 @@ public class BagService extends StatusProvider {
             }
             // If we found a missing one, remove it from the list and update
             // its path.
-            String path = file.getPath().replace(file.getName(), "");
             bag = myBagRepository.findById(bagId).orElseThrow();
-            bag.setPath(path);
-            bag.setFilename(file.getName());
+            bag.setPath(wrapper.getPath());
+            bag.setFilename(wrapper.getFilename());
             bag.setMissing(false);
             bag.setMd5sum(md5sum);
             bag.setStorageId(storageId);
-            addTagsToBag(bagFile, bag);
+            addTagsToBag(wrapper.getBagFile(), bag);
         }
         myBagRepository.save(bag);
-        String msg = "Committing: " + file.getAbsolutePath();
+        String msg = "Committing: " + wrapper.getPath() + wrapper.getFilename();
         myLogger.debug(msg);
         reportStatus(Status.State.WORKING, msg);
 

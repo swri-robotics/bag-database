@@ -35,26 +35,55 @@ import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.storage.BagStorage;
 import com.github.swrirobotics.bags.storage.BagWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.io.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FilesystemBagWrapperImpl implements BagWrapper {
-    private final String myPath;
+    private final Logger myLogger = LoggerFactory.getLogger(FilesystemBagWrapperImpl.class);
+    private final String myAbsPath;
     private final BagStorage myBagStorage;
+    private final String myDirectory;
+    private final String myFilename;
 
     public FilesystemBagWrapperImpl(String path, BagStorage storage) {
-        myPath = path;
+        myAbsPath = path;
         myBagStorage = storage;
+        Pattern pathPattern = Pattern.compile("^(.*/)?(.*)$");
+        Matcher keyMatcher = pathPattern.matcher(myAbsPath);
+        if (!keyMatcher.find()) {
+            myLogger.error("Unable to parse S3 bag key.");
+        }
+        myDirectory = keyMatcher.group(1);
+        myFilename = keyMatcher.group(2);
     }
 
     @Override
     public BagFile getBagFile() throws BagReaderException {
-        return BagReader.readFile(myPath);
+        return BagReader.readFile(myAbsPath);
     }
 
     @Override
     public BagStorage getBagStorage() {
         return myBagStorage;
+    }
+
+    @Override
+    public String getPath() {
+        return myDirectory;
+    }
+
+    @Override
+    public String getFilename() {
+        return myFilename;
+    }
+
+    @Override
+    public InputStream getInputStream() throws FileNotFoundException {
+        return new FileInputStream(myAbsPath);
     }
 
     @Override

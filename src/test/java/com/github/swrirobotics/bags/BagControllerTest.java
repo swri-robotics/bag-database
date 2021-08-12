@@ -47,7 +47,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.restdocs.payload.FieldDescriptor;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,6 +82,21 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
             @Override
             public BagStorage getBagStorage() {
+                return null;
+            }
+
+            @Override
+            public String getPath() {
+                return null;
+            }
+
+            @Override
+            public String getFilename() {
+                return null;
+            }
+
+            @Override
+            public InputStream getInputStream() throws FileNotFoundException {
                 return null;
             }
         };

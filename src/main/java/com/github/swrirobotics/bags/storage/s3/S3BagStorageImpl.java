@@ -31,19 +31,24 @@
 package com.github.swrirobotics.bags.storage.s3;
 
 import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.BagRepository;
+import com.github.swrirobotics.status.Status;
+import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.BagTreeNode;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -55,23 +60,24 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class S3BagStorageImpl implements BagStorage {
+public class S3BagStorageImpl extends StatusProvider implements BagStorage {
     public static final String type = "s3";
 
     private static final Logger myLogger = LoggerFactory.getLogger(S3BagStorageImpl.class);
 
-    private final ApplicationContext applicationContext;
     private final BagRepository bagRepository;
     private final ConfigService configService;
     private BagService bagService;
@@ -81,8 +87,7 @@ public class S3BagStorageImpl implements BagStorage {
 
     private S3Client myS3Client = null;
 
-    public S3BagStorageImpl(ApplicationContext applicationContext, BagRepository bagRepository, ConfigService configService) {
-        this.applicationContext = applicationContext;
+    public S3BagStorageImpl(BagRepository bagRepository, ConfigService configService) {
         this.bagRepository = bagRepository;
         this.configService = configService;
     }
@@ -130,19 +135,54 @@ public class S3BagStorageImpl implements BagStorage {
                 continue;
             }
 
-            if (existingBagPaths.get(object.key()) != null) {
+            if (existingBagPaths.get(filename) != null && !forceUpdate) {
                 // Bag already exists in DB
                 continue;
             }
 
-            myLogger.info("Processing bag file: " + object.key());
-            // TODO Download bag into temporary file, parse it, add it to database, remove temporary file
+            myLogger.info("Processing bag file: " + filename);
+
+            try (S3BagWrapperImpl wrapper = new S3BagWrapperImpl(myS3Client, filename, this)) {
+                bagService.updateBagFile(wrapper, getStorageId(), missingBagMd5sums);
+            }
+            catch (IOException e) {
+                myLogger.error("Error reading bag", e);
+            }
+            catch (ConstraintViolationException e) {
+                // Constraint name is hard-coded in db.changelog-1.0.yaml
+                if ("uk_a2r00kd2qd94dohkimsp5rdgn".equals(e.getConstraintName())) {
+                    String message = "The data in " + filename + " seems to be a duplicate " +
+                        "of an existing bag file.  If you believe this is incorrect, please " +
+                        "report it as a bug.";
+                    reportStatus(Status.State.ERROR, message);
+                    myLogger.warn(message);
+                    myLogger.warn(e.getLocalizedMessage());
+                }
+                else {
+                    String message = e.getLocalizedMessage();
+                    reportStatus(Status.State.ERROR, "Error checking bag file: " + message);
+                    myLogger.error("Unexpected error updating bag file:", e);
+                }
+            }
+            catch (RuntimeException e) {
+                reportStatus(Status.State.ERROR,
+                    "Error checking bag file: " + e.getLocalizedMessage());
+                myLogger.error("Unexpected error updating bag file:", e);
+            }
+        }
+
+        if (configService.getConfiguration().getRemoveOnDeletion()) {
+            bagService.removeMissingBags();
         }
     }
 
     @Override
     public BagStorageConfiguration getConfig() {
         return myConfig;
+    }
+
+    public String getBucket() {
+        return myConfig.bucket;
     }
 
     @Override
@@ -157,8 +197,45 @@ public class S3BagStorageImpl implements BagStorage {
 
     @Override
     public List<BagTreeNode> getTreeNodes(String targetPath) throws IOException {
+        myLogger.info("getTreeNodes: " + targetPath);
+        List<BagTreeNode> nodes = new ArrayList<>();
+
+        var builder = ListObjectsV2Request.builder().bucket(myConfig.bucket);
+        if (!targetPath.equals("root")) {
+            builder = builder.prefix(targetPath);
+        }
+        var response = myS3Client.listObjectsV2(builder.build());
+        for (var object : response.contents()) {
+            if (object.key().contains("/")) {
+                myLogger.info("Skipping " + object.key());
+                // Skip keys that are in subdirectories
+                continue;
+            }
+
+            if (object.size() == 0) {
+                myLogger.info("Adding directory: " + object.key());
+                BagTreeNode childNode = new BagTreeNode();
+                var parts = Splitter.on('/').trimResults().omitEmptyStrings().splitToList(object.key());
+                childNode.filename = parts.get(parts.size()-1);
+                childNode.parentId = targetPath.equals("root") ? "" : targetPath;
+                childNode.leaf = false;
+                childNode.storageId = getStorageId();
+                childNode.id = object.key();
+                java.nio.file.Path subdirPath = FileSystems.getDefault().getPath(childNode.id);
+                try (DirectoryStream<Path> subdirStream = Files.newDirectoryStream(subdirPath)) {
+                    Iterator<Path> iter = subdirStream.iterator();
+                    childNode.expanded = !iter.hasNext();
+                }
+                childNode.bagCount = bagRepository.countByPathStartsWithAndStorageId(childNode.id, getStorageId());
+                nodes.add(childNode);
+            }
+            else {
+                myLogger.info("Adding " + object.key());
+            }
+        }
+
         // TODO Populate tree nodes
-        return new ArrayList<>();
+        return nodes;
     }
 
     @Override
@@ -167,14 +244,18 @@ public class S3BagStorageImpl implements BagStorage {
     }
 
     @Override
-    public BagWrapper getBagWrapper(long bagId) {
-        // TODO Make an S3BagWrapper
-        return null;
+    @Transactional
+    public BagWrapper getBagWrapper(long bagId) throws NonexistentBagException {
+        Bag bag = bagRepository.findById(bagId).orElseThrow(() ->
+            new NonexistentBagException("Could not find bag: " + bagId));
+        return getBagWrapper(bag);
     }
 
     @Override
+    @Transactional
     public BagWrapper getBagWrapper(Bag bag) {
-        return null;
+        String key = normalizePath(bag.getPath() + bag.getFilename());
+        return new S3BagWrapperImpl(myS3Client, key, this);
     }
 
     @Override
@@ -183,13 +264,14 @@ public class S3BagStorageImpl implements BagStorage {
             throw new BagStorageConfigException("Unexpected configuration object class: " + config.getClass().toString());
         }
 
-        if (myConfig.accessKey == null || myConfig.accessKey.isEmpty() ||
-            myConfig.secretKey == null || myConfig.secretKey.isEmpty() ||
-            myConfig.bucket == null || myConfig.bucket.isEmpty()) {
+        S3BagStorageConfigImpl s3Config = (S3BagStorageConfigImpl) config;
+        if (s3Config.accessKey == null || s3Config.accessKey.isEmpty() ||
+            s3Config.secretKey == null || s3Config.secretKey.isEmpty() ||
+            s3Config.bucket == null || s3Config.bucket.isEmpty()) {
             throw new BagStorageConfigException("Missing configuration options.");
         }
 
-        myConfig = (S3BagStorageConfigImpl) config;
+        myConfig = s3Config;
     }
 
     /**
@@ -241,6 +323,14 @@ public class S3BagStorageImpl implements BagStorage {
         myS3Client.close();
     }
 
+    public void updateListeners() {
+        myLogger.info("Storage[" + myConfig.storageId + "]: updateListeners");
+        BagStorageChangeEvent event = new BagStorageChangeEvent(this);
+        for (BagStorageChangeListener listener : myChangeListeners) {
+            listener.bagStorageChanged(event);
+        }
+    }
+
     @Override
     public void uploadBag(MultipartFile file, String targetDirectory) throws IOException {
         myLogger.info("Storage[" + myConfig.storageId + "]: uploadBag");
@@ -253,5 +343,12 @@ public class S3BagStorageImpl implements BagStorage {
             .build();
         myS3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
         myLogger.info("Done uploading.");
+
+        updateListeners();
+    }
+
+    @Override
+    protected String getStatusProviderName() {
+        return "S3BagStorage[" + myConfig.storageId + "]";
     }
 }

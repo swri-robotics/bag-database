@@ -43,7 +43,7 @@ import java.util.stream.Stream;
 
 @Repository
 public interface BagRepository extends JpaRepository<Bag, Long>, JpaSpecificationExecutor<Bag> {
-    Long countByPathStartsWith(String path);
+    Long countByPathStartsWithAndStorageId(String path, String storageId);
     List<Bag> findByPathAndFilename(String path, String filename);
     List<Bag> findByPathAndStorageId(String path, String storageId);
     List<Bag> findByMissing(boolean isMissing);

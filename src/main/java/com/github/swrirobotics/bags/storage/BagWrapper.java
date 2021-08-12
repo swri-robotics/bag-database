@@ -34,6 +34,8 @@ import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
 import java.io.Closeable;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 
 public interface BagWrapper extends Closeable {
     /**
@@ -49,4 +51,21 @@ public interface BagWrapper extends Closeable {
      * @return The BagStorage backend used to store this bag.
      */
     BagStorage getBagStorage();
+
+    /**
+     * Returns the absolute path to the directory where this file is stored.  This does not include the bag's
+     * filename.
+     * For non-filesystem storage backends, this may not be the actual path on disk
+     * to the file.
+     * @return The absolute path to the directory where this file is stored.
+     */
+    String getPath();
+
+    /**
+     * Returns the filename of the bag.
+     * @return The filename of the bag.
+     */
+    String getFilename();
+
+    InputStream getInputStream() throws FileNotFoundException;
 }

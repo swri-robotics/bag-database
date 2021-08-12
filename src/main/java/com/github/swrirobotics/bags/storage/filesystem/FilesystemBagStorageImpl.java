@@ -32,6 +32,7 @@ package com.github.swrirobotics.bags.storage.filesystem;
 
 import com.esotericsoftware.yamlbeans.YamlWriter;
 import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.DefaultRecursiveWatcher;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.RecursiveWatcher;
@@ -96,7 +97,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
 
     @Override
     protected String getStatusProviderName() {
-        return "FilesystemBagStorage";
+        return "FilesystemBagStorage[" + myConfig.storageId + "]";
     }
 
     @Override
@@ -161,7 +162,8 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
             }
 
             try {
-                bagService.updateBagFile(bag, getStorageId(), missingBagMd5sums);
+                BagWrapper wrapper = new FilesystemBagWrapperImpl(bag.getAbsolutePath(), this);
+                bagService.updateBagFile(wrapper, getStorageId(), missingBagMd5sums);
             }
             catch (ConstraintViolationException e) {
                 // Constraint name is hard-coded in db.changelog-1.0.yaml
@@ -248,7 +250,7 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
                     Iterator<Path> iter = subdirStream.iterator();
                     childNode.expanded = !iter.hasNext();
                 }
-                childNode.bagCount = bagRepository.countByPathStartsWith(childNode.id);
+                childNode.bagCount = bagRepository.countByPathStartsWithAndStorageId(childNode.id, getStorageId());
                 nodes.add(childNode);
             }
         }
@@ -276,12 +278,10 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
 
     @Override
     @Transactional
-    public BagWrapper getBagWrapper(long bagId) {
-        Bag bag = bagRepository.findById(bagId).orElse(null);
-        if (bag != null) {
-            return new FilesystemBagWrapperImpl(bag.getPath() + bag.getFilename(), this);
-        }
-        return null;
+    public BagWrapper getBagWrapper(long bagId) throws NonexistentBagException {
+        Bag bag = bagRepository.findById(bagId).orElseThrow(() ->
+            new NonexistentBagException("Can't find bag " + bagId));
+        return getBagWrapper(bag);
     }
 
     @Override

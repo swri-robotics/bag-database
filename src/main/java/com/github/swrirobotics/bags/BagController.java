@@ -43,6 +43,7 @@ import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -53,8 +54,10 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.*;
 
 @RestController
@@ -70,27 +73,26 @@ public class BagController {
     }
 
     @RequestMapping(value="/download", produces="application/x-bag")
-    public FileSystemResource downloadBag(
+    public InputStreamResource downloadBag(
             @RequestParam String bagId,
             HttpServletResponse response) throws IOException {
         long id = Long.parseLong(bagId);
         myLogger.info("downloadBag: " + id);
 
         try (BagWrapper bag = myBagService.getBagWrapper(id)){
-            BagFile file = bag.getBagFile();
-            response.setHeader("Content-Disposition", "attachment; filename=" + file.getPath().getFileName());
+            response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
             response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-            myLogger.info("Found bag: " + file.getPath());
-            return new FileSystemResource(file.getPath().toFile());
+            myLogger.info("Found bag: " + bag.getFilename());
+            // It would be nice if we could return a FileSystemResource instead here because that will
+            // tell the browser how big the file is -- but if we do that, when downloading files from
+            // S3 storage, the temporary file will end up getting deleted before it's actually downloaded.
+            // Or can we get the size and set the appropriate header ourselves?
+            // TODO Come up with a better way to handle streaming files from remote storage
+            return new InputStreamResource(bag.getInputStream(), bag.getBagStorage().getStorageId());
         }
         catch (NonexistentBagException e) {
             myLogger.warn("Bag not found.");
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return null;
-        }
-        catch (BagReaderException e) {
-            myLogger.warn("Error reading bag.");
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return null;
         }
     }

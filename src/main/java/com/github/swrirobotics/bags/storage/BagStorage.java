@@ -31,6 +31,7 @@
 package com.github.swrirobotics.bags.storage;
 
 import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.support.web.BagTreeNode;
 import org.springframework.web.multipart.MultipartFile;
@@ -104,14 +105,14 @@ public interface BagStorage {
     /**
      * Creates a wrapper for performing operations on a bag file.
      * @param bagId The database ID of the bag to retrieve.
-     * @return A wrapper representing that bag file or null if no bag file is present at that path.
+     * @return A wrapper representing that bag file.
      */
-    BagWrapper getBagWrapper(long bagId);
+    BagWrapper getBagWrapper(long bagId) throws NonexistentBagException;
 
     /**
      * Creates a wrapper for performing operations on a bag file.
      * @param bag A bag persistence object.
-     * @return A wrapper representing that bag file or null if no bag file is present at that path.
+     * @return A wrapper representing that bag file.
      */
     BagWrapper getBagWrapper(Bag bag);
 
