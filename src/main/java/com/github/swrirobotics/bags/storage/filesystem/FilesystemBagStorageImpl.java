@@ -67,8 +67,6 @@ import java.util.stream.Stream;
 @Service
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FilesystemBagStorageImpl extends StatusProvider implements BagStorage, RecursiveWatcher.WatchListener {
-    public static final String type = "filesystem";
-
     private static final Logger myLogger = LoggerFactory.getLogger(FilesystemBagStorageImpl.class);
 
     private final ApplicationContext applicationContext;
@@ -269,19 +267,6 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
         }
 
         return nodes;
-    }
-
-    @Override
-    public String getType() {
-        return type;
-    }
-
-    @Override
-    @Transactional
-    public BagWrapper getBagWrapper(long bagId) throws NonexistentBagException {
-        Bag bag = bagRepository.findById(bagId).orElseThrow(() ->
-            new NonexistentBagException("Can't find bag " + bagId));
-        return getBagWrapper(bag);
     }
 
     @Override

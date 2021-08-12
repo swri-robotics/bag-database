@@ -105,7 +105,7 @@ storageConfigurations:
         basePath: /bags
         isLocal: true
         dockerPath: /bags
-        storageId: 'Local Storage'
+        storageId: 'default'
     - !com.github.swrirobotics.bags.storage.filesystem.FilesystemBagStorageConfigImpl
         basePath: /bags2
         storageId: 'Local Storage 2'

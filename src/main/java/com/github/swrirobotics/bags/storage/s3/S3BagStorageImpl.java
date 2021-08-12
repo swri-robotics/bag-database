@@ -67,7 +67,6 @@ import java.util.stream.Stream;
 @Service
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class S3BagStorageImpl extends StatusProvider implements BagStorage {
-    public static final String type = "s3";
     private static final Logger myLogger = LoggerFactory.getLogger(S3BagStorageImpl.class);
 
     private final BagRepository bagRepository;
@@ -305,19 +304,6 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
         }
 
         return nodes;
-    }
-
-    @Override
-    public String getType() {
-        return type;
-    }
-
-    @Override
-    @Transactional
-    public BagWrapper getBagWrapper(long bagId) throws NonexistentBagException {
-        Bag bag = bagRepository.findById(bagId).orElseThrow(() ->
-            new NonexistentBagException("Could not find bag: " + bagId));
-        return getBagWrapper(bag);
     }
 
     @Override

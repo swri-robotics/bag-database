@@ -71,9 +71,6 @@ import java.util.concurrent.Executors;
 public class BagScanner extends StatusProvider implements BagStorageChangeListener {
     private final ConfigService myConfigService;
     private final BagRepository myBagRepo;
-    private final MessageTypeRepository myMTRepo;
-    private final TopicRepository myTopicRepo;
-    private final TagRepository myTagRepository;
     private final BagService myBagService;
     private final GeocodingService myGeocodingService;
     private final TransactionTemplate transactionTemplate;
@@ -84,15 +81,11 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
 
     private final Map<String, BagStorage> myBagStorages = Maps.newHashMap();
 
-    public BagScanner(ConfigService myConfigService, BagRepository myBagRepo, MessageTypeRepository myMTRepo,
-                      TopicRepository myTopicRepo, TagRepository myTagRepository, BagService myBagService,
+    public BagScanner(ConfigService myConfigService, BagRepository myBagRepo, BagService myBagService,
                       GeocodingService myGeocodingService,
                       PlatformTransactionManager transactionManager) {
         this.myConfigService = myConfigService;
         this.myBagRepo = myBagRepo;
-        this.myMTRepo = myMTRepo;
-        this.myTopicRepo = myTopicRepo;
-        this.myTagRepository = myTagRepository;
         this.myBagService = myBagService;
         this.myGeocodingService = myGeocodingService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);

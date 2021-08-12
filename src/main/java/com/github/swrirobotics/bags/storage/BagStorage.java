@@ -31,7 +31,6 @@
 package com.github.swrirobotics.bags.storage;
 
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.support.web.BagTreeNode;
 import org.springframework.web.multipart.MultipartFile;
@@ -95,19 +94,6 @@ public interface BagStorage {
      * @return All the tree nodes at that path.
      */
     List<BagTreeNode> getTreeNodes(String targetPath) throws IOException;
-
-    /**
-     * Returns a string indicating the type of this backend.  Should be common between all backends of this type.
-     * @return The backend's type.
-     */
-    String getType();
-
-    /**
-     * Creates a wrapper for performing operations on a bag file.
-     * @param bagId The database ID of the bag to retrieve.
-     * @return A wrapper representing that bag file.
-     */
-    BagWrapper getBagWrapper(long bagId) throws NonexistentBagException;
 
     /**
      * Creates a wrapper for performing operations on a bag file.
