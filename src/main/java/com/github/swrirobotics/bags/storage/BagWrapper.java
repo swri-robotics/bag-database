@@ -35,6 +35,7 @@ import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 
 import java.io.Closeable;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 
 public interface BagWrapper extends Closeable {
@@ -66,6 +67,12 @@ public interface BagWrapper extends Closeable {
      * @return The filename of the bag.
      */
     String getFilename();
+
+    /**
+     * The size of the bag in bytes.
+     * @return The size of the bag in bytes.
+     */
+    Long getSize() throws IOException;
 
     InputStream getInputStream() throws FileNotFoundException;
 }

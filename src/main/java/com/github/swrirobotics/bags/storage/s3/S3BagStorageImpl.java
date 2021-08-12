@@ -40,6 +40,7 @@ import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.github.swrirobotics.support.web.BagTreeNode;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import org.hibernate.exception.ConstraintViolationException;
@@ -60,7 +61,6 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.DirectoryStream;
@@ -99,8 +99,8 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
     @Override
     public boolean bagExists(String path) {
-        String noramlizedPath = normalizePath(path);
-        var request = HeadObjectRequest.builder().bucket(myConfig.bucket).key(noramlizedPath).build();
+        String normalizedPath = normalizePath(path);
+        var request = HeadObjectRequest.builder().bucket(myConfig.bucket).key(normalizedPath).build();
         try {
             myS3Client.headObject(request);
             return true;
@@ -197,44 +197,54 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
     @Override
     public List<BagTreeNode> getTreeNodes(String targetPath) throws IOException {
-        myLogger.info("getTreeNodes: " + targetPath);
+        myLogger.trace("getTreeNodes: " + targetPath);
         List<BagTreeNode> nodes = new ArrayList<>();
 
         var builder = ListObjectsV2Request.builder().bucket(myConfig.bucket);
         if (!targetPath.equals("root")) {
             builder = builder.prefix(targetPath);
         }
+        String parentId = normalizePath(targetPath.equals("root") ? "" : targetPath);
         var response = myS3Client.listObjectsV2(builder.build());
-        for (var object : response.contents()) {
-            if (object.key().contains("/")) {
-                myLogger.info("Skipping " + object.key());
-                // Skip keys that are in subdirectories
-                continue;
-            }
+        // The ExtJS tree structure expects a branch node for every directory and a leaf node for every bag.
+        // This is a little inconvenient here because S3 does not have any concept of directories; it just returns
+        // a list of objects and the "key" is the full path to the file.  "Empty" directories can also be indicated
+        // by a key that ends in ".bzEmpty".  Also, this function should only return nodes directly inside targetPath,
+        // not any nodes below that.
+        // This will attempt to filter that list down to a set of unique directories in targetPath.
+        Set<String> paths = response.contents().stream().map(obj -> Splitter.on('/')
+            .splitToList(obj.key().replaceFirst(targetPath, "")).get(0))
+            .filter(obj -> !obj.isEmpty() && !obj.endsWith(".bzEmpty") && !obj.endsWith(".bag"))
+            .collect(Collectors.toSet());
+        for (String path : paths) {
+            myLogger.info("Adding branch node: " + path);
 
-            if (object.size() == 0) {
-                myLogger.info("Adding directory: " + object.key());
-                BagTreeNode childNode = new BagTreeNode();
-                var parts = Splitter.on('/').trimResults().omitEmptyStrings().splitToList(object.key());
-                childNode.filename = parts.get(parts.size()-1);
-                childNode.parentId = targetPath.equals("root") ? "" : targetPath;
-                childNode.leaf = false;
-                childNode.storageId = getStorageId();
-                childNode.id = object.key();
-                java.nio.file.Path subdirPath = FileSystems.getDefault().getPath(childNode.id);
-                try (DirectoryStream<Path> subdirStream = Files.newDirectoryStream(subdirPath)) {
-                    Iterator<Path> iter = subdirStream.iterator();
-                    childNode.expanded = !iter.hasNext();
-                }
-                childNode.bagCount = bagRepository.countByPathStartsWithAndStorageId(childNode.id, getStorageId());
-                nodes.add(childNode);
-            }
-            else {
-                myLogger.info("Adding " + object.key());
-            }
+            BagTreeNode childNode = new BagTreeNode();
+            childNode.filename = path;
+            childNode.parentId = parentId;
+            childNode.leaf = false;
+            childNode.storageId = getStorageId();
+            childNode.id = normalizePath(Joiner.on('/').join(parentId, path));
+            childNode.expanded = false;
+            myLogger.info("Counting bags in path: " + childNode.id);
+            childNode.bagCount = bagRepository.countByPathStartsWithAndStorageId(childNode.id + "/", getStorageId());
+            nodes.add(childNode);
         }
 
-        // TODO Populate tree nodes
+        List<Bag> bags = bagRepository.findByPathAndStorageId(parentId + "/", getStorageId());
+        myLogger.debug("Found " + bags.size() + " bags in path: " + parentId);
+        for (Bag bag : bags) {
+            myLogger.debug("Adding leaf node: " + bag.getFilename());
+            BagTreeNode childNode = new BagTreeNode();
+            childNode.filename = bag.getFilename();
+            childNode.parentId = parentId;
+            childNode.storageId = getStorageId();
+            childNode.leaf = true;
+            childNode.id = bag.getPath() + bag.getFilename();
+            childNode.bag = bag;
+            nodes.add(childNode);
+        }
+
         return nodes;
     }
 
@@ -286,7 +296,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
      * @return A normalized path.
      */
     public String normalizePath(String path) {
-        return CharMatcher.is('/').collapseFrom(path, '/').replaceFirst("^/", "");
+        return CharMatcher.is('/').collapseFrom(path, '/').trim().replaceFirst("^/", "");
     }
 
     @Override

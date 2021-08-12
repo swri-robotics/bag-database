@@ -87,12 +87,17 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
             @Override
             public String getPath() {
-                return null;
+                return "/";
             }
 
             @Override
             public String getFilename() {
-                return null;
+                return "test.bag";
+            }
+
+            @Override
+            public Long getSize() throws IOException {
+                return 1000L;
             }
 
             @Override
@@ -276,6 +281,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Disposition", "attachment; filename=test.bag"))
             .andExpect(header().string("Content-Transfer-Encoding", "application/octet-stream"))
+            .andExpect(header().string("Content-Length", "1000"))
         .andDo(document("bags/{method-name}",
             preprocessRequest(prettyPrint()),
             preprocessResponse(prettyPrint()),

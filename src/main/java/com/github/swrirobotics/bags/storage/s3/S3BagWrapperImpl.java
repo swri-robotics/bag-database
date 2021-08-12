@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -91,6 +93,18 @@ public class S3BagWrapperImpl implements BagWrapper {
     @Override
     public String getFilename() {
         return myFilename;
+    }
+
+    @Override
+    public Long getSize() throws IOException {
+        var request = HeadObjectRequest.builder().bucket(myBagStorage.getBucket()).key(myKey).build();
+        try {
+            var response = myS3Client.headObject(request);
+            return response.contentLength();
+        }
+        catch (NoSuchKeyException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override

@@ -39,6 +39,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,6 +81,11 @@ public class FilesystemBagWrapperImpl implements BagWrapper {
     @Override
     public String getFilename() {
         return myFilename;
+    }
+
+    @Override
+    public Long getSize() throws IOException {
+        return Files.size(FileSystems.getDefault().getPath(myAbsPath));
     }
 
     @Override

@@ -82,12 +82,8 @@ public class BagController {
         try (BagWrapper bag = myBagService.getBagWrapper(id)){
             response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
             response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
+            response.setHeader("Content-Length", bag.getSize().toString());
             myLogger.info("Found bag: " + bag.getFilename());
-            // It would be nice if we could return a FileSystemResource instead here because that will
-            // tell the browser how big the file is -- but if we do that, when downloading files from
-            // S3 storage, the temporary file will end up getting deleted before it's actually downloaded.
-            // Or can we get the size and set the appropriate header ourselves?
-            // TODO Come up with a better way to handle streaming files from remote storage
             return new InputStreamResource(bag.getInputStream(), bag.getBagStorage().getStorageId());
         }
         catch (NonexistentBagException e) {
