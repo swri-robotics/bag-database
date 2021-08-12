@@ -68,20 +68,24 @@ import java.util.stream.Stream;
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class S3BagStorageImpl extends StatusProvider implements BagStorage {
     public static final String type = "s3";
-
     private static final Logger myLogger = LoggerFactory.getLogger(S3BagStorageImpl.class);
 
     private final BagRepository bagRepository;
     private final ConfigService configService;
     private BagService bagService;
 
-    private final Set<BagStorageChangeListener> myChangeListeners = new HashSet<>();
-    private List<String> myKeyCache = new ArrayList<>();
-    private final Object myKeyCacheLock = new Object();
-    private Timer myUpdateTimer = null;
+    // Contains a list of keys in the S3 bucket so we can detect changes after updating
+    private List<String> myKeyCache = null;
+    // Configuration set by the BagService
     private S3BagStorageConfigImpl myConfig = null;
-
+    // Client for connecting to an S3 bucket
     private S3Client myS3Client = null;
+    // Periodically checks for changes in the bucket
+    private Timer myUpdateTimer = null;
+    // For controlling concurrent access to myKeyCache
+    private final Object myKeyCacheLock = new Object();
+    // Objects that should be notified when our file list has changed
+    private final Set<BagStorageChangeListener> myChangeListeners = new HashSet<>();
 
     private class UpdateTask extends TimerTask {
         @Override
@@ -103,23 +107,18 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
     @Override
     public boolean bagExists(String path) {
         synchronized (myKeyCacheLock) {
+            if (myKeyCache == null) {
+                // Just in case this method is called before we've scanned for bags, initialize the key cache.
+                initializeKeyCache();
+            }
             return myKeyCache.contains(path);
         }
-//        String normalizedPath = normalizePath(path);
-//        var request = HeadObjectRequest.builder().bucket(myConfig.bucket).key(normalizedPath).build();
-//        try {
-//            myS3Client.headObject(request);
-//            return true;
-//        }
-//        catch (NoSuchKeyException e) {
-//            return false;
-//        }
     }
 
     @Override
     @Transactional
     public void updateBagExistence() {
-        myLogger.info("Storage[" + myConfig.storageId + "]: updateBagExistence");
+        myLogger.info(myConfig.storageId + ": updateBagExistence");
         Stream<Bag> bags = bagRepository.findByStorageId(myConfig.storageId);
 
         bags.forEach(bag -> {
@@ -149,10 +148,25 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
         return false;
     }
 
+    public void initializeKeyCache() {
+        updateKeyCache(listObjects());
+    }
+
+    public ListObjectsV2Response listObjects() {
+        return listObjects(null);
+    }
+
+    public ListObjectsV2Response listObjects(String prefix) {
+        var builder = ListObjectsV2Request.builder().bucket(myConfig.bucket);
+        if (!"root".equals(prefix) && prefix != null) {
+            builder = builder.prefix(prefix);
+        }
+        return myS3Client.listObjectsV2(builder.build());
+    }
+
     public void checkForUpdates() {
-        myLogger.info("checkForUpdates");
-        var request = ListObjectsV2Request.builder().bucket(myConfig.bucket).build();
-        var response = myS3Client.listObjectsV2(request);
+        myLogger.debug(getStorageId() + ": checkForUpdates");
+        var response = listObjects();
         if (updateKeyCache(response)) {
             updateListeners();
         }
@@ -160,32 +174,36 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
     @Override
     public void updateBags(boolean forceUpdate) {
-        myLogger.info("Storage[" + myConfig.storageId + "]: updateBags");
+        myLogger.info(getStorageId() + ": updateBags");
         final Stream<Bag> missingBags = bagRepository.findByStorageIdAndMissing(myConfig.storageId, true);
         final Stream<Bag> existingBags = bagRepository.findByStorageIdAndMissing(myConfig.storageId, false);
 
+        // Get a list of bag files that have gone missing so we can update their locations if we find them
         final Map<String, Long> missingBagMd5sums = missingBags.collect(Collectors.toMap(Bag::getMd5sum, Bag::getId));
+        // Get a list of existing bag files so that we don't re-process them
         final Map<String, Long> existingBagPaths = existingBags
             .collect(Collectors.toMap(bag -> normalizePath(bag.getPath() + bag.getFilename()), Bag::getId));
 
-        var request = ListObjectsV2Request.builder().bucket(myConfig.bucket).build();
-        var response = myS3Client.listObjectsV2(request);
+        var response = listObjects();
         updateKeyCache(response);
         for (var object : response.contents()) {
             String filename = object.key();
             if (!filename.endsWith(".bag")) {
-                // Object isn't a bag
+                myLogger.debug("Skipping " + filename + " because it doesn't end in .bag.");
                 continue;
             }
 
             if (existingBagPaths.get(filename) != null && !forceUpdate) {
-                // Bag already exists in DB
+                myLogger.debug("Skipping " + filename + " because it's already in the database and forceUpdate == false.");
                 continue;
             }
 
             myLogger.info("Processing bag file: " + filename);
 
-            try (S3BagWrapperImpl wrapper = new S3BagWrapperImpl(myS3Client, filename, this)) {
+            // It's a little hackish, but we use the path we use for scripts for storing temporary backs
+            // so that the script service can also access them
+            try (S3BagWrapperImpl wrapper = new S3BagWrapperImpl(myS3Client, filename,
+                configService.getConfiguration().getScriptTmpPath(), this)) {
                 bagService.updateBagFile(wrapper, getStorageId(), missingBagMd5sums);
             }
             catch (IOException e) {
@@ -214,6 +232,8 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
             }
         }
 
+        // At this point, if any bags were marked as missing because they were moved, they should have been updated.
+        // Remove any that are still missing from the database.
         if (configService.getConfiguration().getRemoveOnDeletion()) {
             bagService.removeMissingBags();
         }
@@ -240,15 +260,10 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
     @Override
     public List<BagTreeNode> getTreeNodes(String targetPath) throws IOException {
-        myLogger.trace("getTreeNodes: " + targetPath);
+        myLogger.trace(getStorageId() + ": getTreeNodes: " + targetPath);
         List<BagTreeNode> nodes = new ArrayList<>();
 
-        var builder = ListObjectsV2Request.builder().bucket(myConfig.bucket);
-        if (!targetPath.equals("root")) {
-            builder = builder.prefix(targetPath);
-        }
-        String parentId = normalizePath(targetPath.equals("root") ? "" : targetPath);
-        var response = myS3Client.listObjectsV2(builder.build());
+        var response = listObjects(targetPath);
         // The ExtJS tree structure expects a branch node for every directory and a leaf node for every bag.
         // This is a little inconvenient here because S3 does not have any concept of directories; it just returns
         // a list of objects and the "key" is the full path to the file.  "Empty" directories can also be indicated
@@ -259,8 +274,9 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
             .splitToList(obj.key().replaceFirst(targetPath, "")).get(0))
             .filter(obj -> !obj.isEmpty() && !obj.endsWith(".bzEmpty") && !obj.endsWith(".bag"))
             .collect(Collectors.toSet());
+        String parentId = normalizePath(targetPath.equals("root") ? "" : targetPath);
         for (String path : paths) {
-            myLogger.info("Adding branch node: " + path);
+            myLogger.debug("Adding branch node: " + path);
 
             BagTreeNode childNode = new BagTreeNode();
             childNode.filename = path;
@@ -269,7 +285,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
             childNode.storageId = getStorageId();
             childNode.id = normalizePath(Joiner.on('/').join(parentId, path));
             childNode.expanded = false;
-            myLogger.info("Counting bags in path: " + childNode.id);
+            myLogger.debug("Counting bags in path: " + childNode.id);
             childNode.bagCount = bagRepository.countByPathStartsWithAndStorageId(childNode.id + "/", getStorageId());
             nodes.add(childNode);
         }
@@ -308,7 +324,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
     @Transactional
     public BagWrapper getBagWrapper(Bag bag) {
         String key = normalizePath(bag.getPath() + bag.getFilename());
-        return new S3BagWrapperImpl(myS3Client, key, this);
+        return new S3BagWrapperImpl(myS3Client, key, configService.getConfiguration().getScriptTmpPath(), this);
     }
 
     @Override
@@ -354,6 +370,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
     @Override
     public void start() {
+        myLogger.info(getStorageId() + ": Initializing S3 client.");
         AwsSessionCredentials credentials = AwsSessionCredentials.create(myConfig.accessKey, myConfig.secretKey, "");
         var builder = S3Client.builder().credentialsProvider(StaticCredentialsProvider.create(credentials));
         if (myConfig.endPoint != null && !myConfig.endPoint.isEmpty()) {
@@ -372,7 +389,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
             myUpdateTimer.cancel();
         }
         myUpdateTimer = new Timer("S3 Timer [" + myConfig.storageId + "]");
-        myLogger.info("Will check for updates every " + myConfig.updateIntervalMs + " ms.");
+        myLogger.info(getStorageId() + ": Will check for updates every " + myConfig.updateIntervalMs + " ms.");
         myUpdateTimer.scheduleAtFixedRate(new UpdateTask(), myConfig.updateIntervalMs, myConfig.updateIntervalMs);
     }
 
@@ -387,7 +404,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
     }
 
     public void updateListeners() {
-        myLogger.info("Storage[" + myConfig.storageId + "]: updateListeners");
+        myLogger.info(myConfig.storageId + ": updateListeners");
         BagStorageChangeEvent event = new BagStorageChangeEvent(this);
         for (BagStorageChangeListener listener : myChangeListeners) {
             listener.bagStorageChanged(event);
@@ -396,7 +413,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
     @Override
     public void uploadBag(MultipartFile file, String targetDirectory) throws IOException {
-        myLogger.info("Storage[" + myConfig.storageId + "]: uploadBag");
+        myLogger.info( myConfig.storageId + ": uploadBag");
         String absolutePath = normalizePath(targetDirectory + "/" + file.getOriginalFilename());
 
         myLogger.info("Uploading object with key: " + absolutePath);

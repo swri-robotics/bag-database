@@ -29,12 +29,14 @@ public class S3BagWrapperImpl implements BagWrapper {
     private final String myPath;
     private final String myFilename;
     private File file = null;
+    private final File tmpDir;
     private BagFile bagFile = null;
 
-    public S3BagWrapperImpl(S3Client s3Client, String key, S3BagStorageImpl storage) {
+    public S3BagWrapperImpl(S3Client s3Client, String key, String tmpDir, S3BagStorageImpl storage) {
         myS3Client = s3Client;
         myKey = key;
         myBagStorage = storage;
+        this.tmpDir = new File(tmpDir);
         Pattern pathPattern = Pattern.compile("^(.*/)?(.*)$");
         Matcher keyMatcher = pathPattern.matcher(key);
         if (!keyMatcher.find()) {
@@ -71,7 +73,24 @@ public class S3BagWrapperImpl implements BagWrapper {
         if (file != null) {
             return file;
         }
-        file = File.createTempFile("s3obj", ".bag", new File("/tmp"));
+        String errorMsg = null;
+        if (!tmpDir.exists()) {
+            myLogger.debug("Temporary dir doesn't exist; creating it.");
+            if (!tmpDir.mkdirs()) {
+                errorMsg = "Failed to create Temporary directory.";
+            }
+        }
+        else if (!tmpDir.canWrite()) {
+            errorMsg = "Temporary dir exists but is not writable.";
+        }
+        else if (!tmpDir.isDirectory()) {
+            errorMsg = "Temporary dir is not actually a directory.";
+        }
+        if (errorMsg != null) {
+            myLogger.error(errorMsg);
+            throw new IOException(errorMsg);
+        }
+        file = File.createTempFile("s3obj", ".bag", tmpDir);
         file.deleteOnExit();
         FileOutputStream output = new FileOutputStream(file);
         var request = GetObjectRequest.builder().bucket(myBagStorage.getBucket()).key(myKey).build();

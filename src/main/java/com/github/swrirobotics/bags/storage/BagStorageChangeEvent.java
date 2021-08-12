@@ -31,6 +31,8 @@
 package com.github.swrirobotics.bags.storage;
 
 public class BagStorageChangeEvent {
+    // TODO This could probably be optimized for some storage backends by adding a list of files that have
+    // changed so that only they need to be updated
     private final BagStorage myStorage;
 
     public BagStorageChangeEvent(BagStorage storage) {
