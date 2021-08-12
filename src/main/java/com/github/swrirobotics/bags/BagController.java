@@ -188,7 +188,7 @@ public class BagController {
     @ResponseBody
     public Map<String, Object> uploadBag(@RequestParam("file") MultipartFile file,
                                          @RequestParam String targetDirectory,
-                                         @RequestParam String storageId) {
+                                         @RequestParam(required=false, defaultValue="default") String storageId) {
         myLogger.info("uploadBag: " + file.getName());
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
