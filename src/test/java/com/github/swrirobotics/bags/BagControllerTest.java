@@ -335,7 +335,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
                 ),
                 requestParameters(
                     parameterWithName("targetDirectory").description("Location to place the bag file on disk"),
-                    parameterWithName("storageId").description("ID of the storage backend that should store the bag file"),
+                    parameterWithName("storageId").description("ID of the storage backend that should store the bag file; default: \"default\"").optional(),
                     parameterWithName("_csrf").description("CSRF token supplied by the Bag Database")
                 )
                 ));
