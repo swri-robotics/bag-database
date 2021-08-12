@@ -60,6 +60,7 @@ Operations that can cause the Bag Database to download a bag include:
 2. Downloading a bag through the web interface
 3. Viewing an image
 4. Streaming a video topic
+5. Running a script on a bag
 
 Configuration Class: `com.github.swrirobotics.bags.storage.s3.S3BagStorageConfigImpl`
 
@@ -145,7 +146,7 @@ services:
             - "8080:8080"
         volumes:
             - bags:/bags
-            - bags2:/bags2 # Replace this with the path to your bag files
+            - bags2:/bags2
             - indexes:/root/.ros-bag-database/indexes
             - scripts:/scripts
             - ./settings.yml:/root/.ros-bag-database/settings.yml:ro
