@@ -40,7 +40,7 @@ public class S3BagWrapperImpl implements BagWrapper {
         if (!keyMatcher.find()) {
             myLogger.error("Unable to parse S3 bag key.");
         }
-        myPath = keyMatcher.group(1);
+        myPath = keyMatcher.group(1) != null ? keyMatcher.group(1) : "";
         myFilename = keyMatcher.group(2);
     }
 
@@ -65,7 +65,8 @@ public class S3BagWrapperImpl implements BagWrapper {
         // TODO This will download the source object every time a BagWrapper is created for a file.
         // This is bad because it means the file will be downloaded every time a user looks at an image,
         // streams a video, runs a script, etc.
-        // Probably should have some way of caching downloaded files with a configurable cache size.
+        // Maybe S3BagStorageImpl should keep a cache or a pool of downloaded files with a limit; this .getFile()
+        // should get files from it, and it can return either the cached file or download a new one.
         myLogger.info("getFile: " + myKey);
         if (file != null) {
             return file;

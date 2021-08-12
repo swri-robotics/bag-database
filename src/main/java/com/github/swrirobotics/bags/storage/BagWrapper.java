@@ -38,10 +38,19 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * This is a wrapper that provides a layer of abstraction around performing operations on single bags.
+ * It is used so that different storage backends can do whatever operations are necessary for them to read
+ * bags from their storage and then clean up their resources when finished.
+ * Right now, BagWrapper#getBagFile() is used as a convenient way to read data from the underlying bag file,
+ * but in the future it may make sense to expand this interface's methods so that accessing the BagFile isn't
+ * necessary; that may also be a reasonable way to handle integrating ROS2 bags.
+ */
 public interface BagWrapper extends Closeable {
     /**
      * Gets a BagFile object that can be used to read data from this bag.  For remotely-stored bags, this
-     * may involve copying the bag file to a local filesystem.
+     * may involve copying the bag file to a local filesystem.  If so, that file will be cached until the
+     * BagWrapper is closed.
      * @return A BagFile object representing this bag.
      * @throws BagReaderException If the bag can't be read.
      */
@@ -74,5 +83,11 @@ public interface BagWrapper extends Closeable {
      */
     Long getSize() throws IOException;
 
+    /**
+     * Gets an input stream for reading the bag file.  This may not necessarily use the file cached
+     * by a call to BagWrapper#getBagFile().
+     * @return An input stream for reading the bag file.
+     * @throws FileNotFoundException If the bag does not exist.
+     */
     InputStream getInputStream() throws FileNotFoundException;
 }

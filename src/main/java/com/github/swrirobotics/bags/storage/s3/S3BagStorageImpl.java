@@ -42,7 +42,6 @@ import com.github.swrirobotics.support.web.BagTreeNode;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Sets;
 import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,17 +55,11 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 
+import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -82,10 +75,20 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
     private final ConfigService configService;
     private BagService bagService;
 
-    private final Set<BagStorageChangeListener> myChangeListeners = Sets.newHashSet();
+    private final Set<BagStorageChangeListener> myChangeListeners = new HashSet<>();
+    private List<String> myKeyCache = new ArrayList<>();
+    private final Object myKeyCacheLock = new Object();
+    private Timer myUpdateTimer = null;
     private S3BagStorageConfigImpl myConfig = null;
 
     private S3Client myS3Client = null;
+
+    private class UpdateTask extends TimerTask {
+        @Override
+        public void run() {
+            checkForUpdates();
+        }
+    }
 
     public S3BagStorageImpl(BagRepository bagRepository, ConfigService configService) {
         this.bagRepository = bagRepository;
@@ -99,21 +102,60 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
     @Override
     public boolean bagExists(String path) {
-        String normalizedPath = normalizePath(path);
-        var request = HeadObjectRequest.builder().bucket(myConfig.bucket).key(normalizedPath).build();
-        try {
-            myS3Client.headObject(request);
-            return true;
+        synchronized (myKeyCacheLock) {
+            return myKeyCache.contains(path);
         }
-        catch (NoSuchKeyException e) {
-            return false;
-        }
+//        String normalizedPath = normalizePath(path);
+//        var request = HeadObjectRequest.builder().bucket(myConfig.bucket).key(normalizedPath).build();
+//        try {
+//            myS3Client.headObject(request);
+//            return true;
+//        }
+//        catch (NoSuchKeyException e) {
+//            return false;
+//        }
     }
 
     @Override
+    @Transactional
     public void updateBagExistence() {
         myLogger.info("Storage[" + myConfig.storageId + "]: updateBagExistence");
+        Stream<Bag> bags = bagRepository.findByStorageId(myConfig.storageId);
 
+        bags.forEach(bag -> {
+            String fullPath = normalizePath(bag.getPath() + bag.getFilename());
+            boolean isMissing = !bagExists(fullPath);
+            myLogger.info("Is " + fullPath + " missing? " + isMissing);
+            if (isMissing ^ bag.getMissing()) {
+                myLogger.info("Bag at " + fullPath + " has " + (isMissing ? "gone missing." : "been found!"));
+                bag.setMissing(isMissing);
+                bagRepository.save(bag);
+            }
+        });
+    }
+
+    public boolean updateKeyCache(ListObjectsV2Response response) {
+        List<String> newKeys = response.contents().parallelStream()
+            .map(S3Object::key)
+            .sorted(String::compareTo)
+            .collect(Collectors.toList());
+        synchronized (myKeyCacheLock) {
+            if (!newKeys.equals(myKeyCache)) {
+                myLogger.info("Keys in S3 have changed.");
+                myKeyCache = newKeys;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void checkForUpdates() {
+        myLogger.info("checkForUpdates");
+        var request = ListObjectsV2Request.builder().bucket(myConfig.bucket).build();
+        var response = myS3Client.listObjectsV2(request);
+        if (updateKeyCache(response)) {
+            updateListeners();
+        }
     }
 
     @Override
@@ -128,6 +170,7 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
         var request = ListObjectsV2Request.builder().bucket(myConfig.bucket).build();
         var response = myS3Client.listObjectsV2(request);
+        updateKeyCache(response);
         for (var object : response.contents()) {
             String filename = object.key();
             if (!filename.endsWith(".bag")) {
@@ -325,11 +368,21 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
         }
         myS3Client = builder.build();
 
-        // TODO Figure out how to register for change notifications
+        if (myUpdateTimer != null) {
+            myUpdateTimer.cancel();
+        }
+        myUpdateTimer = new Timer("S3 Timer [" + myConfig.storageId + "]");
+        myLogger.info("Will check for updates every " + myConfig.updateIntervalMs + " ms.");
+        myUpdateTimer.scheduleAtFixedRate(new UpdateTask(), myConfig.updateIntervalMs, myConfig.updateIntervalMs);
     }
 
     @Override
+    @PreDestroy
     public void stop() {
+        if (myUpdateTimer != null) {
+            myUpdateTimer.cancel();
+            myUpdateTimer = null;
+        }
         myS3Client.close();
     }
 

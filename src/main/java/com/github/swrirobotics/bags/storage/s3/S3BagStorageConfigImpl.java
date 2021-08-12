@@ -38,4 +38,5 @@ public class S3BagStorageConfigImpl extends BagStorageConfiguration {
     public String endPoint;
     public String region;
     public String bucket;
+    public Long updateIntervalMs = 10000L;
 }
