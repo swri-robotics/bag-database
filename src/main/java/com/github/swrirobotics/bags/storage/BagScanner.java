@@ -39,7 +39,8 @@ import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldExceptio
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
 import com.github.swrirobotics.config.ConfigService;
-import com.github.swrirobotics.persistence.*;
+import com.github.swrirobotics.persistence.Bag;
+import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;

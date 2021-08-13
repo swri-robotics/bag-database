@@ -32,7 +32,6 @@ package com.github.swrirobotics.bags.storage.filesystem;
 
 import com.esotericsoftware.yamlbeans.YamlWriter;
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.DefaultRecursiveWatcher;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.RecursiveWatcher;

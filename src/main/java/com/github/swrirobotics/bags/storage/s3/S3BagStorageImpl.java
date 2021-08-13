@@ -31,7 +31,6 @@
 package com.github.swrirobotics.bags.storage.s3;
 
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.Bag;
@@ -55,7 +54,10 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import javax.annotation.PreDestroy;
 import java.io.IOException;
