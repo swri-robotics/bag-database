@@ -17,13 +17,13 @@
  */
 package com.github.swrirobotics.bags.storage.filesystem.watcher;
 
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -46,7 +46,7 @@ public abstract class RecursiveWatcher {
     protected static final Logger logger = LoggerFactory.getLogger(RecursiveWatcher.class.getSimpleName());
 
     protected Path root;
-    protected List<Path> ignorePaths = Lists.newArrayList();
+    protected List<Path> ignorePaths = new ArrayList<>();
     private int settleDelay;
     private WatchListener listener;
 

@@ -76,10 +76,13 @@ public class ConfigService {
             return config;
         }
 
-        URL fileUrl = null;
+        URL fileUrl;
         try {
             fileUrl = new URL(filename);
-        } catch (MalformedURLException e) {
+        }
+        catch (MalformedURLException e) {
+            myLogger.error("Unable to parse config file URL", e);
+            return config;
             // This shouldn't happen...
         }
         FileSystemResource settingsFile = new FileSystemResource(fileUrl.getFile());
@@ -162,6 +165,8 @@ public class ConfigService {
         }
 
         if (bagPathChanged) {
+            myLogger.warn("Setting the bagPath config parameter is deprecated.");
+            myLogger.warn("Please configure a storage backend instead.");
             // If the bag path has changed, we should tell the scanner to rescan.
             if (myBagScanner == null) {
                 // We can't autowire this because it would create a circular

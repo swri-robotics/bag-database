@@ -31,9 +31,9 @@
 package com.github.swrirobotics.support.web;
 
 import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
-import org.apache.commons.compress.utils.Lists;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Configuration implements Serializable {
@@ -70,7 +70,7 @@ public class Configuration implements Serializable {
     private Integer tileWidthPx = 256;
     private Integer tileHeightPx = 256;
 
-    private List<BagStorageConfiguration> storageConfigurations = Lists.newArrayList();
+    private List<BagStorageConfiguration> storageConfigurations = new ArrayList<>();
 
     @Deprecated
     public String getBagPath() {

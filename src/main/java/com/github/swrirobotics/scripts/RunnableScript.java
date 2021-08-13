@@ -77,7 +77,6 @@ public class RunnableScript implements Runnable {
     private Status endStatus;
 
     private final Logger myLogger = LoggerFactory.getLogger(RunnableScript.class);
-    // private static final String BAGS_DIR =  "/bags/"; // Where local bags are mounted in the DinD container
     private static final String SCRIPTS_DIR = "/scripts/"; // Where scripts are mounted in the DinD container
     private static final String SCRIPT_TMP_NAME = "/script.py"; // The name of the script inside the script container
 
