@@ -344,6 +344,7 @@ public class BagService extends StatusProvider {
                 }
                 finally {
                     myLogger.debug("Finished processing output from ffmpeg.");
+                    IOUtils.closeQuietly(myOutput);
                 }
             }
         }
