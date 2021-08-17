@@ -3,6 +3,7 @@
 3.3.0
 - Refactor bag storage to allow multiple backends with different sources
 - Add S3 storage backend implementation
+- Increase async task timeouts to allow streaming longer videos
 
 3.2.0
 
