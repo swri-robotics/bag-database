@@ -40,6 +40,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Validator;
@@ -61,6 +63,8 @@ import static org.springframework.context.annotation.ComponentScan.Filter;
                includeFilters = {@Filter(Controller.class)},
                useDefaultFilters = false)
 @EnableWebMvc
+@EnableAsync
+@EnableScheduling
 class WebMvcConfig implements WebMvcConfigurer {
 
     private static final String MESSAGE_SOURCE = "/WEB-INF/i18n/messages";
@@ -83,6 +87,13 @@ class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
         configurer.setTaskExecutor(mvcTaskExecutor());
+        // Spring will kill any asynchronous tasks that run longer than this in ms.
+        // Streaming video from bag files runs as an async task, so this should be longer than any reasonable
+        // video that a user might want to stream.  The downside to setting this to an arbitrarily large value
+        // is that if multiple users stream large videos at once, they could cause the task executor pool to
+        // starve and then nobody will be able to run any streaming tasks until the older ones are done.
+        // The current value is 1 hour, which should be more than long enough.
+        configurer.setDefaultTimeout(3600000);
     }
 
     @Bean
