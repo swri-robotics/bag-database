@@ -72,6 +72,7 @@ public class ConfigService {
 
         Set<String> profileSet = Sets.newHashSet(myEnvironment.getActiveProfiles());
         if (profileSet.contains("test")) {
+            myLogger.warn("Running in testing mode; not loading configuration file.");
             // Don't actually read in the config file if we're in test mode.
             return config;
         }
