@@ -44,10 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourceRegion;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,6 +55,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("bags")
@@ -67,7 +65,7 @@ public class BagController {
 
     private final Logger myLogger = LoggerFactory.getLogger(BagController.class);
 
-    private static final long CHUNK_SIZE = 200000000L;
+    private static final long CHUNK_SIZE = 1000000000L;
 
     public BagController(BagService myBagService) {
         this.myBagService = myBagService;
@@ -84,9 +82,6 @@ public class BagController {
         myLogger.info("downloadBag: " + id + "; range: " + rangeHeader);
 
         try (BagWrapper bag = myBagService.getBagWrapper(id)){
-//            response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
-//            response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-//            response.setHeader("Content-Length", bag.getSize().toString());
             myLogger.info("Found bag: " + bag.getFilename());
             Resource resource = bag.getResource();
             ResourceRegion region = getResourceRegion(resource, bag.getSize(), rangeHeader);
@@ -99,11 +94,11 @@ public class BagController {
             return ResponseEntity
                 .status(StringUtils.isBlank(rangeHeader) ? HttpStatus.OK : HttpStatus.PARTIAL_CONTENT)
                 .headers(headers)
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePrivate().noTransform())
                 .body(region);
         }
         catch (NonexistentBagException e) {
             myLogger.warn("Bag not found.");
-//            response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return ResponseEntity.notFound().build();
         }
     }
@@ -130,7 +125,7 @@ public class BagController {
 
         if (fromRange > 0) {
             long rangeLength = Math.min(CHUNK_SIZE, toRange - fromRange + 1);
-            myLogger.debug("Returning range from " + fromRange + " to " + (fromRange + rangeLength));
+            myLogger.debug("Returning range from " + fromRange + " to " + toRange);
             resourceRegion = new ResourceRegion(resource, fromRange, rangeLength);
         }
         else {
