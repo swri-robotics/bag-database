@@ -221,6 +221,12 @@ public class BagService extends StatusProvider {
     }
 
     @Transactional
+    public String getBagMd5Sum(long bagId) throws NonexistentBagException {
+        return myBagRepository.findById(bagId).orElseThrow(() ->
+            new NonexistentBagException("Bag not found: " + bagId)).getMd5sum();
+    }
+
+    @Transactional
     public BagWrapper getBagWrapper(long bagId) throws NonexistentBagException {
         Bag bag = myBagRepository.findById(bagId).orElseThrow(() ->
             new NonexistentBagException("Bag not found: " + bagId));

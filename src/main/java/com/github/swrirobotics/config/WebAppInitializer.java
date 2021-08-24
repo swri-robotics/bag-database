@@ -54,7 +54,8 @@ public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServlet
                                JpaConfig.class,
                                LiquibaseConfig.class,
                                WebSocketConfig.class,
-                               SecurityConfig.class
+                               SecurityConfig.class,
+                               WebMvcConfig.class
                                };
     }
 

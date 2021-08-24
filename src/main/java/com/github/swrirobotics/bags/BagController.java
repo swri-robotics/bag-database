@@ -39,9 +39,12 @@ import com.github.swrirobotics.persistence.Tag;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.ResourceRegion;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -64,29 +67,79 @@ public class BagController {
 
     private final Logger myLogger = LoggerFactory.getLogger(BagController.class);
 
+    private static final long CHUNK_SIZE = 200000000L;
+
     public BagController(BagService myBagService) {
         this.myBagService = myBagService;
     }
 
-    @RequestMapping(value="/download", produces="application/x-bag")
-    public InputStreamResource downloadBag(
-            @RequestParam String bagId,
-            HttpServletResponse response) throws IOException {
+    @GetMapping(value="/download", produces="application/x-bag")
+    @CrossOrigin(methods = {RequestMethod.GET, RequestMethod.HEAD},
+                 exposedHeaders = {"ETag", "Content-Type", "Content-Length", "Accept-Ranges"},
+                 maxAge = 3000)
+    public ResponseEntity<ResourceRegion> downloadBag(
+            @RequestHeader(value="Range", required=false) String rangeHeader,
+            @RequestParam String bagId) throws IOException {
         long id = Long.parseLong(bagId);
-        myLogger.info("downloadBag: " + id);
+        myLogger.info("downloadBag: " + id + "; range: " + rangeHeader);
 
         try (BagWrapper bag = myBagService.getBagWrapper(id)){
-            response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
-            response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-            response.setHeader("Content-Length", bag.getSize().toString());
+//            response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
+//            response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
+//            response.setHeader("Content-Length", bag.getSize().toString());
             myLogger.info("Found bag: " + bag.getFilename());
-            return new InputStreamResource(bag.getInputStream(), bag.getBagStorage().getStorageId());
+            Resource resource = bag.getResource();
+            ResourceRegion region = getResourceRegion(resource, bag.getSize(), rangeHeader);
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Accept-Ranges", "bytes");
+            headers.add("Content-Disposition", "attachment; filename=" + bag.getFilename());
+            headers.add("Content-Type", MediaType.APPLICATION_OCTET_STREAM.toString());
+            headers.add("ETag", myBagService.getBagMd5Sum(id));
+
+            return ResponseEntity
+                .status(StringUtils.isBlank(rangeHeader) ? HttpStatus.OK : HttpStatus.PARTIAL_CONTENT)
+                .headers(headers)
+                .body(region);
         }
         catch (NonexistentBagException e) {
             myLogger.warn("Bag not found.");
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return null;
+//            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return ResponseEntity.notFound().build();
         }
+    }
+
+
+    private ResourceRegion getResourceRegion(Resource resource, long contentLength, String httpHeaders) {
+        ResourceRegion resourceRegion;
+
+        if (StringUtils.isBlank(httpHeaders)) {
+            return new ResourceRegion(resource, 0, contentLength);
+        }
+
+        long fromRange;
+        long toRange;
+
+        String[] ranges = httpHeaders.substring("bytes=".length()).split("-");
+        fromRange = Long.parseLong(ranges[0]);
+        if (ranges.length > 1) {
+            toRange = Long.parseLong(ranges[1]);
+        }
+        else {
+            toRange = contentLength - 1;
+        }
+
+        if (fromRange > 0) {
+            long rangeLength = Math.min(CHUNK_SIZE, toRange - fromRange + 1);
+            myLogger.debug("Returning range from " + fromRange + " to " + (fromRange + rangeLength));
+            resourceRegion = new ResourceRegion(resource, fromRange, rangeLength);
+        }
+        else {
+            long rangeLength = Math.min(CHUNK_SIZE, contentLength);
+            myLogger.debug("Returning range from 0 to " + rangeLength);
+            resourceRegion = new ResourceRegion(resource, 0, rangeLength);
+        }
+
+        return resourceRegion;
     }
 
     @RequestMapping("/get")

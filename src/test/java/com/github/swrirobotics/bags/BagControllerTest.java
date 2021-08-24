@@ -45,9 +45,12 @@ import com.github.swrirobotics.support.web.ExtJsFilter;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.io.AbstractResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.restdocs.payload.FieldDescriptor;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -102,8 +105,18 @@ public class BagControllerTest extends WebAppConfigurationAware {
             }
 
             @Override
-            public InputStream getInputStream() throws FileNotFoundException {
-                return null;
+            public Resource getResource() throws FileNotFoundException {
+                return new AbstractResource() {
+                    @Override
+                    public String getDescription() {
+                        return "Test Resource";
+                    }
+
+                    @Override
+                    public InputStream getInputStream() throws IOException {
+                        return new ByteArrayInputStream(new byte[1000]);
+                    }
+                };
             }
         };
     }
@@ -281,7 +294,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
         mockMvc.perform(get("/bags/download").param("bagId", "1"))
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Disposition", "attachment; filename=test.bag"))
-            .andExpect(header().string("Content-Transfer-Encoding", "application/octet-stream"))
+            .andExpect(header().string("Content-Type", "application/octet-stream"))
             .andExpect(header().string("Content-Length", "1000"))
         .andDo(document("bags/{method-name}",
             preprocessRequest(prettyPrint()),
