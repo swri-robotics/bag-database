@@ -200,12 +200,29 @@ include::{snippets}/bags/update-bag/http-request.adoc[]
 ==== Example Response
 include::{snippets}/bags/update-bag/response-body.adoc[]
 
+[[bags_get_storage_ids]]
+=== Get Storage Ids
+
+Retrieves a list of every storage backend's unique identifier.  This is useful for
+specifying where you want to upload a bag with <<bags_upload>>.
+
+==== Example Request
+include::{snippets}/bags/get-bag-storage-ids/http-request.adoc[]
+
+==== Example Response
+include::{snippets}/bags/get-bag-storage-ids/response-body.adoc[]
+
 [[bags_upload]]
 === Upload a New Bag
 
 This method exists primarily so the web interface can upload new bag files.  For
 your own purposes, it may be easier to use another protocol such as SFTP to
 directly upload new bags to the database's filesystem.
+
+You can control which storage backend receives the uploaded file by setting
+the `storageId` parameter to a value received from <<bags_get_storage_ids>>.  If the
+`storageId` is not specified, it will be assumed to be `default`, which is appropriate
+if you are using the default filesystem-based storage.
 
 ==== Example Request
 include::{snippets}/bags/upload-bag/http-request.adoc[]

@@ -30,6 +30,8 @@
 
 package com.github.swrirobotics.status;
 
+import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.storage.BagScanner;
 import com.github.swrirobotics.scripts.ScriptService;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
@@ -38,8 +40,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.BagScanner;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;

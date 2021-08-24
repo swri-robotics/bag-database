@@ -30,6 +30,11 @@ volumes and parameters that can be used to configure the Docker container.
 
 ### Environment Variables
 
+With the exception of `BAGDB_PATH`, all of these variables are used in the Bag Database container's
+`entrypoint.sh` script to generate a file at `${HOME}/.ros-bag-database/settings.yml` that configures
+the Bag Database.  You can generate this file yourself if you have more complex configuration needs;
+see [Storage](../../configuration/storage.md) for an example.
+
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `ADMIN_PASSWORD` | The default password for administrative access.  If this is not set, one will be randomly generated and printed to the log file on initial startup. | |
@@ -49,7 +54,7 @@ volumes and parameters that can be used to configure the Docker container.
 | `LDAP_SERVER` | The LDAP server for authentication.  If set to an empty string, LDAP authentication will not be enabled, and anonymous users may connect. | |
 | `LDAP_USER_PATTERN` | The pattern for finding user DNs in the LDAP server.  `{0}` will be replaced with the username from the login form. | |
 | `METADATA_TOPICS` | A comma-separated list of `std_msgs/String` topics in bag files that will be searched for metadata.  The messages on the topic should be newline-separated tags that are made of colon-separated key/value pairs; see [Metadata Example](#metadata-example) for an example. | |
-| `SCRIPT_TMP_PATH` | Path to write temporary script files.  This can be empty if you do not intend to run scripts. It must be writable by the bag database, and the Docker service that runs the scripts **must have it mounted as a volume at the same location as the Bag Database**. | /scripts | 
+| `SCRIPT_TMP_PATH` | Path to write temporary script files and bag files downloaded from remote storage backends.  This can be empty if you do not intend to run scripts or use remote storage. It must be writable by the bag database, and the Docker service that runs the scripts **must have it mounted as a volume at the same location as the Bag Database**. | /scripts | 
 | `TILE_HEIGHT_PX` | The height of the tiles returned from the tile map in pixels. | 256 |
 | `TILE_MAP_URL` | If `USE_TILE_MAP` is `true`, this URL will be used as a template for retrieving map tiles from a WMTS tile server.  See the documentation for the `url` property of OpenLayers' [ol.source.XYZ](http://openlayers.org/en/latest/apidoc/ol.source.XYZ.html) class.  The default value will use the terrain map provided by [Stamen](http://maps.stamen.com/). | http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg |
 | `TILE_WIDTH_PX` | The width of the tiles returned from the tile map in pixels. | 256 |

@@ -90,6 +90,8 @@ Ext.define('BagDatabase.models.Bag', {
     }, {
         name: 'startTime', type: 'date', dateFormat: 'time'
     }, {
+        name: 'storageId'
+    }, {
         name: 'updatedOn', type: 'date', dateFormat: 'time'
     }, {
         name: 'vehicle', sortType: function(value) {

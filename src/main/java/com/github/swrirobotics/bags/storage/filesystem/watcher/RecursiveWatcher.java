@@ -15,17 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.swrirobotics.bags.filesystem.watcher;
+package com.github.swrirobotics.bags.storage.filesystem.watcher;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * The recursive file watcher monitors a folder (and its sub-folders).
@@ -41,34 +43,52 @@ import java.util.logging.Logger;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public abstract class RecursiveWatcher {
-    protected static final Logger logger = Logger.getLogger(RecursiveWatcher.class.getSimpleName());
+    protected static final Logger logger = LoggerFactory.getLogger(RecursiveWatcher.class.getSimpleName());
 
-    protected final Path root;
-    protected final List<Path> ignorePaths;
-    private final int settleDelay;
-    private final WatchListener listener;
+    protected Path root;
+    protected List<Path> ignorePaths = new ArrayList<>();
+    private int settleDelay;
+    private WatchListener listener;
 
     private final AtomicBoolean running;
 
     private Thread watchThread;
     private Timer timer;
 
-    public RecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
-        this.root = root;
-        this.ignorePaths = ignorePaths;
-        this.settleDelay = settleDelay;
-        this.listener = listener;
-
+    public RecursiveWatcher() {
         this.running = new AtomicBoolean(false);
     }
 
-    /**
-     * Creates a recursive watcher for the given root path. The returned watcher
-     * will ignore the ignore paths and fire an event through the {@link WatchListener}
-     * as soon as the settle delay (in ms) has passed.
-     */
-    public static RecursiveWatcher createRecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
-        return new DefaultRecursiveWatcher(root, ignorePaths, settleDelay, listener);
+    public Path getRoot() {
+        return root;
+    }
+
+    public void setRoot(Path root) {
+        this.root = root;
+    }
+
+    public List<Path> getIgnorePaths() {
+        return ignorePaths;
+    }
+
+    public void setIgnorePaths(List<Path> ignorePaths) {
+        this.ignorePaths = ignorePaths;
+    }
+
+    public int getSettleDelay() {
+        return settleDelay;
+    }
+
+    public void setSettleDelay(int settleDelay) {
+        this.settleDelay = settleDelay;
+    }
+
+    public WatchListener getListener() {
+        return listener;
+    }
+
+    public void setListener(WatchListener listener) {
+        this.listener = listener;
     }
 
     /**
@@ -103,11 +123,11 @@ public abstract class RecursiveWatcher {
                     }
                 }
                 catch (InterruptedException e) {
-                    logger.log(Level.FINE, "Could not poll the events. EXITING watcher.", e);
+                    logger.warn("Could not poll the events. EXITING watcher.", e);
                     running.set(false);
                 }
                 catch (ClosedWatchServiceException e) {
-                    logger.log(Level.FINE, "Watch closed or polling failed. EXITING watcher.", e);
+                    logger.warn("Watch closed or polling failed. EXITING watcher.", e);
                     running.set(false);
                 }
             }
@@ -131,13 +151,13 @@ public abstract class RecursiveWatcher {
                 afterStop();
             }
             catch (IOException e) {
-                logger.log(Level.FINE, "Could not close watcher", e);
+                logger.debug("Could not close watcher", e);
             }
         }
     }
 
     private synchronized void restartWaitSettlementTimer() {
-        logger.log(Level.FINE, "File system events registered. Waiting " + settleDelay + "ms for settlement ....");
+        logger.debug("File system events registered. Waiting " + settleDelay + "ms for settlement ....");
 
         if (timer != null) {
             timer.cancel();
@@ -148,7 +168,7 @@ public abstract class RecursiveWatcher {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                logger.log(Level.INFO, "File system actions (on watched folders) settled. Updating watches ...");
+                logger.info("File system actions (on watched folders) settled. Updating watches ...");
 
                 watchEventsOccurred();
                 fireListenerEvents();
@@ -158,7 +178,7 @@ public abstract class RecursiveWatcher {
 
     private synchronized void fireListenerEvents() {
         if (listener != null) {
-            logger.log(Level.INFO, "- Firing watch event (watchEventsOccurred) ...");
+            logger.info("- Firing watch event (watchEventsOccurred) ...");
             listener.watchEventsOccurred();
         }
     }

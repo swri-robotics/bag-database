@@ -190,6 +190,8 @@ Ext.define('BagDatabase.views.BagTreePanel', {
             return value;
         }
     }, {
+        text: 'Storage Id', dataIndex: 'storageId', flex: 1, hidden: true
+    }, {
         text: 'Location', dataIndex: 'location', flex: 1
     }, {
         text: 'Vehicle', dataIndex: 'vehicle', flex: 1, editor: 'textfield'
@@ -441,9 +443,9 @@ Ext.define('BagDatabase.views.BagTreePanel', {
         selectionchange: function(rowmodel, records, index) {
             var treepanel, isDisabled, copyLinkButton, mapBagButton, downloadBagButton;
             treepanel = rowmodel.view.up('treepanel');
-            
+
             records = treepanel.getBagRecords(records);
-            
+
             isDisabled = !(records && records.length > 0);
             copyLinkButton = treepanel.down('#copyLinkButton');
             mapBagButton = treepanel.down('#mapBagButton');

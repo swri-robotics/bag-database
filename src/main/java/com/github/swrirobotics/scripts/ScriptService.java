@@ -59,6 +59,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.json.*;
 import java.io.StringReader;
 import java.net.URI;
@@ -175,6 +176,13 @@ public class ScriptService extends StatusProvider {
         taskExecutor.setCorePoolSize(MINIMUM_THREAD_POOL_SIZE);
         taskExecutor.setMaxPoolSize(Math.max(Runtime.getRuntime().availableProcessors(), MINIMUM_THREAD_POOL_SIZE));
         taskExecutor.initialize();
+    }
+
+    @PreDestroy
+    public void destroyTaskExecutor() {
+        if (taskExecutor != null) {
+            taskExecutor.shutdown();
+        }
     }
 
     @Transactional

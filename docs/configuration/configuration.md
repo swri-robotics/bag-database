@@ -10,9 +10,14 @@ permalink: /configuration/
 # Configuration
 
 The Bag Database stores its configuration in a file at `${HOME}/.ros-bag-database/settings.yml`,
-where `${HOME}` is the home directory of the user that the Tomcat server is running as.  If you
-are running the Bag Database a Docker container, you don't need to edit this file; it will be
-automatically generated from the environment variables set on the container.
+where `${HOME}` is the home directory of the user that the Tomcat server is running as.
+
+If you are only serving files from a single directory on the local filesystem, you don't need to
+edit this file; it will be automatically generated from the environment variables set on the container.
+
+For more complex storage configuration, you can make your own `settings.yml` file.  See below for an
+example, or if you have an existing Bag Database, you can use its current configuration as a starting
+point by copying `/root/.ros-bag-database/settings.yml` out of the container.
 
 For a detailed list of the environment variables used to configure the Bag Database when it is
 running as a Docker container, see [Docker](../installation/docker).
@@ -49,9 +54,9 @@ vehicleNameTopics:
 - /vehicle_name
 ```
 
-Again, you should not edit this if you are running the Bag Database as a Docker container.  Any
-changes will be overwritten the next time the container restarts.
 
-On the other hand, if you are running the Bag Database in a standalone Tomcat server, you may want
-to edit these; you can also edit them through the [Configuration](../web-interface/administration#bag-database-configuration)
-panel.
+
+If you are running the Bag Database in a standalone Tomcat server, some of these values can be edited
+through the [Configuration](../web-interface/administration#bag-database-configuration)
+panel.  Note that if you are running inside a Docker container, they will be overwritten when the
+container restarts.

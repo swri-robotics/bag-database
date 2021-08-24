@@ -30,7 +30,6 @@
 
 package com.github.swrirobotics.scripts;
 
-import com.github.swrirobotics.persistence.ScriptResult;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

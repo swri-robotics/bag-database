@@ -78,6 +78,7 @@ public class Bag implements Serializable {
     private List<BagPosition> bagPositions = new ArrayList<>(); // GPS positions extracted from the bag
     private Boolean hasPath; // If we have any positions; testing this is faster than checking bagPositions.isEmpty
     private Point coordinate;
+    private String storageId; // Unique identifier for the storage mechanism used for this bag
 
     // The following fields are metadata about a bag file that can be modified
     // by a user.
@@ -120,7 +121,7 @@ public class Bag implements Serializable {
         this.filename = filename;
     }
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     public String getPath() {
         return path;
     }
@@ -324,6 +325,14 @@ public class Bag implements Serializable {
 
     private void setLongitudeDeg(Double longitudeDeg) {
         this.longitudeDeg = longitudeDeg;
+    }
+
+    public String getStorageId() {
+        return storageId;
+    }
+
+    public void setStorageId(String storageId) {
+        this.storageId = storageId;
     }
 
     @OneToMany(mappedBy = "bag",

@@ -30,14 +30,14 @@
 
 package com.github.swrirobotics.home;
 
+import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.support.web.Configuration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import com.github.swrirobotics.config.ConfigService;
-import com.github.swrirobotics.support.web.Configuration;
 
 @Controller
 public class HomeController {

@@ -15,13 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.swrirobotics.bags.filesystem.watcher;
+package com.github.swrirobotics.bags.storage.filesystem.watcher;
+
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
-import java.util.logging.Level;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -42,13 +47,13 @@ import static java.nio.file.StandardWatchEventKinds.*;
  *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
+@Service
+@Scope("prototype")
 public class DefaultRecursiveWatcher extends RecursiveWatcher {
     private WatchService watchService;
     private final Map<Path, WatchKey> watchPathKeyMap;
 
-    public DefaultRecursiveWatcher(Path root, List<Path> ignorePaths, int settleDelay, WatchListener listener) {
-        super(root, ignorePaths, settleDelay, listener);
-
+    public DefaultRecursiveWatcher() {
         this.watchService = null;
         this.watchPathKeyMap = new HashMap<>();
     }
@@ -94,7 +99,7 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
     }
 
     private synchronized void walkTreeAndSetWatches() {
-        logger.log(Level.INFO, "Registering new folders at watch service ...");
+        logger.info("Registering new folders at watch service ...");
 
         try {
             Files.walkFileTree(root, new FileVisitor<>() {
@@ -126,7 +131,7 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
             });
         }
         catch (IOException e) {
-            logger.log(Level.FINE, "IO failed", e);
+            logger.debug("IO failed", e);
         }
     }
 
@@ -136,7 +141,7 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
                                     .collect(Collectors.toSet());
 
         if (stalePaths.size() > 0) {
-            logger.log(Level.INFO, "Cancelling stale path watches ...");
+            logger.info("Cancelling stale path watches ...");
 
             for (Path stalePath : stalePaths) {
                 unregisterWatch(stalePath);
@@ -146,14 +151,14 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
 
     private synchronized void registerWatch(Path dir) {
         if (!watchPathKeyMap.containsKey(dir)) {
-            logger.log(Level.INFO, "- Registering " + dir);
+            logger.info("- Registering " + dir);
 
             try {
                 WatchKey watchKey = dir.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY, OVERFLOW);
                 watchPathKeyMap.put(dir, watchKey);
             }
             catch (IOException e) {
-                logger.log(Level.FINE, "IO Failed", e);
+                logger.debug("IO Failed", e);
             }
         }
     }
@@ -162,7 +167,7 @@ public class DefaultRecursiveWatcher extends RecursiveWatcher {
         WatchKey watchKey = watchPathKeyMap.get(dir);
 
         if (watchKey != null) {
-            logger.log(Level.INFO, "- Cancelling " + dir);
+            logger.info("- Cancelling " + dir);
 
             watchKey.cancel();
             watchPathKeyMap.remove(dir);

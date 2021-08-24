@@ -160,12 +160,13 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
                 grid = this.up('grid');
                 store = grid.store;
                 postDocument = grid.postDocument;
-                path = grid.down('combobox').getRawValue();
+                path = grid.down('#targetPath').getRawValue();
+                storageId = grid.down('#storageId').getRawValue();
                 store.each(function(item) {
-                    if (item.get('status') != 'Uploaded') {
+                    if (item.get('status') !== 'Uploaded') {
                         item.set('status', 'Uploading');
                         item.commit();
-                        postDocument('bags/upload', item, path);
+                        postDocument('bags/upload', item, path, storageId);
                     }
                 });
             }
@@ -235,29 +236,63 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
                 }
             }
         }],
-        bbar: [{
-            xtype: 'combobox',
-            fieldLabel: 'Target Path',
-            width: '100%',
-            store: {
-                fields: ['path'],
-                proxy: {
-                    type: 'ajax',
-                    url: 'bags/paths',
-                    reader: {
-                        type: 'json',
-                        rootProperty: 'paths',
-                        totalProperty: 'totalCount'
+        dockedItems: [{
+            xtype: 'panel',
+            layout: 'vbox',
+            dock: 'bottom',
+            padding: 6,
+            items: [{
+                xtype: 'combobox',
+                fieldLabel: 'Target Path',
+                itemId: 'targetPath',
+                width: '100%',
+                labelWidth: 110,
+                allowOnlyWhitespace: false,
+                store: {
+                    fields: ['path'],
+                    proxy: {
+                        type: 'ajax',
+                        url: 'bags/paths',
+                        reader: {
+                            type: 'json',
+                            rootProperty: 'paths',
+                            totalProperty: 'totalCount'
+                        },
+                        simpleSortMode: true
                     },
-                    simpleSortMode: true
+                    autoLoad: true
                 },
-                autoLoad: true
-            },
-            displayField: 'path',
-            valueField: 'path',
-            value: '/'
+                displayField: 'path',
+                valueField: 'path',
+                value: '/'
+            }, {
+                xtype: 'combobox',
+                fieldLabel: 'Storage Backend',
+                itemId: 'storageId',
+                width: '100%',
+                labelWidth: 110,
+                editable: false,
+                allowOnlyWhitespace: false,
+                store: {
+                    fields: ['storageId'],
+                    proxy: {
+                        type: 'ajax',
+                        url: 'bags/get_storage_ids',
+                        reader: {
+                            type: 'json',
+                            rootProperty: 'storageIds',
+                            totalProperty: 'totalCount'
+                        },
+                        simpleSortMode: true
+                    },
+                    autoLoad: true
+                },
+                displayField: 'storageId',
+                valueField: 'storageId',
+                value: ''
+            }]
         }],
-        postDocument: function(url, item, path) {
+        postDocument: function(url, item, path, storageId) {
             var xhr, fd;
             xhr = new XMLHttpRequest();
             fd = new FormData();
@@ -265,6 +300,7 @@ Ext.define('BagDatabase.views.BagUploadWindow', {
             xhr.open("POST", url, true);
 
             fd.append('targetDirectory', path);
+            fd.append('storageId', storageId);
             fd.append(csrfName, csrfToken);
             fd.append('file', item.get('file'));
             xhr.setRequestHeader("serverTimeDiff", 0);

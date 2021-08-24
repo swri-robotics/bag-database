@@ -30,7 +30,11 @@
 
 package com.github.swrirobotics.support.web;
 
+import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
+
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Configuration implements Serializable {
     private static final long serialVersionUID = 7088819138941988062L;
@@ -66,6 +70,9 @@ public class Configuration implements Serializable {
     private Integer tileWidthPx = 256;
     private Integer tileHeightPx = 256;
 
+    private List<BagStorageConfiguration> storageConfigurations = new ArrayList<>();
+
+    @Deprecated
     public String getBagPath() {
         return bagPath;
     }
@@ -272,5 +279,13 @@ public class Configuration implements Serializable {
 
     public void setLdapUserPattern(String ldapUserPattern) {
         this.ldapUserPattern = ldapUserPattern;
+    }
+
+    public List<BagStorageConfiguration> getStorageConfigurations() {
+        return storageConfigurations;
+    }
+
+    public void setStorageConfigurations(List<BagStorageConfiguration> storageConfigurations) {
+        this.storageConfigurations = storageConfigurations;
     }
 }

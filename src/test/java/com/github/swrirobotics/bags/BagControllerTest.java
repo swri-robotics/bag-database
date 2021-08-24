@@ -31,6 +31,10 @@
 package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.swrirobotics.bags.reader.BagFile;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagStorage;
+import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.MessageType;
@@ -38,11 +42,15 @@ import com.github.swrirobotics.persistence.Tag;
 import com.github.swrirobotics.persistence.Topic;
 import com.github.swrirobotics.support.web.BagList;
 import com.github.swrirobotics.support.web.ExtJsFilter;
+import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.restdocs.payload.FieldDescriptor;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,10 +69,50 @@ public class BagControllerTest extends WebAppConfigurationAware {
     @MockBean
     private BagService bagService;
 
+    public BagWrapper makeTestBagWrapper() {
+        return new BagWrapper() {
+            @Override
+            public void close() throws IOException {
+
+            }
+
+            @Override
+            public BagFile getBagFile() throws BagReaderException {
+                return new BagFile("/test.bag");
+            }
+
+            @Override
+            public BagStorage getBagStorage() {
+                return null;
+            }
+
+            @Override
+            public String getPath() {
+                return "/";
+            }
+
+            @Override
+            public String getFilename() {
+                return "test.bag";
+            }
+
+            @Override
+            public Long getSize() throws IOException {
+                return 1000L;
+            }
+
+            @Override
+            public InputStream getInputStream() throws FileNotFoundException {
+                return null;
+            }
+        };
+    }
+
     public Bag makeTestBag() {
         Bag bag = new Bag();
 
         bag.setVehicle("Test Vehicle");
+        bag.setStorageId("default");
         bag.setLocation("Test Location");
         bag.setDescription("Test Description");
         bag.setCompressed(false);
@@ -149,7 +197,8 @@ public class BagControllerTest extends WebAppConfigurationAware {
             fieldWithPath("expanded").description("For internal use only; used for organization in the Folder View"),
             fieldWithPath("leaf").description("For internal use only; used for organization in the Folder View"),
             fieldWithPath("latitudeDeg").description("First latitude coordinate detected in the bag file").type("Number"),
-            fieldWithPath("longitudeDeg").description("First longitude coordinate detected in the bag file").type("Number")
+            fieldWithPath("longitudeDeg").description("First longitude coordinate detected in the bag file").type("Number"),
+            fieldWithPath("storageId").description("ID of the storage backend that hosts the bag file").type("String")
         };
     }
 
@@ -228,17 +277,37 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
     @Test
     public void downloadBag() throws Exception {
-        when(bagService.getBag(1L)).thenReturn(makeTestBag());
+        when(bagService.getBagWrapper(1L)).thenReturn(makeTestBagWrapper());
         mockMvc.perform(get("/bags/download").param("bagId", "1"))
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Disposition", "attachment; filename=test.bag"))
             .andExpect(header().string("Content-Transfer-Encoding", "application/octet-stream"))
+            .andExpect(header().string("Content-Length", "1000"))
         .andDo(document("bags/{method-name}",
             preprocessRequest(prettyPrint()),
             preprocessResponse(prettyPrint()),
             requestParameters(
                 parameterWithName("bagId").description("The database ID of the bag file to download")
             )));
+    }
+
+    @Test
+    public void getBagStorageIds() throws Exception {
+        when(bagService.getBagStorageIds()).thenReturn(Lists.newArrayList("default"));
+        mockMvc.perform(get("/bags/get_storage_ids"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalCount").value(1))
+            .andExpect(jsonPath("$.storageIds").isArray())
+            .andDo(document("bags/{method-name}",
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                responseFields(
+                    fieldWithPath("totalCount").description("Total number of storage backends"),
+                    fieldWithPath("storageIds").description("A list of valid storage backend identifiers")
+                )
+                    .andWithPrefix("storageIds[].",
+                        fieldWithPath("storageId").description("Unique identifier of storage backend"))
+                ));
     }
 
     @Test
@@ -271,9 +340,10 @@ public class BagControllerTest extends WebAppConfigurationAware {
             "<< binary bag data >>".getBytes());
 
         mockMvc.perform(multipart("/bags/upload")
-            .file(bagFile)
-            .with(csrf())
-            .param("targetDirectory", "/"))
+                .file(bagFile)
+                .with(csrf())
+                .param("targetDirectory", "/")
+                .param("storageId", "default"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.message").value(""))
@@ -285,6 +355,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
                 ),
                 requestParameters(
                     parameterWithName("targetDirectory").description("Location to place the bag file on disk"),
+                    parameterWithName("storageId").description("ID of the storage backend that should store the bag file; default: \"default\"").optional(),
                     parameterWithName("_csrf").description("CSRF token supplied by the Bag Database")
                 )
                 ));

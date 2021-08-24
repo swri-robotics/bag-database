@@ -150,6 +150,9 @@ Ext.define('BagDatabase.views.BagPropertyGrid', {
             type: 'date',
             renderer: bagGridDateRenderer
         },
+        storageId: {
+            displayName: 'Storage Id'
+        },
         updatedOn: {
             displayName: 'Updated On',
             type: 'date',

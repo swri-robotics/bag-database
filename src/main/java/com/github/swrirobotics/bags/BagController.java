@@ -31,17 +31,17 @@
 package com.github.swrirobotics.bags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.BagCount;
 import com.github.swrirobotics.persistence.Tag;
-import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -60,35 +60,30 @@ import java.util.*;
 @RequestMapping("bags")
 @ControllerAdvice
 public class BagController {
-    @Autowired
-    private BagService myBagService;
+    private final BagService myBagService;
 
     private final Logger myLogger = LoggerFactory.getLogger(BagController.class);
 
+    public BagController(BagService myBagService) {
+        this.myBagService = myBagService;
+    }
+
     @RequestMapping(value="/download", produces="application/x-bag")
-    public FileSystemResource downloadBag(
+    public InputStreamResource downloadBag(
             @RequestParam String bagId,
             HttpServletResponse response) throws IOException {
-        Long id = Long.valueOf(bagId);
+        long id = Long.parseLong(bagId);
         myLogger.info("downloadBag: " + id);
 
-        Bag bag;
-        try {
-            bag = myBagService.getBag(id);
-
-            if (bag != null) {
-                response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
-                response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-                myLogger.info("Found bag: " + bag.getPath() + bag.getFilename());
-                return new FileSystemResource(bag.getPath() + bag.getFilename());
-            }
-            else {
-                myLogger.warn("Bag not found.");
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return null;
-            }
+        try (BagWrapper bag = myBagService.getBagWrapper(id)){
+            response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
+            response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
+            response.setHeader("Content-Length", bag.getSize().toString());
+            myLogger.info("Found bag: " + bag.getFilename());
+            return new InputStreamResource(bag.getInputStream(), bag.getBagStorage().getStorageId());
         }
         catch (NonexistentBagException e) {
+            myLogger.warn("Bag not found.");
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return null;
         }
@@ -111,6 +106,11 @@ public class BagController {
         return null;
     }
 
+    @RequestMapping("/get_storage_ids")
+    public StorageIdList getBagStorageIds() {
+        return new StorageIdList(myBagService.getBagStorageIds());
+    }
+
     @RequestMapping("/image")
     public ModelAndView getImage(@RequestParam Long bagId,
                                  @RequestParam String topic,
@@ -122,7 +122,7 @@ public class BagController {
             String imageString = "data:image/jpeg;base64," + Base64.getMimeEncoder().encodeToString(imageData);
             mav.getModel().put("imageData", imageString);
         }
-        catch (BagReaderException e) {
+        catch (BagReaderException | NonexistentBagException e) {
             mav.getModel().put("errorMessage", "Error retrieving image:<br>" + e.getLocalizedMessage());
         }
         return mav;
@@ -141,7 +141,7 @@ public class BagController {
                 try {
                     myBagService.writeVideoStream(bagId, topic, frameSkip, output);
                 }
-                catch (BagReaderException e) {
+                catch (BagReaderException | NonexistentBagException e) {
                     myLogger.error("Error reading bag file:", e);
                 }
             };
@@ -187,13 +187,14 @@ public class BagController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public Map<String, Object> uploadBag(@RequestParam("file") MultipartFile file,
-                                         @RequestParam String targetDirectory) {
+                                         @RequestParam String targetDirectory,
+                                         @RequestParam(required=false, defaultValue="default") String storageId) {
         myLogger.info("uploadBag: " + file.getName());
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
         response.put("message", "");
         try {
-            myBagService.uploadBag(file, targetDirectory);
+            myBagService.uploadBag(file, targetDirectory, storageId);
             response.put("success", true);
         }
         catch (Exception e) {

@@ -17,12 +17,12 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE 
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
+// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
@@ -33,7 +33,7 @@ package com.github.swrirobotics.admin;
 import com.github.swrirobotics.account.Account;
 import com.github.swrirobotics.account.AccountRepository;
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.BagScanner;
+import com.github.swrirobotics.bags.storage.BagScanner;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.support.web.Configuration;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -128,64 +128,64 @@ public class AdminController {
     @RequestMapping(value = "/updateLatLons", method = RequestMethod.POST)
     @ResponseBody
     public void updateLatLons() {
-        myLogger.trace("updateLatLons");
+        myLogger.info("updateLatLons");
         myBagScanner.updateAllLatLons();
     }
 
     @RequestMapping(value = "/updateLocations", method = RequestMethod.POST)
     @ResponseBody
     public void updateLocations() {
-        myLogger.trace("updateLocations");
+        myLogger.info("updateLocations");
         myBagScanner.updateAllLocations();
     }
 
     @RequestMapping(value = "/updateGpsPaths", method = RequestMethod.POST)
     @ResponseBody
     public void updateGpsPaths() {
-        myLogger.trace("updateGpsPaths");
+        myLogger.info("updateGpsPaths");
         myBagScanner.updateAllGpsPaths();
     }
 
     @RequestMapping(value = "/updateVehicleNames", method = RequestMethod.POST)
     @ResponseBody
     public void updateVehicleNames() {
-        myLogger.trace("updateVehicleNames");
+        myLogger.info("updateVehicleNames");
         myBagScanner.updateAllVehicleNames();
     }
 
     @RequestMapping(value = "/updateTags", method = RequestMethod.POST)
     @ResponseBody
     public void updateTags() {
-        myLogger.trace("updateTags");
+        myLogger.info("updateTags");
         myBagScanner.updateAllTags();
     }
 
     @RequestMapping(value = "/removeMissingBags", method = RequestMethod.POST)
     @ResponseBody
     public void removeMissingBags() {
-        myLogger.trace("removeMissingBags");
+        myLogger.info("removeMissingBags");
         myBagService.removeMissingBags();
     }
 
     @RequestMapping(value = "/removeDuplicates", method = RequestMethod.POST)
     @ResponseBody
     public void removeDuplicates() {
-        myLogger.trace("removeDuplicates()");
+        myLogger.info("removeDuplicates()");
         myBagService.removeDuplicateBags();
     }
 
     @RequestMapping(value = "/forceScan", method = RequestMethod.POST)
     @ResponseBody
     public void forceScan() {
-        myLogger.trace("forceScan");
-        myBagScanner.scanDirectory(false);
+        myLogger.info("forceScan");
+        myBagScanner.scanAllStorages(false);
     }
 
     @RequestMapping(value = "/forceFullScan", method = RequestMethod.POST)
     @ResponseBody
     public void forceFullScan() {
-        myLogger.trace("forceFullScan");
-        myBagScanner.scanDirectory(true);
+        myLogger.info("forceFullScan");
+        myBagScanner.scanAllStorages(true);
     }
 
     @Transactional
@@ -204,7 +204,7 @@ public class AdminController {
     @RequestMapping(value = "/changePassword", method = RequestMethod.POST)
     @ResponseBody
     public void changePassword(@RequestParam String password) {
-        myLogger.trace("changePassword");
+        myLogger.info("changePassword");
         setAdminPassword(password);
     }
 }

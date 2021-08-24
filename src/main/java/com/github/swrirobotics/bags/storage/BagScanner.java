@@ -28,87 +28,68 @@
 //
 // *****************************************************************************
 
-package com.github.swrirobotics.bags.filesystem;
+package com.github.swrirobotics.bags.storage;
 
 
 import com.github.swrirobotics.bags.BagService;
-import com.github.swrirobotics.bags.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.persistence.*;
+import com.github.swrirobotics.bags.NonexistentBagException;
 import com.github.swrirobotics.bags.reader.BagFile;
-import com.github.swrirobotics.bags.reader.BagReader;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
 import com.github.swrirobotics.bags.reader.exceptions.UninitializedFieldException;
 import com.github.swrirobotics.bags.reader.messages.serialization.Float64Type;
 import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
 import com.github.swrirobotics.config.ConfigService;
+import com.github.swrirobotics.persistence.Bag;
+import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @Profile("default")
 // This class doesn't directly access it, but we need to depend on the Liquibase
 // bean to ensure the database is configured before our @PostContruct runs.
 @DependsOn("liquibase")
-public class BagScanner extends StatusProvider implements RecursiveWatcher.WatchListener {
-    @Autowired
-    private ConfigService myConfigService;
-    @Autowired
-    private BagRepository myBagRepo;
-    @Autowired
-    private MessageTypeRepository myMTRepo;
-    @Autowired
-    private TopicRepository myTopicRepo;
-    @Autowired
-    private TagRepository myTagRepository;
-    @Autowired
-    private BagService myBagService;
-    @Autowired
-    private GeocodingService myGeocodingService;
-
-    @PersistenceContext
-    private EntityManager myEM;
+public class BagScanner extends StatusProvider implements BagStorageChangeListener {
+    private final ConfigService myConfigService;
+    private final BagRepository myBagRepo;
+    private final BagService myBagService;
+    private final GeocodingService myGeocodingService;
+    private final TransactionTemplate transactionTemplate;
 
     private final ExecutorService myExecutor = Executors.newSingleThreadExecutor();
 
-    private RecursiveWatcher myWatcher = null;
-
     private final Logger myLogger = LoggerFactory.getLogger(BagScanner.class);
 
-    private final DirectoryStream.Filter<Path> myDirFilter = path -> path.toFile().isDirectory();
+    private final Map<String, BagStorage> myBagStorages = Maps.newHashMap();
 
-    public String getBagDirectory() {
-        return myConfigService.getConfiguration().getBagPath();
+    public BagScanner(ConfigService myConfigService, BagRepository myBagRepo, BagService myBagService,
+                      GeocodingService myGeocodingService,
+                      PlatformTransactionManager transactionManager) {
+        this.myConfigService = myConfigService;
+        this.myBagRepo = myBagRepo;
+        this.myBagService = myBagService;
+        this.myGeocodingService = myGeocodingService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @PostConstruct
@@ -132,20 +113,14 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         // Updates the vehicle names from the bag files
         //updateAllVehicleNames();
 
-        String bagDir = getBagDirectory();
-        if (bagDir != null && !bagDir.isEmpty()) {
-            Path path = FileSystems.getDefault().getPath(bagDir);
-            myWatcher = RecursiveWatcher.createRecursiveWatcher(
-                    path, new ArrayList<>(), 3000, this);
-            try {
-                myWatcher.start();
-            }
-            catch (Exception e) {
-                myLogger.error("Unable to monitor bag directory for changes.", e);
-            }
-        }
+        Collection<BagStorage> storages = myBagService.getBagStorages();
 
-        scanDirectory(false);
+        myBagService.deleteUnownedBags();
+
+        for (BagStorage storage : storages) {
+            storage.addChangeListener(this);
+            scanStorage(storage, false);
+        }
     }
 
     /**
@@ -153,9 +128,12 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
      * then reinitializes everything.
      */
     public void reset() {
-        if (myWatcher != null) {
-            myWatcher.stop();
+        for (BagStorage storage : myBagStorages.values()) {
+            storage.stop();
+            storage.removeChangeListener(this);
         }
+        myBagStorages.clear();
+
         initialize();
     }
 
@@ -222,21 +200,20 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
 
             Bag bag = myBagRepo.findById(bagId).orElseThrow();
             if (bag.getVehicle() == null || bag.getVehicle().isEmpty()) {
-                String fullPath = bag.getPath() + bag.getFilename();
-                try {
-                    BagFile bagFile = BagReader.readFile(fullPath);
+                try (BagWrapper wrapper = myBagService.getBagWrapper(bag)) {
+                    BagFile bagFile = wrapper.getBagFile();
                     String name = myBagService.getVehicleName(bagFile);
                     if (name != null) {
                         myLogger.debug("Setting vehicle name for " +
-                                       fullPath + " to " + name);
+                                       bag.getFilename() + " to " + name);
                         bag.setVehicle(name);
                         myBagRepo.save(bag);
                     }
                 }
-                catch (BagReaderException e) {
+                catch (BagReaderException | IOException e) {
                     reportStatus(Status.State.ERROR,
                                  "Unable to get vehicle name from bag file " +
-                                 fullPath + ": " + e.getLocalizedMessage());
+                                 bag.getFilename() + ": " + e.getLocalizedMessage());
                     reportStatus(Status.State.WORKING,
                                  "Updating vehicle names for all bag files.");
                 }
@@ -254,16 +231,19 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Transactional
         public void updateBag(Long bagId) {
             Bag bag = myBagRepo.findById(bagId).orElseThrow();
-            String fullPath = bag.getPath() + bag.getFilename();
-            try {
-                BagFile bagFile = BagReader.readFile(fullPath);
+            try (BagWrapper wrapper = myBagService.getBagWrapper(bag)) {
+                BagFile bagFile = wrapper.getBagFile();
                 myBagService.addTagsToBag(bagFile,bag);
-            } catch (BagReaderException e) {
+            }
+            catch (BagReaderException e) {
                 reportStatus(Status.State.ERROR,
                         "Unable to get tags from bag file " +
-                                fullPath + ": " + e.getLocalizedMessage());
+                                bag.getFilename() + ": " + e.getLocalizedMessage());
                 reportStatus(Status.State.WORKING,
                         "Updating tags for all bag files.");
+            }
+            catch (IOException e) {
+                reportStatus(Status.State.ERROR, "Unable to find bag " + bagId);
             }
         }
     }
@@ -277,7 +257,14 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         @Override
         @Transactional
         public void updateBag(Long bagId) {
-            myBagService.updateGpsPositionsForBagId(bagId);
+            try {
+                myBagService.updateGpsPositionsForBagId(bagId);
+            }
+            catch (NonexistentBagException e) {
+                reportStatus(Status.State.ERROR,
+                    "Unable to get GPS coordinates from bag " +
+                        bagId + ": " + e.getLocalizedMessage());
+            }
         }
     }
 
@@ -296,9 +283,8 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                     bag.getLongitudeDeg() == null ||
                     (Math.abs(bag.getLatitudeDeg()) < 0.0001 &&
                             Math.abs(bag.getLongitudeDeg()) < 0.0001)) {
-                String fullPath = bag.getPath() + bag.getFilename();
-                try {
-                    BagFile bagFile = BagReader.readFile(fullPath);
+                try (BagWrapper wrapper = myBagService.getBagWrapper(bag)) {
+                    BagFile bagFile = wrapper.getBagFile();
                     MessageType mt = bagFile.getFirstMessageOfType("gps_common/GPSFix");
                     if (mt == null) {
                         mt = bagFile.getFirstMessageOfType("sensor_msgs/NavSatFix");
@@ -307,20 +293,21 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
                         mt = bagFile.getFirstMessageOfType("marti_gps_common/GPSFix");
                     }
                     if (mt == null) {
-                        myLogger.debug("No GPSFix or NavSatFix message found in bag " + fullPath + ".");
+                        myLogger.debug("No GPSFix or NavSatFix message found in bag " + bag.getFilename() + ".");
                     }
                     else {
                         bag.setCoordinate(myBagService.makePoint(
                                 mt.<Float64Type>getField("latitude").getValue(),
                                 mt.<Float64Type>getField("longitude").getValue()));
-                        myLogger.debug("Setting lat/lon for " + fullPath + " to: " +
+                        myLogger.debug("Setting lat/lon for " + bag.getFilename() + " to: " +
                                                bag.getLatitudeDeg() + " / " + bag.getLongitudeDeg());
                         myBagRepo.save(bag);
                     }
                 }
-                catch (BagReaderException | UninitializedFieldException e) {
+                catch (BagReaderException | UninitializedFieldException | IOException e) {
                     reportStatus(Status.State.ERROR,
-                                 "Unable to get GPS info from bag file " + fullPath + ": " + e.getLocalizedMessage());
+                                 "Unable to get GPS info from bag file " + bag.getFilename() + ": "
+                                     + e.getLocalizedMessage());
                     reportStatus(Status.State.WORKING, "Updating GPS info for all bag files.");
                 }
             }
@@ -352,54 +339,16 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         myExecutor.execute(new TagUpdater());
     }
 
-    public void scanDirectory(boolean forceUpdate) {
-        String bagDir = myConfigService.getConfiguration().getBagPath();
-        if (bagDir == null || bagDir.isEmpty()) {
-            myLogger.info("No bag directory set; not scanning.");
-            reportStatus(Status.State.ERROR, "No bag directory set; please configure the server.");
-            return;
+    public void scanAllStorages(boolean forceUpdate) {
+        for (BagStorage storage : myBagStorages.values()) {
+            scanStorage(storage, forceUpdate);
         }
-
-        myLogger.info("Scheduling a " + (forceUpdate ? "full" : "quick") + " directory scan.");
-        myExecutor.execute(new FullScanner(forceUpdate, bagDir));
-    }
-
-    private boolean presentSpecialCharacters(Path dir){
-        String dirName = dir.toString();
-        Pattern p = Pattern.compile("@.*");
-        Matcher m = p.matcher(dirName);
-        return m.find();
-    }
-
-    private Set<File> getBagFiles(Path dir) {
-        Set<File> bagFiles = Sets.newHashSet();
-        if (!presentSpecialCharacters(dir.getFileName())) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.bag")) {
-                for (Path bagFile : stream) {
-                    myLogger.trace("  Adding: " + bagFile.toString());
-                    bagFiles.add(bagFile.toAbsolutePath().toFile());
-                }
-            } catch (IOException e) {
-                myLogger.error("Error parsing directory:", e);
-                reportStatus(Status.State.ERROR, "Unable to read directory: " + dir.toString());
-            }
-
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, myDirFilter)) {
-                for (Path subdir : stream) {
-                    myLogger.trace("  Checking subdir: " + subdir.toString());
-                    bagFiles.addAll(getBagFiles(subdir));
-                }
-            } catch (IOException e) {
-                myLogger.error("Error parsing subdirectory:", e);
-            }
-        }
-        return bagFiles;
     }
 
     @Override
-    public void watchEventsOccurred() {
-        myLogger.info("Filesystem change detected.");
-        scanDirectory(false);
+    public void bagStorageChanged(BagStorageChangeEvent event) {
+        myLogger.info("Bag storage change detected.");
+        scanStorage(event.getStorage(), false);
     }
 
     @Override
@@ -407,96 +356,27 @@ public class BagScanner extends StatusProvider implements RecursiveWatcher.Watch
         return "Bag Scanner";
     }
 
-    private class FullScanner implements Runnable {
-        final private boolean forceUpdate;
-        private final String myBagDirectory;
-
-        private final ExecutorService bagService = Executors.newFixedThreadPool(
-                Runtime.getRuntime().availableProcessors());
-
-        public FullScanner(boolean forceUpdate, String bagPath) {
-            this.myBagDirectory = bagPath;
-            this.forceUpdate = forceUpdate;
+    public void scanStorage(BagStorage storage, boolean forceUpdate) {
+        String msg = "Scanning for new bag files for storage [" + storage.getStorageId() + "]";
+        reportStatus(Status.State.WORKING, msg);
+        myLogger.info(msg);
+        try {
+            myExecutor.execute(() -> {
+                TransactionCallback<Object> cb = transactionStatus -> {
+                    storage.updateBagExistence();
+                    storage.updateBags(forceUpdate);
+                    return null;
+                };
+                transactionTemplate.execute(cb);
+            });
+        }
+        catch (RuntimeException e) {
+            String error = "Unexpected exception when checking bag files: ";
+            myLogger.warn(error, e);
+            reportStatus(Status.State.ERROR, error + e.getLocalizedMessage());
         }
 
-        @Override
-        public void run() {
-            String msg = "Scanning for new bag files in " + myBagDirectory + ".";
-            reportStatus(Status.State.WORKING, msg);
-            myLogger.info(msg);
-            try {
-                Path bagDir = FileSystems.getDefault().getPath(myBagDirectory);
-                Set<File> bagFiles = getBagFiles(bagDir);
-
-                myLogger.debug("Found " + bagFiles.size() + " bag files on disk.");
-
-                final Map<String, Long> existingBagPaths = Maps.newHashMap();
-                final Map<String, Long> missingBagMd5sums = Maps.newHashMap();
-
-                // First, scan over all of the existing entries in the DB and see if
-                // any of them are missing from the filesystem.  This will also
-                // mark any that are missing or have reappeared and are no longer
-                // missing.
-                myBagService.scanDatabaseBags(existingBagPaths, missingBagMd5sums);
-                myLogger.debug(existingBagPaths.size() + " bags exist in the database and are not missing.");
-                myLogger.debug(missingBagMd5sums.size() + " in the DB are missing on disk.");
-
-                // Next, go over all the files on the filesystem.  Calculating individual
-                // md5sums is CPU-intensive, so we might as well do multiple bags in parallel.
-                for (final File file : bagFiles) {
-                    bagService.execute(() -> {
-                        try {
-                            myBagService.updateBagFile(file,
-                                                       existingBagPaths,
-                                                       missingBagMd5sums,
-                                                       forceUpdate);
-                        }
-                        catch (ConstraintViolationException e) {
-                            // Constraint name is hard-coded in db.changelog-1.0.yaml
-                            if ("uk_a2r00kd2qd94dohkimsp5rdgn".equals(e.getConstraintName())) {
-                                String message = "The data in " + file.getName() + " seems to be a duplicate " +
-                                        "of an existing bag file.  If you believe this is incorrect, please " +
-                                        "report it as a bug.";
-                                reportStatus(Status.State.ERROR, message);
-                                myLogger.warn(message);
-                                myLogger.warn(e.getLocalizedMessage());
-                            }
-                            else {
-                                String message = e.getLocalizedMessage();
-                                reportStatus(Status.State.ERROR,"Error checking bag file: " + message);
-                                myLogger.error("Unexpected error updating bag file:", e);
-                            }
-                        }
-                        catch (RuntimeException e) {
-                            reportStatus(Status.State.ERROR,
-                                         "Error checking bag file: " + e.getLocalizedMessage());
-                            myLogger.error("Unexpected error updating bag file:", e);
-                        }
-                    });
-                }
-                bagService.shutdown();
-                bagService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-
-                myBagService.markMissingBags(missingBagMd5sums.values());
-
-                if (myConfigService.getConfiguration().getRemoveOnDeletion()) {
-                    myBagService.removeMissingBags();
-                }
-            }
-            catch (RuntimeException e) {
-                String error = "Unexpected exception when checking bag files: ";
-                myLogger.warn(error, e);
-                reportStatus(Status.State.ERROR, error + e.getLocalizedMessage());
-            }
-            catch (InterruptedException e) {
-                bagService.shutdownNow();
-                String error = "Interrupted while waiting for bag updates to complete.";
-                myLogger.warn(error, e);
-                reportStatus(Status.State.ERROR, error);
-            }
-
-            myLogger.debug("Done checking bag files.");
-            reportStatus(Status.State.IDLE, "Done checking bag files.");
-        }
+        myLogger.debug("Done checking bag files.");
+        reportStatus(Status.State.IDLE, "Done checking bag files.");
     }
 }

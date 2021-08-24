@@ -32,14 +32,19 @@ package com.github.swrirobotics.scripts;
 
 import com.amihaiemil.docker.Container;
 import com.amihaiemil.docker.Docker;
+import com.github.swrirobotics.bags.BagService;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.storage.BagStorage;
+import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
+import com.github.swrirobotics.bags.storage.BagWrapper;
 import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.*;
 import com.github.swrirobotics.status.Status;
 import com.google.common.base.Joiner;
 import org.apache.commons.compress.utils.Lists;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -57,14 +62,11 @@ import java.util.stream.Collectors;
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class RunnableScript implements Runnable {
-    @Autowired
-    private BagRepository bagRepository;
-    @Autowired
-    private ConfigService configService;
-    @Autowired
-    private ScriptResultRepository resultRepository;
-    @Autowired
-    private ScriptService scriptService;
+    private final BagRepository bagRepository;
+    private final BagService bagService;
+    private final ConfigService configService;
+    private final ScriptResultRepository resultRepository;
+    private final ScriptService scriptService;
 
     final private UUID runUuid;
     private Script script;
@@ -75,10 +77,17 @@ public class RunnableScript implements Runnable {
     private Status endStatus;
 
     private final Logger myLogger = LoggerFactory.getLogger(RunnableScript.class);
-    private static final String SCRIPT_TMP_NAME = "/script.py";
+    private static final String SCRIPTS_DIR = "/scripts/"; // Where scripts are mounted in the DinD container
+    private static final String SCRIPT_TMP_NAME = "/script.py"; // The name of the script inside the script container
 
-    public RunnableScript() {
+    public RunnableScript(BagRepository bagRepository, BagService bagService, ConfigService configService,
+                          ScriptResultRepository resultRepository, ScriptService scriptService) {
         this.runUuid = UUID.randomUUID();
+        this.bagRepository = bagRepository;
+        this.bagService = bagService;
+        this.configService = configService;
+        this.resultRepository = resultRepository;
+        this.scriptService = scriptService;
     }
 
     public void initialize(Script script, List<Bag> bags, Docker docker) {
@@ -155,6 +164,9 @@ public class RunnableScript implements Runnable {
         Container container = null;
 
         File scriptFile = null;
+        // A list of bag wrappers created for processing bags.  These may contain open filesystem or network
+        // resources, so they must be closed afterward.
+        List<BagWrapper> bagWrappers = new ArrayList<>();
         try {
             // Write out script out to a temporary file
             File scriptDir = new File(configService.getConfiguration().getScriptTmpPath());
@@ -171,7 +183,7 @@ public class RunnableScript implements Runnable {
             else if (!scriptDir.isDirectory()) {
                 myLogger.error("Script dir is not actually a directory.");
             }
-            scriptFile = File.createTempFile("bagdb", "py", scriptDir);
+            scriptFile = File.createTempFile("bagdb", ".py", scriptDir);
             try (FileWriter writer = new FileWriter(scriptFile)) {
                 writer.write(script.getScript());
             }
@@ -181,14 +193,33 @@ public class RunnableScript implements Runnable {
 
             // Assemble bind configurations for our script and all of the bags it uses
             JsonArrayBuilder bindBuilder = Json.createArrayBuilder();
-            bindBuilder.add(Joiner.on(':').join(scriptFile.getAbsolutePath(), SCRIPT_TMP_NAME));
+            bindBuilder.add(Joiner.on(':').join(SCRIPTS_DIR + scriptFile.getName(), SCRIPT_TMP_NAME));
             List<String> command = new ArrayList<>();
             command.add(SCRIPT_TMP_NAME);
             for (Bag bag : bags) {
-                String absolutePath = bag.getPath() + "/" + bag.getFilename();
-                bindBuilder.add(Joiner.on(':').join(absolutePath,
-                    "/" + absolutePath, ""));
-                command.add("/" + absolutePath);
+                BagWrapper wrapper = bagService.getBagWrapper(bag);
+                bagWrappers.add(wrapper);
+                BagStorageConfiguration config = wrapper.getBagStorage().getConfig();
+                String relativeBagPath;
+                if (config.isLocal) {
+                    // For local bag files, the directory they're in should be mounted as a volume inside the
+                    // docker-in-docker container.  We need to figure out the path inside that container
+                    // and use that as the source for the mount point inside the script container.
+                    BagStorage storage = wrapper.getBagStorage();
+                    String baseBagPath = storage.getRootPath();
+                    String dindBagPath = config.dockerPath;
+                    String absolutePath = wrapper.getBagFile().getPath().toAbsolutePath().toString();
+                    relativeBagPath = absolutePath.replaceFirst(baseBagPath, dindBagPath);
+                    bindBuilder.add(Joiner.on(':').join(relativeBagPath, relativeBagPath, ""));
+                    command.add("/" + relativeBagPath);
+                }
+                else {
+                    // Bag files downloaded from remote storage backends to local storage should be in the same
+                    // directory that we use for writing script files
+                    String fileName = "/" + wrapper.getBagFile().getPath().toFile().getName();
+                    bindBuilder.add(Joiner.on(':').join(SCRIPTS_DIR + fileName, fileName, ""));
+                    command.add(fileName);
+                }
             }
 
             // Pull the Docker image to make sure it's ready
@@ -305,7 +336,7 @@ public class RunnableScript implements Runnable {
             result.setStdout(stdout);
 
         }
-        catch (IOException e) {
+        catch (IOException | BagReaderException e) {
             myLogger.error("IO Exception:", e);
             result.setErrorMessage(e.getLocalizedMessage());
         }
@@ -321,6 +352,9 @@ public class RunnableScript implements Runnable {
             }
             if (scriptFile != null && !scriptFile.delete()) {
                 myLogger.warn("Failed to delete temporary script file: " + scriptFile.getAbsolutePath());
+            }
+            for (BagWrapper wrapper : bagWrappers) {
+                IOUtils.closeQuietly(wrapper);
             }
         }
 
