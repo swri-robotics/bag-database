@@ -160,7 +160,6 @@ Ext.define('BagDatabase.views.BagGrid', {
     listeners: {
         edit: function(editor, context, event) {
             var origVal, newVal, valueChanged;
-            origVal;
             if (context.record.modified && context.record.modified[context.field]){
                 origVal = context.record.modified[context.field];
             }
@@ -178,7 +177,7 @@ Ext.define('BagDatabase.views.BagGrid', {
                     valueChanged = true;
                 }
             }
-            else if (newVal != origVal) {
+            else if (newVal !== origVal) {
                 valueChanged = true;
             }
 
@@ -192,15 +191,15 @@ Ext.define('BagDatabase.views.BagGrid', {
             }
         },
         rowcontextmenu: function(grid, record, tr, rowIndex, event) {
-            var bagIds, records, items, pluralSuffix, scriptStore, scriptItems;
+            var bagIds, records, items, pluralSuffix, scriptStore, scriptItems, openWithItem;
             records = grid.getSelection();
-            pluralSuffix = records.length == 1 ? '' : 's';
+            pluralSuffix = records.length === 1 ? '' : 's';
             scriptStore = Ext.getStore('scriptStore');
             bagIds = [];
             items = [];
             scriptItems = [];
 
-            if (records.length == 1) {
+            if (records.length === 1) {
                 // Only allow viewing details for one bag at a time, all other actions can
                 // be applied to multiple bags.
                 items.push({
@@ -224,6 +223,45 @@ Ext.define('BagDatabase.views.BagGrid', {
                 });
             });
 
+            const makeOpenItemFn = function(label) {
+                return {
+                    text: 'Open with ' + label,
+                    iconCls: 'open-with-icon',
+                    handler: function() {
+                        const baseUrl = openWithUrls[label][0];
+                        const param = openWithUrls[label][1];
+                        var itemUrl = baseUrl + param + '=' +
+                                encodeURIComponent(document.location.href + 'bags/download?bagId=' + bagIds[0]);
+                        if (bagIds.length > 1) {
+                            var i;
+                            for (i = 1; i < bagIds.length; i++) {
+                                itemUrl = itemUrl + '&' + param + '-' + (i+1) + '=' +
+                                        encodeURIComponent(document.location.href + 'bags/download?bagId=' + bagIds[i]);
+                            }
+                        }
+                        window.open(itemUrl, '_blank');
+                    }
+                }
+            };
+
+            if (openWithUrls) {
+                var labels = Object.keys(openWithUrls);
+                if (labels.length === 1) {
+                    openWithItem = makeOpenItemFn(labels[0]);
+                }
+                else {
+                    const subitems = [];
+                    labels.forEach(function(label) { makeOpenItemFn(label); });
+                    openWithItem = {
+                        text: 'Open With...',
+                        iconCls: 'open-with-icon',
+                        menu: {
+                            items: subitems
+                        }
+                    }
+                }
+            }
+
             items = items.concat(
                 [{
                     text: 'Add Tag',
@@ -231,7 +269,12 @@ Ext.define('BagDatabase.views.BagGrid', {
                     handler: function() {
                         grid.ownerCt.addTag(records);
                     }
-                }, {
+                }]
+            );
+            if (openWithItem) {
+                items.push(openWithItem);
+            }
+            items = items.concat([{
                     text: 'Copy Link' + pluralSuffix,
                     iconCls: 'link-icon',
                     handler: function() {
@@ -257,7 +300,7 @@ Ext.define('BagDatabase.views.BagGrid', {
                 }, {
                     text: 'Process Bag' + pluralSuffix + ' with Script',
                     iconCls: 'script-go-icon',
-                    disabled: scriptItems.length == 0,
+                    disabled: scriptItems.length === 0,
                     menu: {
                         items: scriptItems
                     }

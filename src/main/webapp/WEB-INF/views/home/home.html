@@ -7,15 +7,16 @@
         /* This is kind of lazy, but there are a few config values that affect the user interface,
          * so I just store them in global variables and access them later.
          */
-        var useTileMap = /*[[${config.useMapQuest}]]*/ true;
-        var tileMapUrl = /*[[${config.tileMapUrl}]]*/ "http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg";
-        var tileWidthPx = /*[[${config.tileWidthPx}]]*/ 256;
-        var tileHeightPx = /*[[${config.tileHeightPx}]]*/ 256;
-        var useBing = /*[[${config.useBing}]]*/ false;
-        var bingKey = /*[[${config.bingKey}]]*/ '';
-        var csrfName = /*[[${_csrf != null ? _csrf.parameterName : null}]]*/ '';
-        var csrfToken = /*[[${_csrf != null ? _csrf.token : null}]]*/'';
-        var csrfHeader = /*[[${_csrf != null ? _csrf.headerName : null}]]*/'';
+        const useTileMap = /*[[${config.useMapQuest}]]*/ true;
+        const tileMapUrl = /*[[${config.tileMapUrl}]]*/ "http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg";
+        const tileWidthPx = /*[[${config.tileWidthPx}]]*/ 256;
+        const tileHeightPx = /*[[${config.tileHeightPx}]]*/ 256;
+        const useBing = /*[[${config.useBing}]]*/ false;
+        const bingKey = /*[[${config.bingKey}]]*/ '';
+        const csrfName = /*[[${_csrf != null ? _csrf.parameterName : null}]]*/ '';
+        const csrfToken = /*[[${_csrf != null ? _csrf.token : null}]]*/'';
+        const csrfHeader = /*[[${_csrf != null ? _csrf.headerName : null}]]*/'';
+        const openWithUrls = /*[[${config.openWithUrls}]]*/ {'Webviz': ["https://webviz.io/app/?", "remote-bag-url"]};
     </script>
     <script th:src="@{/resources/js/application.js}"></script>
 </body>

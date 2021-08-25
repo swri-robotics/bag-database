@@ -38,6 +38,7 @@ import com.github.swrirobotics.persistence.BagCount;
 import com.github.swrirobotics.persistence.Tag;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -65,8 +66,6 @@ public class BagController {
 
     private final Logger myLogger = LoggerFactory.getLogger(BagController.class);
 
-    private static final long CHUNK_SIZE = 1000000000L;
-
     public BagController(BagService myBagService) {
         this.myBagService = myBagService;
     }
@@ -81,8 +80,15 @@ public class BagController {
         long id = Long.parseLong(bagId);
         myLogger.info("downloadBag: " + id + "; range: " + rangeHeader);
 
+        if (!StringUtils.isBlank(rangeHeader) &&
+            (rangeHeader.contains(",") || !rangeHeader.strip().toLowerCase().startsWith("bytes="))) {
+            // We can't handle multi-part ranges or ranges that aren't specified in bytes
+            return ResponseEntity
+                .status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                .build();
+        }
+
         try (BagWrapper bag = myBagService.getBagWrapper(id)){
-            myLogger.info("Found bag: " + bag.getFilename());
             Resource resource = bag.getResource();
             ResourceRegion region = getResourceRegion(resource, bag.getSize(), rangeHeader);
             HttpHeaders headers = new HttpHeaders();
@@ -114,25 +120,18 @@ public class BagController {
         long fromRange;
         long toRange;
 
-        String[] ranges = httpHeaders.substring("bytes=".length()).split("-");
-        fromRange = Long.parseLong(ranges[0]);
-        if (ranges.length > 1) {
-            toRange = Long.parseLong(ranges[1]);
-        }
-        else {
-            toRange = contentLength - 1;
-        }
+        String justRange = httpHeaders.toLowerCase().replaceFirst("bytes=", "");
+        List<String> rangeValues = Splitter.on("-").trimResults().splitToList(justRange);
+        fromRange = rangeValues.get(0).isEmpty() ? 0 : Long.parseLong(rangeValues.get(0));
+        toRange = rangeValues.get(1).isEmpty() ? contentLength - 1 : Long.parseLong(rangeValues.get(1));
+        // myLogger.info("Parsed from/to: " + fromRange + "/" + toRange);
+        fromRange = Math.max(0, fromRange);
+        toRange = Math.min(contentLength, toRange);
+        // myLogger.info("Capped from/to: " + fromRange + "/" + toRange);
 
-        if (fromRange > 0) {
-            long rangeLength = Math.min(CHUNK_SIZE, toRange - fromRange + 1);
-            myLogger.debug("Returning range from " + fromRange + " to " + toRange);
-            resourceRegion = new ResourceRegion(resource, fromRange, rangeLength);
-        }
-        else {
-            long rangeLength = Math.min(CHUNK_SIZE, contentLength);
-            myLogger.debug("Returning range from 0 to " + rangeLength);
-            resourceRegion = new ResourceRegion(resource, 0, rangeLength);
-        }
+        long rangeLength = toRange - fromRange + 1;
+        myLogger.trace("Returning range from " + fromRange + " to " + toRange);
+        resourceRegion = new ResourceRegion(resource, fromRange, rangeLength);
 
         return resourceRegion;
     }
