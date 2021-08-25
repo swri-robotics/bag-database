@@ -71,11 +71,15 @@ include::{snippets}/bags/get-bag/response-fields.adoc[]
 [[bags_download]]
 === Download a Bag File
 
-If you have access to the filesystem where the bag files are stored, it will
-probably be more efficient to use a protocol such as SFTP to download them.
+This can be used to download either an entire bag file or just part of one from
+the bag database.  This call allows CORS and support the HTTP Range header, so
+it is suitable for streaming bag data to other web applications.
 
 ==== Example Request
 include::{snippets}/bags/download-bag/http-request.adoc[]
+
+===== Request Headers
+include::{snippets}/bags/download-bag/request-headers.adoc[]
 
 ===== Request Params
 include::{snippets}/bags/download-bag/request-parameters.adoc[]
