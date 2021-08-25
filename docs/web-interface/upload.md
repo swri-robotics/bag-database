@@ -2,7 +2,7 @@
 layout: default
 title: Upload Bags
 parent: Web Interface
-nav_order: 5
+nav_order: 8
 description: "Upload Bags"
 permalink: /web-interface/list_view
 ---

@@ -54,6 +54,7 @@ see [Storage](../../configuration/storage.md) for an example.
 | `LDAP_SERVER` | The LDAP server for authentication.  If set to an empty string, LDAP authentication will not be enabled, and anonymous users may connect. | |
 | `LDAP_USER_PATTERN` | The pattern for finding user DNs in the LDAP server.  `{0}` will be replaced with the username from the login form. | |
 | `METADATA_TOPICS` | A comma-separated list of `std_msgs/String` topics in bag files that will be searched for metadata.  The messages on the topic should be newline-separated tags that are made of colon-separated key/value pairs; see [Metadata Example](#metadata-example) for an example. | |
+| `OPEN_WITH_URLS` | A block of YAML describing external applications that can open bag files. See [Open With Format](#open-with-format). | `"{'Webviz':['https://webviz.io/app/?', 'remote-bag-url']}"` |
 | `SCRIPT_TMP_PATH` | Path to write temporary script files and bag files downloaded from remote storage backends.  This can be empty if you do not intend to run scripts or use remote storage. It must be writable by the bag database, and the Docker service that runs the scripts **must have it mounted as a volume at the same location as the Bag Database**. | /scripts | 
 | `TILE_HEIGHT_PX` | The height of the tiles returned from the tile map in pixels. | 256 |
 | `TILE_MAP_URL` | If `USE_TILE_MAP` is `true`, this URL will be used as a template for retrieving map tiles from a WMTS tile server.  See the documentation for the `url` property of OpenLayers' [ol.source.XYZ](http://openlayers.org/en/latest/apidoc/ol.source.XYZ.html) class.  The default value will use the terrain map provided by [Stamen](http://maps.stamen.com/). | http://{a-d}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg |
@@ -76,3 +77,31 @@ another with the name `email` and value `jdoe@example.com`.
 
 Tag names are unique.  If a topic has multiple messages and there are any tags with duplicate names, later ones
 will overwrite earlier ones.
+
+#### Open With Format
+
+By default, the Bag Database will show an "Open With Webviz" item in context menus that can be used to
+open bag files with https://webviz.io/app/ .  This can be customized to disable it or supply a
+custom list of applications.
+
+The configuration should be a YAML map in a single line so that it can be passed through as
+an environment variable.  For clarity, here's another example that is formatted more cleanly:
+
+```yaml
+'Webviz': 
+- 'https://webviz.io/app/?'
+- 'remote-bag-url'
+'Foxglove Studio':
+- 'https://studio.foxglove.dev/?'
+- 'remote-bag-url'
+```
+
+Each object in the map has a key that is used as the label in the UI, and each object has a list with
+two strings; the first is the base URL of the application, and the second is a parameter that should
+be set to the URL of the bag file.  In the above example, if a user is accessing a bag database at
+`http://localhost:6080/bagdb/` and selects a bag file with an ID of "10", it will open this URL
+in a new window: `https://webviz.io/app/?remote-bag-url=http%3A%2F%2Flocalhost%3A6080%2Fbagdb%2Fbags%2Fdownload%3FbagId%3D10`
+
+If a user selects multiple bags at once, the Bag Database will supply additional parameters based
+on what Webviz expects; for example, `remote-bag-url-2`.  A URL for two bags might look like:
+`https://webviz.io/app/?remote-bag-url=http%3A%2F%2Flocalhost%3A6080%2Fbagdb%2Fbags%2Fdownload%3FbagId%3D10&remote-bag-url-2=http%3A%2F%2Flocalhost%3A6080%2Fbagdb%2Fbags%2Fdownload%3FbagId%3D11`

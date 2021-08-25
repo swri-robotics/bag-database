@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Web Interface
-nav_order: 4
+nav_order: 9
 has_children: true
 description: "A Walkthrough of the Bag Database's Web Interface"
 permalink: /web-interface/

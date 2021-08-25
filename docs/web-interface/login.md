@@ -2,7 +2,7 @@
 layout: default
 title: Login
 parent: Web Interface
-nav_order: 7
+nav_order: 5
 description: "Login"
 permalink: /web-interface/login
 ---

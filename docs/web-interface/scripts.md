@@ -2,7 +2,7 @@
 layout: default
 title: Scripts
 parent: Web Interface
-nav_order: 3
+nav_order: 7
 description: "Scripts"
 permalink: /web-interface/scripts
 ---

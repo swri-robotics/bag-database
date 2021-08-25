@@ -74,7 +74,7 @@ Ext.define('BagDatabase.views.BagTreePanel', {
             }
         }, {
             xtype: 'button',
-            text: Object.keys(openWithUrls).length === 1 ?
+            text: (openWithUrls && Object.keys(openWithUrls).length) === 1 ?
                     ('Open With ' + Object.keys(openWithUrls)[0]) : 'Open With...',
             itemId: 'openWithButton',
             margin: '0 0 0 5',

@@ -110,7 +110,7 @@ function createBagContextMenu(records, bagGrid, event) {
         }
         else if (labels.length > 1) {
             const subitems = [];
-            labels.forEach(function(label) { subitems.push(makeOpenItemFn(label)); });
+            labels.forEach(function(label) { subitems.push(makeOpenWithItem(label, bagIds)); });
             openWithItem = {
                 text: 'Open With...',
                 iconCls: 'open-with-icon',
@@ -244,7 +244,7 @@ Ext.define('BagDatabase.views.BagGrid', {
             }
         }, {
             xtype: 'button',
-            text: Object.keys(openWithUrls).length === 1 ?
+            text: (openWithUrls && Object.keys(openWithUrls).length) === 1 ?
                     ('Open With ' + Object.keys(openWithUrls)[0]) : 'Open With...',
             itemId: 'openWithButton',
             margin: '0 0 0 5',
