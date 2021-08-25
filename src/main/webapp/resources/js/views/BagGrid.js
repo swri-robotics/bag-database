@@ -249,16 +249,16 @@ Ext.define('BagDatabase.views.BagGrid', {
                 if (labels.length === 1) {
                     openWithItem = makeOpenItemFn(labels[0]);
                 }
-                else {
+                else if (labels.length > 1) {
                     const subitems = [];
-                    labels.forEach(function(label) { makeOpenItemFn(label); });
+                    labels.forEach(function(label) { subitems.push(makeOpenItemFn(label)); });
                     openWithItem = {
                         text: 'Open With...',
                         iconCls: 'open-with-icon',
                         menu: {
                             items: subitems
                         }
-                    }
+                    };
                 }
             }
 
