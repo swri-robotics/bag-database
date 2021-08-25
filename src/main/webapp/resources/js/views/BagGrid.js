@@ -28,6 +28,179 @@
 //
 // *****************************************************************************
 
+/**
+ * Opens all of the selected bags with an external application.
+ * @param label The label of the external application; see the Bag DB's configuration
+ * @param bagIds The IDs of the bags to open.
+ */
+function openBagIdsWith(label, bagIds) {
+    const baseUrl = openWithUrls[label][0];
+    const param = openWithUrls[label][1];
+    var itemUrl = baseUrl + param + '=' +
+            encodeURIComponent(document.location.href + 'bags/download?bagId=' + bagIds[0]);
+    if (bagIds.length > 1) {
+        var i;
+        for (i = 1; i < bagIds.length; i++) {
+            itemUrl = itemUrl + '&' + param + '-' + (i+1) + '=' +
+                    encodeURIComponent(document.location.href + 'bags/download?bagId=' + bagIds[i]);
+        }
+    }
+    window.open(itemUrl, '_blank');
+}
+
+/**
+ * Makes a menu items to open a bag in an external application.
+ * @param label The label of the "Open With" application.
+ * @param bagIds A list of selected bag ids.
+ * @returns {{handler: function, text: string, iconCls: string}}
+ */
+function makeOpenWithItem(label, bagIds) {
+    return {
+        text: 'Open with ' + label,
+        iconCls: 'open-with-icon',
+        handler: function() { openBagIdsWith(label, bagIds) }
+    }
+}
+
+/**
+ * Creates a context menu when a user right-clicks on a bag in the grid.
+ * This is also used in the BagTreePanel for its context menus, too, in order to
+ * prevent duplicating code.
+ * @param records A list of Bag records.
+ * @param bagGrid A reference to the BagGrid; used to access some convenience functions defined there.
+ * @param event The click event that prompted the creation of the context menu.
+ */
+function createBagContextMenu(records, bagGrid, event) {
+    var bagIds, items, pluralSuffix, scriptStore, scriptItems, openWithItem;
+    pluralSuffix = records.length === 1 ? '' : 's';
+    scriptStore = Ext.getStore('scriptStore');
+    bagIds = [];
+    items = [];
+    scriptItems = [];
+
+    if (records.length === 1) {
+        // Only allow viewing details for one bag at a time, all other actions can
+        // be applied to multiple bags.
+        items.push({
+            text: 'View Bag Information',
+            iconCls: 'information-icon',
+            handler: function() {
+                bagGrid.showBagDetails(records[0].get('id'));
+            }
+        });
+    }
+
+    records.forEach(function(record) {
+        bagIds.push(record.get('id'));
+    });
+
+    scriptStore.each(function(record, idx) {
+        scriptItems.push({
+            text: record.get('name'),
+            iconCls: 'script-icon',
+            handler: Ext.Function.pass(scriptStore.runScript, [record.get('id'), bagIds])
+        });
+    });
+
+
+    if (openWithUrls) {
+        var labels = Object.keys(openWithUrls);
+        if (labels.length === 1) {
+            openWithItem = makeOpenWithItem(labels[0], bagIds);
+        }
+        else if (labels.length > 1) {
+            const subitems = [];
+            labels.forEach(function(label) { subitems.push(makeOpenItemFn(label)); });
+            openWithItem = {
+                text: 'Open With...',
+                iconCls: 'open-with-icon',
+                menu: {
+                    items: subitems
+                }
+            };
+        }
+    }
+
+    items = items.concat(
+            [{
+                text: 'Add Tag',
+                iconCls: 'tag-add-icon',
+                handler: function() {
+                    bagGrid.addTag(records);
+                }
+            }]
+    );
+    if (openWithItem) {
+        items.push(openWithItem);
+    }
+    items = items.concat([{
+                text: 'Copy Link' + pluralSuffix,
+                iconCls: 'link-icon',
+                handler: function() {
+                    var links = [];
+                    bagIds.forEach(function(bagId) {
+                        links.push(document.location.href +
+                                'bags/download?bagId=' + bagId);
+                    });
+                    bagGrid.copyTextToClipboard(links.join('\n'));
+                }
+            }, {
+                text: 'Display Bag' + pluralSuffix + ' on Map',
+                iconCls: 'map-icon',
+                handler: function() {
+                    bagGrid.displayBagsOnMap(records);
+                }
+            }, {
+                text: 'Download Bag' + pluralSuffix,
+                iconCls: 'save-icon',
+                handler: function() {
+                    bagGrid.downloadBags(records);
+                }
+            }, {
+                text: 'Process Bag' + pluralSuffix + ' with Script',
+                iconCls: 'script-go-icon',
+                disabled: scriptItems.length === 0,
+                menu: {
+                    items: scriptItems
+                }
+            }]
+    );
+
+    Ext.create('Ext.menu.Menu', {
+        items: items
+    }).showAt(event.getXY());
+    event.preventDefault();
+}
+
+/**
+ * Handles a click on the "Open With" button in the header bar.  If there is only a single
+ * openWithUrl, it opens the selected bags in that application; if there are more than one, it
+ * creates a context menu to let the user choose.
+ * @param records Selected bag records
+ * @param event The click that caused the event
+ */
+function handleOpenWithHeaderButton(records, event) {
+    const labels = Object.keys(openWithUrls);
+    const bagIds = records.map(function(record) {return record.getId();});
+
+    if (labels.length === 1) {
+        // If there's only one external application, just go ahead and open it.
+        openBagIdsWith(labels[0], bagIds);
+    }
+    else if (labels.length > 1) {
+        const items = [];
+        // If there's more than one, build menu items so the user can pick which one they want.
+        Object.keys(openWithUrls).forEach(function (label) {
+            items.push(makeOpenWithItem(label, bagIds));
+        })
+
+        Ext.create('Ext.menu.Menu', {
+            items: items
+        }).showAt(event.getXY());
+        event.preventDefault();
+    }
+}
+
 Ext.define('BagDatabase.views.BagGrid', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.bagGrid',
@@ -70,6 +243,20 @@ Ext.define('BagDatabase.views.BagGrid', {
                 grid.addTag(records);
             }
         }, {
+            xtype: 'button',
+            text: Object.keys(openWithUrls).length === 1 ?
+                    ('Open With ' + Object.keys(openWithUrls)[0]) : 'Open With...',
+            itemId: 'openWithButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'open-with-icon',
+            handler: function(button, event) {
+                const grid = button.up('grid');
+                const records = grid.getSelection();
+
+                handleOpenWithHeaderButton(records, event);
+            }
+        },{
             xtype: 'button',
             text: 'Copy Link',
             itemId: 'copyLinkButton',
@@ -191,126 +378,7 @@ Ext.define('BagDatabase.views.BagGrid', {
             }
         },
         rowcontextmenu: function(grid, record, tr, rowIndex, event) {
-            var bagIds, records, items, pluralSuffix, scriptStore, scriptItems, openWithItem;
-            records = grid.getSelection();
-            pluralSuffix = records.length === 1 ? '' : 's';
-            scriptStore = Ext.getStore('scriptStore');
-            bagIds = [];
-            items = [];
-            scriptItems = [];
-
-            if (records.length === 1) {
-                // Only allow viewing details for one bag at a time, all other actions can
-                // be applied to multiple bags.
-                items.push({
-                    text: 'View Bag Information',
-                    iconCls: 'information-icon',
-                    handler: function() {
-                        grid.ownerCt.showBagDetails(record.get('id'));
-                    }
-                });
-            }
-
-            records.forEach(function(record) {
-                bagIds.push(record.get('id'));
-            });
-
-            scriptStore.each(function(record, idx) {
-                scriptItems.push({
-                    text: record.get('name'),
-                    iconCls: 'script-icon',
-                    handler: Ext.Function.pass(scriptStore.runScript, [record.get('id'), bagIds])
-                });
-            });
-
-            const makeOpenItemFn = function(label) {
-                return {
-                    text: 'Open with ' + label,
-                    iconCls: 'open-with-icon',
-                    handler: function() {
-                        const baseUrl = openWithUrls[label][0];
-                        const param = openWithUrls[label][1];
-                        var itemUrl = baseUrl + param + '=' +
-                                encodeURIComponent(document.location.href + 'bags/download?bagId=' + bagIds[0]);
-                        if (bagIds.length > 1) {
-                            var i;
-                            for (i = 1; i < bagIds.length; i++) {
-                                itemUrl = itemUrl + '&' + param + '-' + (i+1) + '=' +
-                                        encodeURIComponent(document.location.href + 'bags/download?bagId=' + bagIds[i]);
-                            }
-                        }
-                        window.open(itemUrl, '_blank');
-                    }
-                }
-            };
-
-            if (openWithUrls) {
-                var labels = Object.keys(openWithUrls);
-                if (labels.length === 1) {
-                    openWithItem = makeOpenItemFn(labels[0]);
-                }
-                else if (labels.length > 1) {
-                    const subitems = [];
-                    labels.forEach(function(label) { subitems.push(makeOpenItemFn(label)); });
-                    openWithItem = {
-                        text: 'Open With...',
-                        iconCls: 'open-with-icon',
-                        menu: {
-                            items: subitems
-                        }
-                    };
-                }
-            }
-
-            items = items.concat(
-                [{
-                    text: 'Add Tag',
-                    iconCls: 'tag-add-icon',
-                    handler: function() {
-                        grid.ownerCt.addTag(records);
-                    }
-                }]
-            );
-            if (openWithItem) {
-                items.push(openWithItem);
-            }
-            items = items.concat([{
-                    text: 'Copy Link' + pluralSuffix,
-                    iconCls: 'link-icon',
-                    handler: function() {
-                        var links = [];
-                        bagIds.forEach(function(bagId) {
-                            links.push(document.location.href +
-                                'bags/download?bagId=' + bagId);
-                        });
-                        grid.ownerCt.copyTextToClipboard(links.join('\n'));
-                    }
-                }, {
-                    text: 'Display Bag' + pluralSuffix + ' on Map',
-                    iconCls: 'map-icon',
-                    handler: function() {
-                        grid.ownerCt.displayBagsOnMap(records);
-                    }
-                }, {
-                    text: 'Download Bag' + pluralSuffix,
-                    iconCls: 'save-icon',
-                    handler: function() {
-                        grid.ownerCt.downloadBags(records);
-                    }
-                }, {
-                    text: 'Process Bag' + pluralSuffix + ' with Script',
-                    iconCls: 'script-go-icon',
-                    disabled: scriptItems.length === 0,
-                    menu: {
-                        items: scriptItems
-                    }
-                }]
-            );
-
-            Ext.create('Ext.menu.Menu', {
-                items: items
-            }).showAt(event.getXY());
-            event.preventDefault();
+            createBagContextMenu(grid.getSelection(), grid.ownerCt, event);
         },
         rowdblclick: function(grid, record) {
             var bagId = record.get('id');
@@ -327,6 +395,7 @@ Ext.define('BagDatabase.views.BagGrid', {
             // Only allow "View Info" for one bag at a time
             grid.down('#infoButton').setDisabled(isDisabled || records.length > 1);
             grid.down('#addTagButton').setDisabled(isDisabled);
+            grid.down('#openWithButton').setDisabled(isDisabled || Object.keys(openWithUrls).length === 0);
             copyLinkButton.setDisabled(isDisabled);
             mapBagButton.setDisabled(isDisabled);
             downloadBagButton.setDisabled(isDisabled);
