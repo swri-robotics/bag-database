@@ -1,6 +1,6 @@
 # Bag Database changelog
 
-Forthcoming
+3.4.0
 - Add CORS and Range support to /bags/download
 - Add context menu item to open bags in external applications
 
