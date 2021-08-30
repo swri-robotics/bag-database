@@ -8,8 +8,13 @@ import com.github.swrirobotics.bags.storage.BagWrapper;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.AbstractResource;
+import org.springframework.core.io.Resource;
+import org.springframework.lang.NonNull;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
@@ -127,10 +132,53 @@ public class S3BagWrapperImpl implements BagWrapper {
         }
     }
 
+    private static class S3BagResource extends AbstractResource {
+        private final String description;
+        private final ResponseInputStream<GetObjectResponse> inputStream;
+
+        public S3BagResource(@NonNull String description, @NonNull ResponseInputStream<GetObjectResponse> inputStream) {
+            this.description = description;
+            this.inputStream = inputStream;
+        }
+
+        @Override
+        @NonNull
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        @NonNull
+        public InputStream getInputStream() throws IOException {
+            return inputStream;
+        }
+
+        @Override
+        public boolean exists() {
+            return true;
+        }
+
+        @Override
+        public boolean isReadable() {
+            return true;
+        }
+
+        @Override
+        public boolean isOpen() {
+            return true;
+        }
+
+        @Override
+        public long contentLength() throws IOException {
+            return inputStream.response().contentLength();
+        }
+    }
+
     @Override
-    public InputStream getInputStream() {
+    public Resource getResource() {
         var request = GetObjectRequest.builder().bucket(myBagStorage.getBucket()).key(myKey).build();
-        return myS3Client.getObject(request);
+        return new S3BagResource("s3://" + myBagStorage.getBucket() + "/" + myKey,
+            myS3Client.getObject(request));
     }
 
     @Override

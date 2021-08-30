@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+Forthcoming
+- Add CORS and Range support to /bags/download
+- Add context menu item to open bags in external applications
+
 3.3.0
 - Refactor bag storage to allow multiple backends with different sources
 - Add S3 storage backend implementation

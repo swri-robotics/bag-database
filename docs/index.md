@@ -36,6 +36,8 @@ for bags, downloading them, and doing post-processing on them.
   - [Map View](web-interface/list-view#map-bag): Display all of a bag's (or a series
   of bags') GPS coordinates on an interactive map so you can see where your vehicle
   went.
+  - [Open With External Apps](web-interface/open-with): Bag files can be streamed to external
+  web applications such as [Webviz](https://webviz.io/) for more complex visualizations.
 - **[Authentication](configuration/ldap)**: If you don't want everybody on your
   network to have open access to your database, the Bag Database can be connected
   to an LDAP server for authenticating users.

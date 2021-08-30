@@ -3,7 +3,7 @@ layout: default
 title: Behind a Reverse Proxy
 parent: Docker
 grand_parent: Installation
-nav_order: 4
+nav_order: 5
 description: "Running the Bag Database behind a Reverse HTTP Proxy"
 permalink: /installation/docker/behind-a-reverse-proxy
 ---

@@ -3,7 +3,7 @@ layout: default
 title: With a Private Registry
 parent: Docker
 grand_parent: Installation
-nav_order: 2
+nav_order: 3
 description: "Using docker-compose to start up a Bag Database with a private Docker registry"
 permalink: /installation/docker/with-a-private-registry
 ---

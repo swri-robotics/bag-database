@@ -32,11 +32,11 @@ package com.github.swrirobotics.bags.storage;
 
 import com.github.swrirobotics.bags.reader.BagFile;
 import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import org.springframework.core.io.Resource;
 
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * This is a wrapper that provides a layer of abstraction around performing operations on single bags.
@@ -86,8 +86,8 @@ public interface BagWrapper extends Closeable {
     /**
      * Gets an input stream for reading the bag file.  This may not necessarily use the file cached
      * by a call to BagWrapper#getBagFile().
-     * @return An input stream for reading the bag file.
+     * @return A Spring Resource for reading the bag file.
      * @throws FileNotFoundException If the bag does not exist.
      */
-    InputStream getInputStream() throws FileNotFoundException;
+    Resource getResource() throws FileNotFoundException;
 }

@@ -67,7 +67,7 @@ import java.util.Set;
 
 @EnableWebSecurity
 @Configuration
-class SecurityConfig extends WebSecurityConfigurerAdapter{
+class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private ConfigService myConfigService;
 
@@ -131,6 +131,7 @@ class SecurityConfig extends WebSecurityConfigurerAdapter{
         }
 
         http
+                .cors().and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
                 .and()
                     .exceptionHandling().accessDeniedHandler(accessDeniedHandler())

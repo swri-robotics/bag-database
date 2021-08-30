@@ -34,7 +34,9 @@ import com.github.swrirobotics.bags.storage.BagStorageConfiguration;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Configuration implements Serializable {
     private static final long serialVersionUID = 7088819138941988062L;
@@ -53,6 +55,7 @@ public class Configuration implements Serializable {
     private String[] vehicleNameTopics = new String[0];
     private String[] metadataTopics = new String[0];
     private String[] gpsTopics = new String[0];
+    private Map<String, String[]> openWithUrls = new HashMap<>();
     private Boolean debugJavascript = false;
     private Boolean removeOnDeletion = true;
     private Boolean fasterCodec = false;
@@ -183,6 +186,14 @@ public class Configuration implements Serializable {
 
     public void setGpsTopics(String[] gpsTopics) {
         this.gpsTopics = gpsTopics;
+    }
+
+    public Map<String, String[]> getOpenWithUrls() {
+        return openWithUrls;
+    }
+
+    public void setOpenWithUrls(Map<String, String[]> openWithUrls) {
+        this.openWithUrls = openWithUrls;
     }
 
     public Boolean getDebugJavascript() {

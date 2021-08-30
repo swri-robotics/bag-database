@@ -3,7 +3,7 @@ layout: default
 title: With S3 Storage
 parent: Docker
 grand_parent: Installation
-nav_order: 5
+nav_order: 6
 description: "Using docker-compose to start up a Bag Database that stores files in an S3 bucket"
 permalink: /installation/docker/with-s3-storage
 ---

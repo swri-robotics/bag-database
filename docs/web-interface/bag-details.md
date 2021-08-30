@@ -2,7 +2,7 @@
 layout: default
 title: Bag Details
 parent: Web Interface
-nav_order: 4
+nav_order: 2
 description: "Bag Details"
 permalink: /web-interface/bag-details
 ---

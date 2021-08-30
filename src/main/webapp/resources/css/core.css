@@ -108,6 +108,10 @@ div.ol-viewport {
     background-image: url('../images/map.png');
 }
 
+.open-with-icon {
+    background-image: url('../images/link_go.png');
+}
+
 .refresh-icon {
     background-image: url('../images/arrow_refresh.png');
 }

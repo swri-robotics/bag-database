@@ -3,7 +3,7 @@ layout: default
 title: With LDAP Authentication
 parent: Docker
 grand_parent: Installation
-nav_order: 2
+nav_order: 4
 description: "Using docker-compose to start up a Bag Database with an LDAP server"
 permalink: /installation/docker/with-ldap-authentication
 ---

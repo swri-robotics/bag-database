@@ -115,6 +115,9 @@ Ext.define('BagDatabase.views.ConfigWindow', {
         }, {
             fieldLabel: 'GPS Topics',
             name: 'gpsTopics'
+        }, {
+            fieldLabel: 'Open With URLs',
+            name: 'openWithUrls'
         }],
         buttons: [{
             text: 'Save',

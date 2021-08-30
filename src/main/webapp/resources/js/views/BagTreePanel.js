@@ -74,6 +74,20 @@ Ext.define('BagDatabase.views.BagTreePanel', {
             }
         }, {
             xtype: 'button',
+            text: (openWithUrls && Object.keys(openWithUrls).length) === 1 ?
+                    ('Open With ' + Object.keys(openWithUrls)[0]) : 'Open With...',
+            itemId: 'openWithButton',
+            margin: '0 0 0 5',
+            disabled: true,
+            iconCls: 'open-with-icon',
+            handler: function(button, event) {
+                const treepanel = button.up('treepanel');
+                const records = treepanel.getBagRecords(treepanel.getSelection());
+
+                handleOpenWithHeaderButton(records, event);
+            }
+        }, {
+            xtype: 'button',
             text: 'Copy Link',
             itemId: 'copyLinkButton',
             margin: '0 0 0 5',
@@ -357,82 +371,11 @@ Ext.define('BagDatabase.views.BagTreePanel', {
     },
     listeners: {
         rowcontextmenu: function(rowmodel, record, tr, rowIndex, event) {
-            var records, items, bagIds, bagGrid, pluralSuffix, scriptStore, treepanel, scriptItems;
+            var records,  treepanel, bagGrid;
             treepanel = rowmodel.up('treepanel');
             records = treepanel.getBagRecords(treepanel.getSelection());
-            items = [];
-            pluralSuffix = records.length == 1 ? '' : 's';
-            scriptStore = Ext.getStore('scriptStore');
-            if (!records || records.length == 0) {
-                return;
-            }
             bagGrid = treepanel.up('viewport').down('bagGrid');
-            if (records.length == 1) {
-                items.push({
-                    text: 'View Bag Information',
-                    iconCls: 'information-icon',
-                    handler: function() {
-                        bagGrid.showBagDetails(records[0].get('id'));
-                    }
-                });
-            }
-
-            bagIds = [];
-            records.forEach(function(record) {
-                bagIds.push(record.get('id'));
-            });
-
-            scriptItems = [];
-            scriptStore.each(function(record, idx) {
-                scriptItems.push({
-                    text: record.get('name'),
-                    iconCls: 'script-icon',
-                    handler: Ext.Function.pass(scriptStore.runScript, [record.get('id'), bagIds])
-                });
-            });
-
-            items = items.concat([{
-                text: 'Display Bag' + pluralSuffix +' on Map',
-                iconCls: 'map-icon',
-                handler: function() {
-                    bagGrid.displayBagsOnMap(records);
-                }
-            }, {
-                text: 'Add Tag',
-                iconCls: 'tag-add-icon',
-                handler: function() {
-                    bagGrid.addTag(records);
-                }
-            }, {
-                text: 'Download Bag' + pluralSuffix,
-                iconCls: 'save-icon',
-                handler: function() {
-                    bagGrid.downloadBags(records);
-                }
-            }, {
-                text: 'Copy Link' + pluralSuffix,
-                iconCls: 'link-icon',
-                handler: function() {
-                    var links = [];
-                    records.forEach(function(record) {
-                        links.push(document.location.href +
-                            'bags/download?bagId=' +
-                             record.get('bagId'));
-                    });
-                    bagGrid.copyTextToClipboard(links.join('\n'));
-                }
-            }, {
-                text: 'Process Bag' + pluralSuffix + ' with Script',
-                iconCls: 'script-go-icon',
-                disabled: scriptItems.length == 0,
-                menu: {
-                    items: scriptItems
-                }
-            }]);
-            Ext.create('Ext.menu.Menu', {
-                items: items
-            }).showAt(event.getXY());
-            event.preventDefault();
+            createBagContextMenu(records, bagGrid, event);
         },
         rowdblclick: function(rowmodel, record) {
             var bagId = record.get('bagId');
@@ -454,6 +397,7 @@ Ext.define('BagDatabase.views.BagTreePanel', {
             // Only allow "View Info" for one bag at a time
             treepanel.down('#infoButton').setDisabled(isDisabled || records.length > 1);
             treepanel.down('#addTagButton').setDisabled(isDisabled);
+            treepanel.down('#openWithButton').setDisabled(isDisabled || Object.keys(openWithUrls).length === 0);
             copyLinkButton.setDisabled(isDisabled);
             mapBagButton.setDisabled(isDisabled);
             downloadBagButton.setDisabled(isDisabled);

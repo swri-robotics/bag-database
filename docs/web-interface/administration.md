@@ -2,7 +2,7 @@
 layout: default
 title: Administration
 parent: Web Interface
-nav_order: 6
+nav_order: 1
 description: "Administration"
 permalink: /web-interface/administration
 ---

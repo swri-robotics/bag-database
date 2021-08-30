@@ -2,7 +2,7 @@
 layout: default
 title: Folder View
 parent: Web Interface
-nav_order: 2
+nav_order: 3
 description: "Folder View"
 permalink: /web-interface/folder-view
 ---

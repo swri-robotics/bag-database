@@ -3,7 +3,7 @@ layout: default
 title: Without Compose
 parent: Docker
 grand_parent: Installation
-nav_order: 3
+nav_order: 2
 description: "How to run it without docker-compose"
 permalink: /installation/docker/without-compose
 ---

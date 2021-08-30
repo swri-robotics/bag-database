@@ -2,7 +2,7 @@
 layout: default
 title: List View
 parent: Web Interface
-nav_order: 1
+nav_order: 4
 description: "List View"
 permalink: /web-interface/list-view
 ---

@@ -37,11 +37,11 @@ import com.github.swrirobotics.bags.storage.BagStorage;
 import com.github.swrirobotics.bags.storage.BagWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.regex.Matcher;
@@ -92,8 +92,8 @@ public class FilesystemBagWrapperImpl implements BagWrapper {
     }
 
     @Override
-    public InputStream getInputStream() throws FileNotFoundException {
-        return new FileInputStream(myAbsPath);
+    public Resource getResource() throws FileNotFoundException {
+        return new FileSystemResource(myAbsPath);
     }
 
     @Override

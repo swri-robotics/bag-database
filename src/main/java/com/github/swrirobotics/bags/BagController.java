@@ -38,13 +38,14 @@ import com.github.swrirobotics.persistence.BagCount;
 import com.github.swrirobotics.persistence.Tag;
 import com.github.swrirobotics.support.web.*;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.ResourceRegion;
+import org.springframework.http.*;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,6 +56,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("bags")
@@ -68,25 +70,70 @@ public class BagController {
         this.myBagService = myBagService;
     }
 
-    @RequestMapping(value="/download", produces="application/x-bag")
-    public InputStreamResource downloadBag(
-            @RequestParam String bagId,
-            HttpServletResponse response) throws IOException {
+    @GetMapping(value="/download", produces="application/x-bag")
+    @CrossOrigin(methods = {RequestMethod.GET, RequestMethod.HEAD},
+                 exposedHeaders = {"ETag", "Content-Type", "Content-Length", "Accept-Ranges"},
+                 maxAge = 3000)
+    public ResponseEntity<ResourceRegion> downloadBag(
+            @RequestHeader(value="Range", required=false) String rangeHeader,
+            @RequestParam String bagId) throws IOException {
         long id = Long.parseLong(bagId);
-        myLogger.info("downloadBag: " + id);
+        myLogger.info("downloadBag: " + id + "; range: " + rangeHeader);
+
+        if (!StringUtils.isBlank(rangeHeader) &&
+            (rangeHeader.contains(",") || !rangeHeader.strip().toLowerCase().startsWith("bytes="))) {
+            // We can't handle multi-part ranges or ranges that aren't specified in bytes
+            return ResponseEntity
+                .status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                .build();
+        }
 
         try (BagWrapper bag = myBagService.getBagWrapper(id)){
-            response.setHeader("Content-Disposition", "attachment; filename=" + bag.getFilename());
-            response.setHeader("Content-Transfer-Encoding", "application/octet-stream");
-            response.setHeader("Content-Length", bag.getSize().toString());
-            myLogger.info("Found bag: " + bag.getFilename());
-            return new InputStreamResource(bag.getInputStream(), bag.getBagStorage().getStorageId());
+            Resource resource = bag.getResource();
+            ResourceRegion region = getResourceRegion(resource, bag.getSize(), rangeHeader);
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Accept-Ranges", "bytes");
+            headers.add("Content-Disposition", "attachment; filename=" + bag.getFilename());
+            headers.add("Content-Type", MediaType.APPLICATION_OCTET_STREAM.toString());
+            headers.add("ETag", myBagService.getBagMd5Sum(id));
+
+            return ResponseEntity
+                .status(StringUtils.isBlank(rangeHeader) ? HttpStatus.OK : HttpStatus.PARTIAL_CONTENT)
+                .headers(headers)
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePrivate().noTransform())
+                .body(region);
         }
         catch (NonexistentBagException e) {
             myLogger.warn("Bag not found.");
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return null;
+            return ResponseEntity.notFound().build();
         }
+    }
+
+
+    private ResourceRegion getResourceRegion(Resource resource, long contentLength, String httpHeaders) {
+        ResourceRegion resourceRegion;
+
+        if (StringUtils.isBlank(httpHeaders)) {
+            return new ResourceRegion(resource, 0, contentLength);
+        }
+
+        long fromRange;
+        long toRange;
+
+        String justRange = httpHeaders.toLowerCase().replaceFirst("bytes=", "");
+        List<String> rangeValues = Splitter.on("-").trimResults().splitToList(justRange);
+        fromRange = rangeValues.get(0).isEmpty() ? 0 : Long.parseLong(rangeValues.get(0));
+        toRange = rangeValues.get(1).isEmpty() ? contentLength - 1 : Long.parseLong(rangeValues.get(1));
+        // myLogger.info("Parsed from/to: " + fromRange + "/" + toRange);
+        fromRange = Math.max(0, fromRange);
+        toRange = Math.min(contentLength, toRange);
+        // myLogger.info("Capped from/to: " + fromRange + "/" + toRange);
+
+        long rangeLength = toRange - fromRange + 1;
+        myLogger.trace("Returning range from " + fromRange + " to " + toRange);
+        resourceRegion = new ResourceRegion(resource, fromRange, rangeLength);
+
+        return resourceRegion;
     }
 
     @RequestMapping("/get")

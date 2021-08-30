@@ -45,9 +45,12 @@ import com.github.swrirobotics.support.web.ExtJsFilter;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.io.AbstractResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.restdocs.payload.FieldDescriptor;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +60,8 @@ import java.util.HashMap;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
@@ -71,6 +76,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
     public BagWrapper makeTestBagWrapper() {
         return new BagWrapper() {
+            static private final int SIZE = 2000;
             @Override
             public void close() throws IOException {
 
@@ -98,12 +104,28 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
             @Override
             public Long getSize() throws IOException {
-                return 1000L;
+                return (long)SIZE;
             }
 
             @Override
-            public InputStream getInputStream() throws FileNotFoundException {
-                return null;
+            public Resource getResource() throws FileNotFoundException {
+                return new AbstractResource() {
+                    private final InputStream inputStream = new ByteArrayInputStream(new byte[SIZE]);
+                    @Override
+                    public String getDescription() {
+                        return "Test Resource";
+                    }
+
+                    @Override
+                    public InputStream getInputStream() throws IOException {
+                        return inputStream;
+                    }
+
+                    @Override
+                    public long contentLength() throws IOException {
+                        return SIZE;
+                    }
+                };
             }
         };
     }
@@ -278,14 +300,22 @@ public class BagControllerTest extends WebAppConfigurationAware {
     @Test
     public void downloadBag() throws Exception {
         when(bagService.getBagWrapper(1L)).thenReturn(makeTestBagWrapper());
-        mockMvc.perform(get("/bags/download").param("bagId", "1"))
-            .andExpect(status().isOk())
+        when(bagService.getBagMd5Sum(1L)).thenReturn("test");
+        mockMvc.perform(get("/bags/download")
+                .header("Range", "bytes=100-900")
+                .param("bagId", "1"))
+            .andExpect(status().isPartialContent())
             .andExpect(header().string("Content-Disposition", "attachment; filename=test.bag"))
-            .andExpect(header().string("Content-Transfer-Encoding", "application/octet-stream"))
-            .andExpect(header().string("Content-Length", "1000"))
+            .andExpect(header().string("Content-Type", "application/octet-stream"))
+            .andExpect(header().string("Content-Length", "801"))
+            .andExpect(header().string("Content-Range", "bytes 100-900/2000"))
         .andDo(document("bags/{method-name}",
             preprocessRequest(prettyPrint()),
             preprocessResponse(prettyPrint()),
+            requestHeaders(
+                headerWithName("Range").description("The HTTP Range header describing a range of bytes to return.  " +
+                    "If omitted, the entire file will be returned.").optional()
+            ),
             requestParameters(
                 parameterWithName("bagId").description("The database ID of the bag file to download")
             )));

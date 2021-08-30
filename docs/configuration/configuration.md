@@ -49,6 +49,13 @@ ldapServer:
 ldapUserPattern: uid={0},ou=People,dc=example,dc=com
 metadataTopics: 
 - /metadata
+openWithUrls:
+  'Webviz':
+      - 'https://webviz.io/app/?'
+      - 'remote-bag-url'
+  'Foxglove Studio':
+      - 'https://studio.foxglove.dev/?'
+      - 'remote-bag-url'
 vehicleNameTopics: 
 - /vms/vehicle_name
 - /vehicle_name
