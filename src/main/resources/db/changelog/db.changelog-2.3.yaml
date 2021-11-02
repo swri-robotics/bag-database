@@ -1,0 +1,11 @@
+# With the support for multiple different storage backends, it is necessary
+# to track which bag file was created by which backend.
+databaseChangeLog:
+  - changeSet:
+      id: increase-bags-filename-length
+      author: preed
+      changes:
+        - modifyDataType:
+            tableName: 'bags'
+            columnName: filename
+            newDataType: VARCHAR(255)

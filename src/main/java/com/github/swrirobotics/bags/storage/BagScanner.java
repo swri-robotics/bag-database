@@ -362,12 +362,24 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
         myLogger.info(msg);
         try {
             myExecutor.execute(() -> {
+                // Scan for new bags and add them to the database or update any that were missing
                 TransactionCallback<Object> cb = transactionStatus -> {
                     storage.updateBagExistence();
                     storage.updateBags(forceUpdate);
                     return null;
                 };
                 transactionTemplate.execute(cb);
+
+                // After that's done, if we're configured to remove missing bags, double-check to see whether
+                // they exist now, and if not, remove them.
+                if (myConfigService.getConfiguration().getRemoveOnDeletion()) {
+                    cb = transactionStatus -> {
+                        storage.updateBagExistence();
+                        myBagService.removeMissingBags();
+                        return null;
+                    };
+                    transactionTemplate.execute(cb);
+                }
             });
         }
         catch (RuntimeException e) {

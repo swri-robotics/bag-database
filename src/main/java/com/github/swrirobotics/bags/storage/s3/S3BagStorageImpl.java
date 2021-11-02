@@ -232,12 +232,6 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
                 myLogger.error("Unexpected error updating bag file:", e);
             }
         }
-
-        // At this point, if any bags were marked as missing because they were moved, they should have been updated.
-        // Remove any that are still missing from the database.
-        if (configService.getConfiguration().getRemoveOnDeletion()) {
-            bagService.removeMissingBags();
-        }
     }
 
     @Override

@@ -112,12 +112,15 @@ public class Bag implements Serializable {
         this.id = id;
     }
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false)
     public String getFilename() {
         return filename;
     }
 
     public void setFilename(String filename) {
+        if (filename != null && filename.length() > 255) {
+            filename = filename.substring(0, 255);
+        }
         this.filename = filename;
     }
 
