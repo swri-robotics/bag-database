@@ -1,5 +1,8 @@
 # Bag Database changelog
 
+3.4.2
+- Fix admin functions for forcing bag scanning
+
 3.4.1
 - Increase maximum bag file name length to 255 characters
 - Don't prevent adding bags if the bag removal task fails

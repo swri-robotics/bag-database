@@ -44,6 +44,7 @@ import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.remote.GeocodingService;
 import com.github.swrirobotics.status.Status;
 import com.github.swrirobotics.status.StatusProvider;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +119,7 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
         myBagService.deleteUnownedBags();
 
         for (BagStorage storage : storages) {
+            myBagStorages.put(storage.getStorageId(), storage);
             storage.addChangeListener(this);
             scanStorage(storage, false);
         }
@@ -340,6 +342,7 @@ public class BagScanner extends StatusProvider implements BagStorageChangeListen
     }
 
     public void scanAllStorages(boolean forceUpdate) {
+        myLogger.info("Scanning all storage backends: " + Joiner.on(',').join(myBagStorages.keySet()));
         for (BagStorage storage : myBagStorages.values()) {
             scanStorage(storage, forceUpdate);
         }

@@ -35,7 +35,6 @@ import com.github.swrirobotics.bags.BagService;
 import com.github.swrirobotics.bags.storage.*;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.DefaultRecursiveWatcher;
 import com.github.swrirobotics.bags.storage.filesystem.watcher.RecursiveWatcher;
-import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.persistence.Bag;
 import com.github.swrirobotics.persistence.BagRepository;
 import com.github.swrirobotics.status.Status;
@@ -70,7 +69,6 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
 
     private final ApplicationContext applicationContext;
     private final BagRepository bagRepository;
-    private final ConfigService configService;
     private BagService bagService;
 
     private final DirectoryStream.Filter<Path> myDirFilter = path -> path.toFile().isDirectory();
@@ -79,11 +77,9 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
     private RecursiveWatcher myWatcher = null;
 
 
-    public FilesystemBagStorageImpl(ApplicationContext applicationContext, BagRepository bagRepository,
-                                    ConfigService configService) {
+    public FilesystemBagStorageImpl(ApplicationContext applicationContext, BagRepository bagRepository) {
         this.applicationContext = applicationContext;
         this.bagRepository = bagRepository;
-        this.configService = configService;
     }
 
     @Override
