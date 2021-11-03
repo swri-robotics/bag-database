@@ -185,10 +185,6 @@ public class FilesystemBagStorageImpl extends StatusProvider implements BagStora
             }
 
         });
-
-        if (configService.getConfiguration().getRemoveOnDeletion()) {
-            bagService.removeMissingBags();
-        }
     }
 
     @Override

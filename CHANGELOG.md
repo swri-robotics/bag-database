@@ -1,5 +1,9 @@
 # Bag Database changelog
 
+3.4.1
+- Increase maximum bag file name length to 255 characters
+- Don't prevent adding bags if the bag removal task fails
+
 3.4.0
 - Add CORS and Range support to /bags/download
 - Add context menu item to open bags in external applications

@@ -7,7 +7,7 @@
     <groupId>com.github.swri-robotics</groupId>
     <artifactId>bag-database</artifactId>
     <packaging>war</packaging>
-    <version>3.4.0</version>
+    <version>3.4.1</version>
     <name>Bag Database</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
