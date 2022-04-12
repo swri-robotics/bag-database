@@ -228,7 +228,8 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
         ObjectWriter ow = mapper.writer().withDefaultPrettyPrinter();
 
         mockMvc.perform(post("/scripts/save")
-            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
+            .characterEncoding(Charsets.UTF_8)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
             .with(csrf().asHeader())
             .content(ow.writeValueAsString(script)))
             .andExpect(status().isOk())
@@ -237,7 +238,7 @@ public class ScriptControllerTest extends WebAppConfigurationAware {
                 logger.info("Request:\n" + mvcResult.getRequest().getContentAsString());
                 logger.info("Response:\n" + mvcResult.getResponse().getContentAsString());
             })
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.success").value("true"))
             .andDo(document("scripts/{method-name}",
                 preprocessRequest(prettyPrint()),
