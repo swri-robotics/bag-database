@@ -1,5 +1,8 @@
 # Bag Database changelog
 
+Forthcoming
+- Update dependencies to address the Spring4Shell vulnerability (https://spring.io/blog/2022/03/31/spring-framework-rce-early-announcement)
+
 3.4.2
 - Fix admin functions for forcing bag scanning
 
