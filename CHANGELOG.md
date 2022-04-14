@@ -2,6 +2,8 @@
 
 Forthcoming
 - Update dependencies to address the Spring4Shell vulnerability (https://spring.io/blog/2022/03/31/spring-framework-rce-early-announcement)
+- Update liquibase
+- Fix issue where LDAP beans were being initalized even with no LDAP configuration
 
 3.4.2
 - Fix admin functions for forcing bag scanning
