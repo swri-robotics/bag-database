@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.security.access.AccessDeniedException;
@@ -190,6 +191,7 @@ class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
+    @Lazy
     public LdapAuthenticationProvider ldapAuthenticationProvider() {
         return new LdapAuthenticationProvider(ldapAuthenticator(), ldapAuthoritiesPopulator());
     }
@@ -205,6 +207,7 @@ class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
+    @Lazy
     public LdapContextSource ldapContextSource() {
         com.github.swrirobotics.support.web.Configuration config = myConfigService.getConfiguration();
         String ldapProvider = "";
@@ -228,6 +231,7 @@ class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
+    @Lazy
     public LdapAuthenticator ldapAuthenticator() {
         BindAuthenticator authenticator = new BindAuthenticator(ldapContextSource());
         com.github.swrirobotics.support.web.Configuration config = myConfigService.getConfiguration();
