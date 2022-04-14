@@ -26,7 +26,7 @@ docker run -d \
     -e METADATA_TOPICS="/metadata" \
     -e VEHICLE_NAME_TOPICS="/vehicle_name" \
     -e GPS_TOPICS="/localization/gps, /gps, /imu/fix" \
-    swrirobotics/bag-database:latest
+    ghcr.io/swri-robotics/bag-database/bag-database:latest
 ```
 
 After the bag database has successfully started, the bag database should be

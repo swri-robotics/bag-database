@@ -32,6 +32,7 @@ package com.github.swrirobotics.config;
 
 import org.springframework.boot.web.servlet.MultipartConfigFactory;
 import org.springframework.context.annotation.Bean;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
@@ -83,8 +84,8 @@ public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServlet
     @Bean
     public MultipartConfigElement multipartConfigElement() {
         MultipartConfigFactory factory = new MultipartConfigFactory();
-        factory.setMaxFileSize(maxUploadSizeBytes);
-        factory.setMaxRequestSize(maxUploadSizeBytes);
+        factory.setMaxFileSize(DataSize.ofBytes(maxUploadSizeBytes));
+        factory.setMaxRequestSize(DataSize.ofBytes(maxUploadSizeBytes));
         return factory.createMultipartConfig();
     }
 

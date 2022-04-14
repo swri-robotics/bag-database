@@ -56,7 +56,7 @@ public class BagRepositoryTest extends WebAppConfigurationAware {
     private static final Logger myLogger = LoggerFactory.getLogger(BagRepositoryTest.class);
 
     @Transactional
-    private Long insertBag() {
+    public Long insertBag() {
         Bag bag = new Bag();
         bag.setMd5sum("test");
         bag.setCreatedOn(new Timestamp(System.currentTimeMillis()));

@@ -55,7 +55,7 @@ public class GeocodingService {
             return null;
         }
 
-        GeoApiContext context = new GeoApiContext().setApiKey(key);
+        GeoApiContext context = new GeoApiContext.Builder().apiKey(key).build();
         String name = "(Unknown)";
         try {
             GeocodingResult[] results = GeocodingApi
