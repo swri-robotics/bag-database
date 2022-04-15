@@ -19,11 +19,9 @@ Here's an example [docker-compose.yml](../../../docker/docker-compose.yml) file;
 
 Review the comments in the file [docker-compose.yml](../../../docker/docker-compose.yml) for things you may wish to customize. 
 
-First, note that with the way these containers are configured, the directory containing your bags must exist before starting everything up.  The example template assumes these bags are stored in ```/bags``` on the host computer in both the ```docker``` service and the ```bagdb``` service. Both paths in these services must be the same, and should be changed to the directory containing your bag files. 
+Note that with the way these containers are configured, the directory containing your bags must exist before starting everything up.  The example template assumes these bags are stored in ```${HOME}/public_html/bags```.
 
-Second, in the ```volumes``` section, you may wish to modify the ```device``` path so that it points to a different location for the web server files.
-
-To run this, save [docker-compose.yml](../../../docker/docker-compose.yml) to a directory, ```cd``` to that directory, and run:
+To start the bag database, save [docker-compose.yml](../../../docker/docker-compose.yml) to a directory, ```cd``` to that directory, and run:
 
 ```bash
 docker-compose up

@@ -6,7 +6,7 @@ services:
         networks:
             - bagdb
         volumes:
-            - bags:/bags:ro
+            - bags:/bags:ro # Must match path in bagdb service
             - scripts:/scripts
             - docker_cache:/var/lib/docker
             - ./daemon.json:/etc/docker/daemon.json
@@ -28,7 +28,7 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - bags:/bags
+            - bags:/bags # Must match path in docker service
             - indexes:/root/.ros-bag-database/indexes
             - scripts:/scripts
         environment:
@@ -64,7 +64,7 @@ volumes:
         driver_opts:
             type: 'none'
             o: 'bind'
-            device: '/var/local/bags'  # Replace this with the path to your bags
+            device: '${HOME}/public_html/bags'  # Replace this with the path to your bags
     docker_cache:
     postgres:
     ldap:
