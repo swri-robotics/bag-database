@@ -101,8 +101,7 @@ volumes:
             device: 'tmpfs'
 ```
 
-Note that the `docker` container configuration mounts a volume at `/etc/docker/daemon.json`.  To allow
-connecting to `registry:5000` insecurely, that file should contain:
+Note that the `docker` container configuration mounts a volume at `/etc/docker/daemon.json`. To allow connecting to `registry:5000` insecurely, that file should contain:
 
 ```yaml
 {

@@ -6,16 +6,21 @@ services:
         networks:
             - bagdb
         volumes:
-            - bags:/bags:ro # Path to directory containing bags. Needs to be the same as the bagdb container below
+            - bags:/bags:ro
             - scripts:/scripts
             - docker_cache:/var/lib/docker
+            - ./daemon.json:/etc/docker/daemon.json
         command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
         # SSL is disabled since only the Bag Database can access this anyway.
-        # Be careful about allowing anything else to access this service!
+        # Be careful about allowing anything else to access this service! 
+    registry:
+        image: registry:2
+        ports:
+            - "5000:5000"
+        volumes:
+            - registry:/var/lib/registry 
     bagdb:
-        build:
-            context: ../
-            dockerfile: docker/Dockerfile
+        image: ghcr.io/swri-robotics/bag-database/bag-database:latest
         networks:
             - bagdb
         depends_on:
@@ -23,7 +28,7 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - bags:/bags # Path to directory with bags on host. Needs to be same path as dind container above
+            - bags:/bags
             - indexes:/root/.ros-bag-database/indexes
             - scripts:/scripts
         environment:
@@ -59,7 +64,7 @@ volumes:
         driver_opts:
             type: 'none'
             o: 'bind'
-            device: '${HOME}/public_html/bags'
+            device: '/var/local/bags'  # Replace this with the path to your bags
     docker_cache:
     postgres:
     ldap:
@@ -69,4 +74,3 @@ volumes:
         driver_opts:
             type: 'tmpfs'
             device: 'tmpfs'
-
