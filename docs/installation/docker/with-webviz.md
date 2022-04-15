@@ -8,7 +8,7 @@ description: "Running the Bag Database with a Self-Hosted Webviz Instance behind
 permalink: /installation/docker/with-webviz
 ---
 
-# With a Self-Hosted Webviz Instance behind a Reverse Proxy
+# With a Self-Hosted Webviz Instance Behind a Reverse Proxy
 
 This is a fairly complex example that resembles something more like what you might use
 in an actual production environment.  It combines quite a bit from the other, simpler examples.
