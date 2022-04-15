@@ -1,6 +1,7 @@
 FROM maven:3.8.5-openjdk-11 as base-layer
 
-LABEL maintainer="preed@swri.org"
+LABEL maintainer="david.anthony@swri.org"
+LABEL author="P.J. Reed"
 
 # Build the bag DB in a separate stage so that the final image doesn't need
 # to have the maven build environment in it.
@@ -13,7 +14,8 @@ RUN mvn -e -B package
 
 FROM tomcat:9-jdk11
 
-LABEL maintainer="preed@swri.org"
+LABEL maintainer="david.anthony@swri.org"
+LABEL author="P.J. Reed"
 
 VOLUME ["/bags", "/root/.ros-bag-database/indexes", "/usr/local/tomcat/logs"]
 EXPOSE 8080

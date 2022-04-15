@@ -6,7 +6,7 @@ services:
         networks:
             - bagdb
         volumes:
-            - bags:/bags:ro # Needs to match the path in the bagdb container
+            - bags:/path/to/host/bags:ro # Path to directory containing bags. Needs to be the same as the bagdb container below
             - scripts:/scripts
             - docker_cache:/var/lib/docker
         command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
@@ -20,7 +20,7 @@ services:
         ports:
             - "8080:8080"
         volumes:
-            - bags:/bags # Replace this with the path to your bag files
+            - bags:/path/to/host/bags # Path to directory with bags on host. Needs to be same path as dind container above
             - indexes:/root/.ros-bag-database/indexes
             - scripts:/scripts
         environment:
@@ -74,7 +74,7 @@ volumes:
         driver_opts:
             type: 'none'
             o: 'bind'
-            device: '/home/preed/public_html/bags'
+            device: '${HOME}/public_html/bags'
     docker_cache:
     postgres:
     ldap:
