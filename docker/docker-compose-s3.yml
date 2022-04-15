@@ -1,0 +1,44 @@
+version: '3.6'
+services:
+    docker:
+        image: docker:dind
+        privileged: yes
+        networks:
+            - bagdb
+        volumes:
+            - scripts:/scripts
+            - docker_cache:/var/lib/docker
+        command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
+    bagdb:
+        build: .
+        networks:
+            - bagdb
+        depends_on:
+            - postgres
+        ports:
+            - "8080:8080"
+        volumes:
+            - indexes:/root/.ros-bag-database/indexes
+            - scripts:/scripts
+            - ./settings.yml:/root/.ros-bag-database/settings.yml:ro  # Note that this is read-only so the entrypoint script won't overwrite it!
+    postgres:
+        image: postgis/postgis:11-2.5
+        networks:
+            - bagdb
+        volumes:
+            - postgres:/var/lib/postgresql/data
+        environment:
+            POSTGRES_PASSWORD: letmein  # Consider replacing with a more secure password; update settings.yml if you do
+            POSTGRES_USER: bag_database
+            POSTGRES_DB: bag_database
+networks:
+    bagdb: {}
+volumes:
+    docker_cache:
+    postgres:
+    indexes:
+    scripts:
+        driver_opts:
+            type: 'tmpfs'
+            device: 'tmpfs'
+
