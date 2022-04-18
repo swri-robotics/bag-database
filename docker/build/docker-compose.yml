@@ -14,8 +14,8 @@ services:
         # Be careful about allowing anything else to access this service!
     bagdb:
         build:
-            context: ../
-            dockerfile: docker/Dockerfile
+            context: ../../
+            dockerfile: docker/build/Dockerfile
         networks:
             - bagdb
         depends_on:

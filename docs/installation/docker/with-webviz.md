@@ -40,6 +40,7 @@ To make the docker-compose.yml file a bit cleaner, environment variables for man
   - After starting the server, run
     
     ```ldapadd -x -D cn=admin,dc=example,dc=com -W -f people.ldif```
+
     to add this group.
 - [user.ldif](../../../user.ldif)
   - An example LDIF file that defines a single user.
