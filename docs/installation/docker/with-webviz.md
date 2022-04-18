@@ -23,26 +23,26 @@ To make the docker-compose.yml file a bit cleaner, environment variables for man
 
 ## Configuration Files
 
-- [bagdb.env](../../../docker/webviz/bagdb.env)
+- [bagdb.env](https://github.com/swri-robotics/bag-database/blob/master/docker/webviz/bagdb.env)
   - Environment variables for the Bag Database, such as importantant ROS topics, server connections, etc.
-- [openldap.env](../../../docker/openldap.env)
+- [openldap.env](https://github.com/swri-robotics/bag-database/blob/master/docker/webviz/openldap.env)
    -  Environment variables for the LDAP server.
-- [postgres.env](../../../docker/postgres.env)
+- [postgres.env](https://github.com/swri-robotics/bag-database/blob/master/docker/webviz/postgres.env)
   - Environment variables for the PostGIS server.
-- [webviz-default.conf](../../../docker/webviz-default.conf)
+- [webviz-default.conf](https://github.com/swri-robotics/bag-database/blob/master/docker/webviz/webviz-default.conf)
   - A custom configuration file for the Webviz's nginx server.
   - Change the ```location``` variable here because it will be running under an alias at ```/webviz``` in our reverse proxy.
-- [docker-compose.yml](../../../docker/docker-compose.yml)
+- [docker-compose.yml](https://github.com/swri-robotics/bag-database/blob/master/docker/webviz/docker-compose.yml)
   - Main docker-compose.yml file. If everything is configured correctly, the system can be started with ```docker-compose up -d```
   - After everything is running, you will be able to access the server at `https://bagdb.example.com`.
-- [people.ldif](../../../docker/people.ldif)
+- [people.ldif](https://github.com/swri-robotics/bag-database/blob/master/docker/webviz/people.ldif)
   - An example LDIF file for creating a "People" group in your LDAP server.
   - After starting the server, run
     
     ```ldapadd -x -D cn=admin,dc=example,dc=com -W -f people.ldif```
 
     to add this group.
-- [user.ldif](../../../user.ldif)
+- [user.ldif](https://github.com/swri-robotics/bag-database/blob/master/docker/webviz/user.ldif)
   - An example LDIF file that defines a single user.
   - Customize this for each user
   - After you've added the People group, run

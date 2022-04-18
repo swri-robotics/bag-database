@@ -15,8 +15,8 @@ storage backend, rather than local storage.  Note that doing so requires more co
 
 To use this example, follow theese steps.
 
-1. Copy the contents of [this configuration](../../../docker/settings.yml) into a file named ```settings.yml```s
-2. Place [this Docker Compose configuration](../../../docker/docker-compose.yml) into a file named ```docker-compose.yml``` in the same directory as your ```settings.yml``` file.
+1. Copy the contents of [this configuration](https://github.com/swri-robotics/bag-database/blob/master/docker/s3/settings.yml) into a file named ```settings.yml```
+2. Place [this Docker Compose configuration](https://github.com/swri-robotics/bag-database/blob/master/docker/s3/docker-compose.yml) into a file named ```docker-compose.yml``` in the same directory as your ```settings.yml``` file.
 3. With both of those files in the same directory, run:
   ```bash
   docker-compose up
