@@ -1,0 +1,28 @@
+!com.github.swrirobotics.support.web.Configuration
+dockerHost: http://docker:2375
+driver: org.postgresql.Driver
+gpsTopics:
+    - /localization/gps
+    - gps
+    - /vehicle/gps/fix
+    - /localization/sensors/gps/novatel/raw
+    - /localization/sensors/gps/novatel/fix
+    - /imu_3dm_node/gps/fix
+    - /local_xy_origin
+jdbcPassword: letmein
+jdbcUrl: jdbc:postgresql://postgres/bag_database
+jdbcUsername: bag_database
+metadataTopics:
+    - /metadata
+vehicleNameTopics:
+    - /vms/vehicle_name
+    - /vehicle_name
+storageConfigurations:
+    - !com.github.swrirobotics.bags.storage.s3.S3BagStorageConfigImpl
+        storageId: 'YOUR_STORAGE_NAME'  # Replace with a friendly name to identify your storage backend
+        accessKey: 'YOUR_ACCESS_KEY'  # Replace with your access key
+        secretKey: 'YOUR_SECRET_KEY'  # Replace with your secret key
+        endPoint: 'YOUR_END_POINT'  # Replace with your endpoint if not using Amazon; otherwise delete this line
+        region: 'YOUR_REGION_HERE'  # Replace with your region if using Amazon; otherwise delete this line
+        bucket: 'YOUR_BUCKET_NAME'  # Replace with your bucket name
+

@@ -1,0 +1,72 @@
+version: '3.6'
+services:
+    docker:
+        image: docker:dind
+        privileged: yes
+        networks:
+            - bagdb
+        volumes:
+            - bags:/bags :ro # Needs to be the same as the bagdb container below
+            - scripts:/scripts
+            - docker_cache:/var/lib/docker
+        command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
+        # SSL is disabled since only the Bag Database can access this anyway.
+        # Be careful about allowing anything else to access this service!
+    bagdb:
+        build:
+            context: ../../
+            dockerfile: docker/build/Dockerfile
+        networks:
+            - bagdb
+        depends_on:
+            - postgres
+        ports:
+            - "8080:8080"
+        volumes:
+            - bags:/bags # Needs to be same path as dind container above
+            - indexes:/root/.ros-bag-database/indexes
+            - scripts:/scripts
+        environment:
+            ADMIN_PASSWORD: "letmein"  # Change this to something more secure
+            DB_DRIVER: org.postgresql.Driver
+            DB_PASS: letmein  # Should match POSTGRES_PASSWORD below
+            DB_URL: "jdbc:postgresql://postgres/bag_database"  # Should reference POSTGRES_DB below
+            DB_USER: bag_database  # Should match POSTGRES_USER below
+            DOCKER_HOST: "http://docker:2375"
+            GPS_TOPICS: "/localization/gps, gps, /vehicle/gps/fix, /localization/sensors/gps/novatel/raw, /localization/sensors/gps/novatel/fix, /imu_3dm_node/gps/fix, /local_xy_origin"  # Add topics where you publish GPS coordinates
+            METADATA_TOPICS: "/metadata"
+            VEHICLE_NAME_TOPICS: "/vms/vehicle_name, /vehicle_name"  # Replace with a topic on which you publish your vehicle's name
+    postgres:
+        image: postgis/postgis:11-2.5
+        networks:
+            - bagdb
+        volumes:
+            - postgres:/var/lib/postgresql/data
+        ports:
+            - "5432:5432"
+            # This port is exposed to make it easy for you to connect to the database with a
+            # SQL client to perform operations on it.   If you don't need to do so, this
+            # port does not need to be exposed.
+        environment:
+            POSTGRES_PASSWORD: letmein # If you do expose it, it's a good idea to change this password to something more secure.
+            POSTGRES_USER: bag_database
+            POSTGRES_DB: bag_database
+networks:
+    bagdb: {}
+volumes:
+    bags:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: '${HOME}/public_html/bags' # Path to bag files
+    docker_cache:
+    postgres:
+    ldap:
+    slapd:
+    indexes:
+    scripts:
+        driver_opts:
+            type: 'tmpfs'
+            device: 'tmpfs'
+

@@ -1,0 +1,8 @@
+dn: uid=jdoe,ou=People,dc=example,dc=com
+objectClass: inetOrgPerson
+uid: jdoe
+sn: Doe
+givenName: John
+cn: jdoe
+displayName: jdoe
+userPassword: letmein
