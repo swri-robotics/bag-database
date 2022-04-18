@@ -13,7 +13,7 @@ permalink: /installation/docker/with-a-private-registry
 If you want to store Docker images for running scripts locally, it makes sense to have your own
 Docker registry.  It's straightforward to add a registry container with Docker compose,
 but keep in mind that unless you also configure it to use SSL with a valid certificate, you will
-also need to configure the Bag Database's docker-in-docker container to allow it as an insecure registry. Please see [docker-compose-private-registry.yml](../../../docker/docker-compose-private-registry.yml) as an example.
+also need to configure the Bag Database's docker-in-docker container to allow it as an insecure registry. Please see [docker-compose.yml](../../../docker/docker-compose.yml) as an example.
 
 **Note**: The [docker-java-api](https://github.com/amihaiemil/docker-java-api) library that the Bag
 Database is currently using does not support authenticating with a registry.  Until support is added or
