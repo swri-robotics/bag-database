@@ -41,6 +41,8 @@ import com.github.swrirobotics.support.web.BagTreeNode;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.base.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +60,7 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 
 import javax.annotation.PreDestroy;
 import java.io.IOException;
@@ -134,8 +137,8 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
         });
     }
 
-    public boolean updateKeyCache(ListObjectsV2Response response) {
-        List<String> newKeys = response.contents().parallelStream()
+    public boolean updateKeyCache(Supplier<Stream<S3Object>> response) {
+        List<String> newKeys = response.get()
             .map(S3Object::key)
             .sorted(String::compareTo)
             .collect(Collectors.toList());
@@ -153,16 +156,21 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
         updateKeyCache(listObjects());
     }
 
-    public ListObjectsV2Response listObjects() {
+    public Supplier<Stream<S3Object>> listObjects() {
         return listObjects(null);
     }
 
-    public ListObjectsV2Response listObjects(String prefix) {
+    public Supplier<Stream<S3Object>> listObjects(String prefix) {
+
         var builder = ListObjectsV2Request.builder().bucket(myConfig.bucket);
         if (!"root".equals(prefix) && prefix != null) {
             builder = builder.prefix(prefix);
         }
-        return myS3Client.listObjectsV2(builder.build());
+        ListObjectsV2Iterable listRes = myS3Client.listObjectsV2Paginator(builder.build());
+        Supplier<Stream<S3Object>> s3ObjectSupplier = () -> listRes
+            .stream().flatMap(r -> r.contents().stream()).filter(obj -> obj.key().endsWith(".bag"));
+
+        return s3ObjectSupplier;
     }
 
     public void checkForUpdates() {
@@ -187,7 +195,8 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
 
         var response = listObjects();
         updateKeyCache(response);
-        for (var object : response.contents()) {
+
+        for (var object : response.get().collect(Collectors.toList())) {
             String filename = object.key();
             if (!filename.endsWith(".bag")) {
                 myLogger.debug("Skipping " + filename + " because it doesn't end in .bag.");
@@ -265,10 +274,11 @@ public class S3BagStorageImpl extends StatusProvider implements BagStorage {
         // by a key that ends in ".bzEmpty".  Also, this function should only return nodes directly inside targetPath,
         // not any nodes below that.
         // This will attempt to filter that list down to a set of unique directories in targetPath.
-        Set<String> paths = response.contents().stream().map(obj -> Splitter.on('/')
-            .splitToList(obj.key().replaceFirst(targetPath, "")).get(0))
+        Set<String> paths = response.get().map(obj -> Splitter.on('/')
+            .splitToList(obj.key().replaceFirst(targetPath + "/", "")).get(0))
             .filter(obj -> !obj.isEmpty() && !obj.endsWith(".bzEmpty") && !obj.endsWith(".bag"))
             .collect(Collectors.toSet());
+
         String parentId = normalizePath(targetPath.equals("root") ? "" : targetPath);
         for (String path : paths) {
             myLogger.debug("Adding branch node: " + path);
