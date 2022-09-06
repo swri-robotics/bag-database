@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -84,7 +85,7 @@ public class BagControllerTest extends WebAppConfigurationAware {
 
             @Override
             public BagFile getBagFile() throws BagReaderException {
-                return new BagFile("/test.bag");
+                return mock(BagFile.class);
             }
 
             @Override

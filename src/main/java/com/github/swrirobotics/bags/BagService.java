@@ -1292,7 +1292,7 @@ public class BagService extends StatusProvider {
      * @param bagFile The bag file to read metadata for.
      * @return A map of all of the key:value metadata in the bag.
      */
-    private Map<String, String> getMetadata(BagFile bagFile) {
+    public Map<String, String> getMetadata(BagFile bagFile) {
         final Map<String, String> tags = Maps.newHashMap();
         String[] topics = myConfigService.getConfiguration().getMetadataTopics();
         try {
@@ -1306,8 +1306,9 @@ public class BagService extends StatusProvider {
                         myLogger.debug("Examining message: " + data);
                         tags.putAll(lineSplitter.split(data));
                     }
-                    catch (UninitializedFieldException e) {
-                        // continue
+                    catch (IllegalArgumentException | UninitializedFieldException e) {
+                        reportStatus(Status.State.ERROR,
+                            "Unable to parse metadata on topic " + topic + " in bag file " + bagFile.getPath());
                     }
                     return true;
                 });
