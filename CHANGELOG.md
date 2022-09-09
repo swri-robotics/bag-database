@@ -1,4 +1,6 @@
 # Bag Database changelog
+3.5.1
+- Improved handling of invalid metadata (Thanks pjreed and ptulpen)
 
 3.5.0
 - Update dependencies to address the Spring4Shell vulnerability (https://spring.io/blog/2022/03/31/spring-framework-rce-early-announcement) (Thanks pjreed)
