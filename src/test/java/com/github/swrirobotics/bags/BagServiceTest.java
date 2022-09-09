@@ -30,18 +30,68 @@
 
 package com.github.swrirobotics.bags;
 
+import com.github.swrirobotics.bags.reader.BagFile;
+import com.github.swrirobotics.bags.reader.MessageHandler;
+import com.github.swrirobotics.bags.reader.exceptions.BagReaderException;
+import com.github.swrirobotics.bags.reader.messages.serialization.MessageCollection;
+import com.github.swrirobotics.bags.reader.messages.serialization.MessageType;
+import com.github.swrirobotics.bags.reader.messages.serialization.StringType;
+import com.github.swrirobotics.config.ConfigService;
 import com.github.swrirobotics.config.WebAppConfigurationAware;
+import com.github.swrirobotics.support.web.Configuration;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class BagServiceTest extends WebAppConfigurationAware {
     @Autowired
     BagService myBagService;
+    @MockBean
+    ConfigService myConfigService;
+
+    private static final Logger myLogger = LoggerFactory.getLogger(BagServiceTest.class);
+
+    @Test
+    public void testGetMetadata() throws BagReaderException {
+        // Set up a mock bag file to provide some test data to the service
+        BagFile mockBagFile = mock(BagFile.class);
+        myLogger.info("testGetMetadata");
+        Configuration tmpConfig = new Configuration();
+        // Set up one topic that has good data on it, and one topic that has bad data
+        tmpConfig.setMetadataTopics(new String[]{"good", "bad"});
+        when(myConfigService.getConfiguration()).thenReturn(tmpConfig);
+        doAnswer((i) -> {
+            // Create a standard ROS std_msgs/String message
+            MessageType msg = new MessageType("MSG: std_msgs/String\nstring data", new MessageCollection());
+            StringType str = msg.getField("data");
+            boolean isGood = i.getArgument(0, String.class).equals("good");
+            if (isGood) {
+                str.setValue("name: John Doe\nemail: jdoe@example.com\n");
+            }
+            else {
+                str.setValue("name: John Doe\nemail: jdoe@example.com\nbadvalue\n");
+            }
+            var handler = i.getArgument(1, MessageHandler.class);
+            handler.process(msg, null);
+            myLogger.info(i.getArgument(1).toString());
+            return null;
+        }).when(mockBagFile).forMessagesOnTopic(any(), any());
+
+        var metadata = myBagService.getMetadata(mockBagFile);
+
+        assertEquals(2, metadata.size());
+        assertEquals("John Doe", metadata.get("name"));
+        assertEquals("jdoe@example.com", metadata.get("email"));
+    }
 
     @Test
     public void testDecodeBgra() {
