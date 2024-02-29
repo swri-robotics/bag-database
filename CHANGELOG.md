@@ -1,4 +1,7 @@
 # Bag Database changelog
+3.5.2
+- Updating dependencies to address security vulnerabilities (Thanks danthony06)
+
 3.5.1
 - Improved handling of invalid metadata (Thanks pjreed and ptulpen)
 

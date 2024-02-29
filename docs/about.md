@@ -22,4 +22,4 @@ Pre-built Docker images are on Docker Hub at [https://ghcr.io/swri-robotics/bag-
 
 Let us know how it works for you!
 
-Copyright (c) 2015-2020, Southwest Research Institute® (SwRI®)
+Copyright (c) 2015-2024, Southwest Research Institute® (SwRI®)
