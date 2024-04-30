@@ -1,4 +1,7 @@
 # Bag Database changelog
+3.5.3
+- Updating Docker configuration to reference simplified paths (Thanks danthony06)
+
 3.5.2
 - Updating dependencies to address security vulnerabilities (Thanks danthony06)
 
