@@ -20,7 +20,7 @@ services:
         volumes:
             - registry:/var/lib/registry 
     bagdb:
-        image: ghcr.io/swri-robotics/bag-database/bag-database:latest
+        image: ghcr.io/swri-robotics/bag-database:latest
         networks:
             - bagdb
         depends_on:
