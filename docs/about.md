@@ -18,7 +18,7 @@ to everybody who has contributed to it.
 
 The Bag Database's source code is hosted on GitHub at [https://github.com/swri-robotics/bag-database](https://github.com/swri-robotics/bag-database).
 
-Pre-built Docker images are on Docker Hub at [https://ghcr.io/swri-robotics/bag-database/bag-database:latest](https://ghcr.io/swri-robotics/bag-database/bag-database:latest).
+Pre-built Docker images are on Docker Hub at [https://ghcr.io/swri-robotics/bag-database:latest](https://ghcr.io/swri-robotics/bag-database:latest).
 
 Let us know how it works for you!
 
