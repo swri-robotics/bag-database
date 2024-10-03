@@ -767,9 +767,6 @@ public class BagService extends StatusProvider {
                 catch (InterruptedException e) {
                     myLogger.warn("Interrupted waiting for consumer to finish.");
                 }
-                catch (IOException e) {
-                    myLogger.warn("Error reading stderr from ffmpeg:", e);
-                }
             }
         }
     }
